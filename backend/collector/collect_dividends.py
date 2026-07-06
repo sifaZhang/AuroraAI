@@ -3,12 +3,24 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from backend.analysis.dividend_yield import calculate_dividend_top20, calculate_dividend_yield
 from backend.collector.dividend_collector import collect_dividend_candidates
+
+
+TOP20_OUTPUT_COLUMNS = [
+    "\u6392\u540d",
+    "\u767b\u8bb0\u65e5",
+    "\u80a1\u7968",
+    "\u6bcf10\u80a1\u6d3e\u606f",
+    "\u6700\u65b0\u80a1\u4ef7",
+    "\u672c\u6b21\u80a1\u606f\u7387",
+]
 
 
 def parse_args() -> argparse.Namespace:
@@ -36,6 +48,10 @@ def parse_args() -> argparse.Namespace:
         "--output",
         default="data/dividend_yield.csv",
         help="CSV output path.",
+    )
+    parser.add_argument(
+        "--metadata-output",
+        help="Optional JSON metadata output path for the UI.",
     )
     return parser.parse_args()
 
@@ -69,12 +85,21 @@ def main() -> None:
     print(f"Collected {len(dividends)} dividend rows and {len(prices)} price rows.", flush=True)
     if args.mode == "top20":
         result = calculate_dividend_top20(dividends, prices, as_of_date=as_of_date, top=args.top)
+        if len(result.columns) == len(TOP20_OUTPUT_COLUMNS):
+            result.columns = TOP20_OUTPUT_COLUMNS
     else:
         result = calculate_dividend_yield(dividends, prices, mode=args.mode, today=as_of_date)
 
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     result.to_csv(output, index=False, encoding="utf-8-sig")
+    if args.metadata_output:
+        write_metadata(
+            Path(args.metadata_output),
+            row_count=len(result),
+            as_of_date=as_of_date,
+            output_path=output,
+        )
 
     print(f"Saved {len(result)} rows to {output}")
     if not result.empty:
@@ -100,6 +125,19 @@ def parse_as_of_date(raw: str | None) -> date | None:
     if not raw:
         return None
     return date.fromisoformat(raw)
+
+
+def write_metadata(output: Path, *, row_count: int, as_of_date: date | None, output_path: Path) -> None:
+    beijing_now = datetime.now(ZoneInfo("Asia/Shanghai"))
+    metadata = {
+        "generated_at": beijing_now.isoformat(timespec="seconds"),
+        "generated_at_label": beijing_now.strftime("%Y-%m-%d %H:%M:%S \u5317\u4eac\u65f6\u95f4"),
+        "as_of_date": (as_of_date or beijing_now.date()).isoformat(),
+        "row_count": row_count,
+        "data_file": output_path.name,
+    }
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 if __name__ == "__main__":

@@ -97,3 +97,40 @@ python -m backend.collector.collect_dividends --codes 000001 --include-tushare
 ```
 
 Without a token, the default path uses AKShare only.
+
+## UI
+
+Generate UI data locally:
+
+```powershell
+python -m backend.collector.collect_dividends `
+  --limit 200 `
+  --output frontend\dividend_top20.csv `
+  --metadata-output frontend\metadata.json
+```
+
+Start a local static server:
+
+```powershell
+cd frontend
+python -m http.server 4173
+```
+
+Open:
+
+```text
+http://localhost:4173
+```
+
+## Schedule
+
+GitHub Actions runs every day at 01:00 Beijing time.
+
+```text
+cron: 0 17 * * *
+timezone: UTC
+Beijing time: UTC+8
+```
+
+The workflow generates `frontend/dividend_top20.csv` and `frontend/metadata.json`,
+then deploys the static UI to GitHub Pages.

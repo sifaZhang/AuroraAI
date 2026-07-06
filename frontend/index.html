@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AuroraAI Dividend Top20</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">AuroraAI</p>
+          <h1>Dividend Top20</h1>
+        </div>
+        <div class="run-meta">
+          <span id="row-count">-- rows</span>
+          <span id="generated-at">Waiting for data</span>
+        </div>
+      </header>
+
+      <section class="toolbar" aria-label="Dividend Top20 controls">
+        <label class="search-field">
+          <span>筛选</span>
+          <input id="search-input" type="search" placeholder="代码或名称" autocomplete="off" />
+        </label>
+        <button id="reload-button" type="button">刷新</button>
+      </section>
+
+      <section class="table-region" aria-label="Dividend Top20 table">
+        <table>
+          <thead>
+            <tr>
+              <th>排名</th>
+              <th>登记日</th>
+              <th>股票</th>
+              <th>每10股派息</th>
+              <th>最新股价</th>
+              <th>本次股息率</th>
+            </tr>
+          </thead>
+          <tbody id="dividend-body">
+            <tr>
+              <td colspan="6" class="empty-state">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
