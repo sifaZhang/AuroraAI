@@ -81,7 +81,7 @@ def calculate_dividend_top20(
     prices: pd.DataFrame,
     *,
     as_of_date: date | None = None,
-    top: int = 20,
+    top: int | None = 20,
 ) -> pd.DataFrame:
     """Build the upcoming Dividend Top20 table.
 
@@ -105,7 +105,10 @@ def calculate_dividend_top20(
     if calculated.empty:
         return _empty_top20_result()
 
-    calculated = calculated.sort_values("dividend_yield", ascending=False).head(top).reset_index(drop=True)
+    calculated = calculated.sort_values("dividend_yield", ascending=False)
+    if top is not None:
+        calculated = calculated.head(top)
+    calculated = calculated.reset_index(drop=True)
     calculated.insert(0, "排名", calculated.index + 1)
     calculated["登记日"] = pd.to_datetime(calculated["record_date"]).dt.strftime("%Y-%m-%d")
     calculated["股票"] = calculated.apply(_format_stock_label, axis=1)

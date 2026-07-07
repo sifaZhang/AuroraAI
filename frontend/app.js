@@ -162,9 +162,9 @@ async function loadMetadata() {
       throw new Error("metadata missing");
     }
     const metadata = await response.json();
-    generatedAt.textContent = metadata.generated_at_label || metadata.generated_at || "Updated";
+    generatedAt.textContent = `自动更新时间: ${metadata.generated_at_label || metadata.generated_at || "Updated"}`;
   } catch {
-    generatedAt.textContent = "Metadata unavailable";
+    generatedAt.textContent = "自动更新时间: unavailable";
   }
 }
 

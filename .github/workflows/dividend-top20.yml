@@ -1,4 +1,4 @@
-name: Dividend Top50
+name: Dividend Upcoming
 
 on:
   schedule:
@@ -30,12 +30,12 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
 
-      - name: Generate Dividend Top20
+      - name: Generate upcoming dividends
         run: |
           AS_OF_DATE=$(TZ=Asia/Shanghai date +%F)
           python -m backend.collector.collect_dividends \
             --limit 200 \
-            --top 50 \
+            --top 0 \
             --as-of-date "$AS_OF_DATE" \
             --output frontend/dividend_top20.csv \
             --metadata-output frontend/metadata.json

@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   color-scheme: light;
   --bg: #f5f7fb;
   --surface: #ffffff;
@@ -133,11 +133,11 @@ h1 {
 }
 
 .sort-button.sorted-asc::after {
-  content: "▲";
+  content: '^';
 }
 
 .sort-button.sorted-desc::after {
-  content: "▼";
+  content: 'v';
 }
 
 .table-region {
@@ -237,3 +237,4 @@ tbody tr:hover {
     width: 100%;
   }
 }
+

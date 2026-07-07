@@ -1,4 +1,4 @@
-# Dividend Top50
+# Upcoming Dividends
 
 This module collects A-share dividend data from free data sources, keeps only
 upcoming dividend record dates, calculates the current dividend yield, and ranks
@@ -24,12 +24,12 @@ python -m backend.collector.collect_dividends `
 ## Full-Market Scan
 
 ```powershell
-python -m backend.collector.collect_dividends --limit 200 --top 50 --output data\dividend_top20.csv
+python -m backend.collector.collect_dividends --limit 200 --top 0 --output data\dividend_top20.csv
 ```
 
 The full-market path first fetches the announced dividend list from Eastmoney's
 free dividend distribution data through AKShare, filters records whose record
-date has not passed, and then calculates Dividend Top50. It does not scan every
+date has not passed, and then outputs all upcoming dividend candidates. It does not scan every
 A-share one by one.
 
 Use `--limit 0` to keep all upcoming dividend candidates.
@@ -105,7 +105,7 @@ Generate UI data locally:
 ```powershell
 python -m backend.collector.collect_dividends `
   --limit 200 `
-  --top 50 `
+  --top 0 `
   --output frontend\dividend_top20.csv `
   --metadata-output frontend\metadata.json
 ```

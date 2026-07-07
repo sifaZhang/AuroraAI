@@ -43,7 +43,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--as-of-date", help="Filter date for top20, format YYYY-MM-DD. Default: today.")
     parser.add_argument("--include-tushare", action="store_true", help="Also query Tushare Pro when TUSHARE_TOKEN is set.")
     parser.add_argument("--refresh-prices", action="store_true", help="Fetch latest prices one by one instead of using source fallback prices.")
-    parser.add_argument("--top", type=int, default=50, help="Number of rows to print.")
+    parser.add_argument("--top", type=int, default=0, help="Number of rows to output. Use 0 for all rows.")
     parser.add_argument(
         "--output",
         default="data/dividend_yield.csv",
@@ -83,8 +83,9 @@ def main() -> None:
         sys.exit(1)
 
     print(f"Collected {len(dividends)} dividend rows and {len(prices)} price rows.", flush=True)
+    top = None if args.top == 0 else args.top
     if args.mode == "top20":
-        result = calculate_dividend_top20(dividends, prices, as_of_date=as_of_date, top=args.top)
+        result = calculate_dividend_top20(dividends, prices, as_of_date=as_of_date, top=top)
         if len(result.columns) == len(TOP20_OUTPUT_COLUMNS):
             result.columns = TOP20_OUTPUT_COLUMNS
     else:
@@ -103,7 +104,7 @@ def main() -> None:
 
     print(f"Saved {len(result)} rows to {output}")
     if not result.empty:
-        print(result.head(args.top).to_string(index=False))
+        print(result.head(50).to_string(index=False))
 
 
 def parse_price_overrides(raw: str | None) -> dict[str, float]:
