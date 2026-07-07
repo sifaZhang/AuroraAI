@@ -1,6 +1,8 @@
 const state = {
   rows: [],
   query: "",
+  sortColumn: 5,
+  sortDirection: "desc",
 };
 
 const body = document.querySelector("#dividend-body");
@@ -8,6 +10,7 @@ const searchInput = document.querySelector("#search-input");
 const reloadButton = document.querySelector("#reload-button");
 const rowCount = document.querySelector("#row-count");
 const generatedAt = document.querySelector("#generated-at");
+const sortButtons = Array.from(document.querySelectorAll(".sort-button"));
 
 const displayColumns = [
   "\u6392\u540d",
@@ -81,13 +84,55 @@ function formatPercent(value) {
   return `${numeric.toFixed(4)}%`;
 }
 
+function parseComparable(value, columnIndex) {
+  if (columnIndex === 1) {
+    return Date.parse(value) || 0;
+  }
+  if ([0, 3, 4, 5].includes(columnIndex)) {
+    const numeric = Number(String(value).replace("%", ""));
+    return Number.isFinite(numeric) ? numeric : -Infinity;
+  }
+  return String(value).toLowerCase();
+}
+
+function sortRows(rows) {
+  const columnIndex = state.sortColumn;
+  const column = displayColumns[columnIndex];
+  const direction = state.sortDirection === "asc" ? 1 : -1;
+
+  return [...rows].sort((left, right) => {
+    const leftValue = parseComparable(left[column], columnIndex);
+    const rightValue = parseComparable(right[column], columnIndex);
+
+    if (leftValue < rightValue) {
+      return -1 * direction;
+    }
+    if (leftValue > rightValue) {
+      return 1 * direction;
+    }
+    return Number(left[displayColumns[0]]) - Number(right[displayColumns[0]]);
+  });
+}
+
+function updateSortButtons() {
+  sortButtons.forEach((button) => {
+    const columnIndex = Number(button.dataset.column);
+    const active = columnIndex === state.sortColumn;
+    button.classList.toggle("sorted-asc", active && state.sortDirection === "asc");
+    button.classList.toggle("sorted-desc", active && state.sortDirection === "desc");
+    button.setAttribute("aria-sort", active ? (state.sortDirection === "asc" ? "ascending" : "descending") : "none");
+  });
+}
+
 function render() {
   const query = state.query.trim().toLowerCase();
-  const rows = query
+  const filteredRows = query
     ? state.rows.filter((row) => row[displayColumns[2]].toLowerCase().includes(query))
     : state.rows;
+  const rows = sortRows(filteredRows);
 
   rowCount.textContent = `${rows.length} rows`;
+  updateSortButtons();
 
   if (!rows.length) {
     body.innerHTML = '<tr><td colspan="6" class="empty-state">No rows</td></tr>';
@@ -147,6 +192,19 @@ searchInput.addEventListener("input", (event) => {
 reloadButton.addEventListener("click", () => {
   loadMetadata();
   loadData();
+});
+
+sortButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const columnIndex = Number(button.dataset.column);
+    if (state.sortColumn === columnIndex) {
+      state.sortDirection = state.sortDirection === "asc" ? "desc" : "asc";
+    } else {
+      state.sortColumn = columnIndex;
+      state.sortDirection = columnIndex === 1 || columnIndex === 2 ? "asc" : "desc";
+    }
+    render();
+  });
 });
 
 loadMetadata();

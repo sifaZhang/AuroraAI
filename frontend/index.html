@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AuroraAI Dividend Top20</title>
+    <title>AuroraAI Dividend Top50</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -11,7 +11,7 @@
       <header class="topbar">
         <div>
           <p class="eyebrow">AuroraAI</p>
-          <h1>Dividend Top20</h1>
+          <h1>Dividend Top50</h1>
         </div>
         <div class="run-meta">
           <span id="row-count">-- rows</span>
@@ -19,24 +19,24 @@
         </div>
       </header>
 
-      <section class="toolbar" aria-label="Dividend Top20 controls">
+      <section class="toolbar" aria-label="Dividend Top50 controls">
         <label class="search-field">
-          <span>筛选</span>
-          <input id="search-input" type="search" placeholder="代码或名称" autocomplete="off" />
+          <span>&#31579;&#36873;</span>
+          <input id="search-input" type="search" placeholder="&#20195;&#30721;&#25110;&#21517;&#31216;" autocomplete="off" />
         </label>
-        <button id="reload-button" type="button">刷新</button>
+        <button id="reload-button" type="button">&#21047;&#26032;</button>
       </section>
 
-      <section class="table-region" aria-label="Dividend Top20 table">
+      <section class="table-region" aria-label="Dividend Top50 table">
         <table>
           <thead>
             <tr>
-              <th>排名</th>
-              <th>登记日</th>
-              <th>股票</th>
-              <th>每10股派息</th>
-              <th>最新股价</th>
-              <th>本次股息率</th>
+              <th><button type="button" class="sort-button" data-column="0">&#25490;&#21517;</button></th>
+              <th><button type="button" class="sort-button" data-column="1">&#30331;&#35760;&#26085;</button></th>
+              <th><button type="button" class="sort-button" data-column="2">&#32929;&#31080;</button></th>
+              <th><button type="button" class="sort-button" data-column="3">&#27599;10&#32929;&#27966;&#24687;</button></th>
+              <th><button type="button" class="sort-button" data-column="4">&#26368;&#26032;&#32929;&#20215;</button></th>
+              <th><button type="button" class="sort-button" data-column="5">&#26412;&#27425;&#32929;&#24687;&#29575;</button></th>
             </tr>
           </thead>
           <tbody id="dividend-body">

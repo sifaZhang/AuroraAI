@@ -91,7 +91,7 @@ h1 {
   font: inherit;
 }
 
-button {
+.toolbar button {
   height: 38px;
   padding: 0 14px;
   border: 1px solid var(--accent);
@@ -103,8 +103,41 @@ button {
   cursor: pointer;
 }
 
-button:hover {
+.toolbar button:hover {
   background: var(--accent-strong);
+}
+
+.sort-button {
+  width: 100%;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.sort-button:hover {
+  color: var(--accent-strong);
+}
+
+.sort-button::after {
+  display: inline-block;
+  width: 16px;
+  margin-left: 4px;
+  color: var(--muted);
+  content: "";
+}
+
+.sort-button.sorted-asc::after {
+  content: "▲";
+}
+
+.sort-button.sorted-desc::after {
+  content: "▼";
 }
 
 .table-region {

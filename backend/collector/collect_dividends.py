@@ -43,7 +43,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--as-of-date", help="Filter date for top20, format YYYY-MM-DD. Default: today.")
     parser.add_argument("--include-tushare", action="store_true", help="Also query Tushare Pro when TUSHARE_TOKEN is set.")
     parser.add_argument("--refresh-prices", action="store_true", help="Fetch latest prices one by one instead of using source fallback prices.")
-    parser.add_argument("--top", type=int, default=20, help="Number of rows to print.")
+    parser.add_argument("--top", type=int, default=50, help="Number of rows to print.")
     parser.add_argument(
         "--output",
         default="data/dividend_yield.csv",

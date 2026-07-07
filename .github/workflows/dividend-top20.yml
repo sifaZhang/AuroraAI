@@ -1,4 +1,4 @@
-name: Dividend Top20
+name: Dividend Top50
 
 on:
   schedule:
@@ -35,6 +35,7 @@ jobs:
           AS_OF_DATE=$(TZ=Asia/Shanghai date +%F)
           python -m backend.collector.collect_dividends \
             --limit 200 \
+            --top 50 \
             --as-of-date "$AS_OF_DATE" \
             --output frontend/dividend_top20.csv \
             --metadata-output frontend/metadata.json
