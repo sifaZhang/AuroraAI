@@ -6,8 +6,21 @@ pytest-cache-files-*/
 .venv/
 venv/
 
-# Local data outputs
-data/
+# Local data outputs (manual_a_share_valuations.csv is intentionally tracked)
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+data/dividend_*.csv
+data/pytest-temp/
+*.db
+*.sqlite
+*.sqlite3
+logs/
+*.log
+*.pdf
+.cache/
+browser-cache/
+frontend/.cache/
 
 # Secrets
 .env

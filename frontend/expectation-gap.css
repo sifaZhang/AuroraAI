@@ -1,0 +1,20 @@
+.site-nav { display:flex; gap:8px; margin-bottom:18px; }
+.site-nav a { padding:8px 12px; border-radius:6px; color:var(--muted); text-decoration:none; }
+.site-nav a.active,.site-nav a:hover { background:#e5f2ef; color:var(--accent-strong); }
+.subtitle { margin:8px 0 0; color:var(--muted); font-size:14px; }
+.filters { display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:18px 0; }
+.filters input[type="search"] { width:min(300px,100%); }
+.filters input[type="search"],.filters select,.filters button,.pager button { height:38px; padding:0 11px; border:1px solid var(--line-strong); border-radius:6px; background:var(--surface); font:inherit; }
+.filters button { color:white; background:var(--accent); border-color:var(--accent); }
+.expectation-shell { width:min(1500px,calc(100vw - 32px)); }
+.expectation-table { min-width:1380px; table-layout:auto; }
+.expectation-table th,.expectation-table td { text-align:right; }
+.expectation-table th:nth-child(-n+3),.expectation-table td:nth-child(-n+3),.expectation-table th:nth-child(n+11),.expectation-table td:nth-child(n+11) { text-align:left; }
+.expectation-table th button { border:0; background:none; font:inherit; font-weight:inherit; cursor:pointer; color:inherit; white-space:nowrap; }
+.positive { color:#08745b; font-weight:700; }.negative { color:#b42318; font-weight:700; }.muted { color:var(--muted); }
+.market-tag,.source-tag { display:inline-block; padding:3px 7px; border-radius:999px; background:#eef2f8; font-size:12px; }
+.market-tag.a { background:#fff0e6; color:#9a4f00; }.market-tag.hk { background:#e5f2ef; color:#0f5c4e; }
+.stock-name { font-weight:650; }.pager { display:flex; justify-content:center; align-items:center; gap:14px; padding:18px; }
+.method-note { padding:14px 16px; border-left:3px solid var(--accent); background:#eef6f4; color:#475569; font-size:13px; line-height:1.7; }
+.api-error { margin:0 0 14px; padding:12px; border:1px solid #efc27a; background:#fff8eb; color:#8a4b00; }
+@media(max-width:700px){.expectation-shell{width:calc(100vw - 20px)}.filters>*{flex:1 1 140px}.filters input[type="search"]{flex-basis:100%}}

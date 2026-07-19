@@ -461,4 +461,32 @@ Sifa Zhang
 Auckland, New Zealand
 
 Built with ❤️ using Python, AI and Cloud Technologies.
+
+---
+
+## 预期差 V1（本地运行）
+
+V1 使用 SQLite：港股价格与评级通过本机富途 OpenD 自动采集；A股仅包含手工CSV维护的重点股票，价格通过 AKShare/东方财富更新。
+
+```powershell
+python -m pip install -r requirements.txt
+python -m backend.collector.import_manual_a_share_valuations --file data/manual_a_share_valuations.csv
+python -m backend.collector.collect_expectations --codes HK.00700,HK.09988,HK.03690
+python -m backend.collector.refresh_expectations --market all
+python -m uvicorn backend.api.app:app --host 127.0.0.1 --port 8000
+```
+
+打开 `http://127.0.0.1:8000/expectation-gap`。A股刷新命令只更新数据库中由CSV导入的股票，不遍历全部A股；港股初始化必须显式提供代码，本命令不会自动执行全市场初始化。
+
+手工文件使用 UTF-8-SIG 编码，字段如下：
+
+```text
+futu_code,name,morningstar_fair_value,morningstar_star_rating,analyst_average_target,analyst_count,data_date,source,note
+```
+
+运行测试：
+
+```powershell
+python -m pytest -q tests -p no:cacheprovider
+```
 # AuroraAI

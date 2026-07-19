@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AuroraAI 预期差排行</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="expectation-gap.css" />
+  </head>
+  <body>
+    <main class="app-shell expectation-shell">
+      <nav class="site-nav"><a href="/">最近分红</a><a class="active" href="/expectation-gap">预期差</a></nav>
+      <header class="topbar">
+        <div><p class="eyebrow">AuroraAI</p><h1>预期差排行</h1><p class="subtitle">预期差 = 目标价 ÷ 当前价 − 1；目标价不代表未来一定达到。</p></div>
+        <div class="run-meta"><span id="total-count">— 条</span><span id="last-refresh">最后更新：—</span></div>
+      </header>
+      <section class="filters" aria-label="预期差筛选">
+        <input id="search" type="search" placeholder="搜索股票名称或代码" />
+        <select id="market"><option value="all">全部市场</option><option value="a">A股</option><option value="hk">港股</option></select>
+        <label><input id="include-unrated" type="checkbox" checked /> 包含无目标价股票</label>
+        <select id="page-size"><option>20</option><option selected>50</option><option>100</option></select>
+        <button id="reset" type="button">重置</button>
+      </section>
+      <div id="error" class="api-error" hidden></div>
+      <section class="table-region expectation-table-wrap">
+        <table class="expectation-table">
+          <thead><tr>
+            <th>市场</th><th>股票代码</th><th>股票名称</th>
+            <th><button data-sort="last_price">当前价</button></th>
+            <th><button data-sort="morningstar_fair_value">晨星公允价值</button></th>
+            <th><button data-sort="morningstar_gap_pct">晨星预期差</button></th>
+            <th>晨星星级</th>
+            <th><button data-sort="analyst_average_target">分析师平均目标价</button></th>
+            <th><button data-sort="analyst_gap_pct">分析师预期差</button></th>
+            <th><button data-sort="analyst_count">分析师人数</button></th>
+            <th>数据日期</th><th>数据来源</th>
+          </tr></thead>
+          <tbody id="rows"><tr><td colspan="12" class="empty-state">加载中…</td></tr></tbody>
+        </table>
+      </section>
+      <section class="pager"><button id="prev">上一页</button><span id="page-label">第 1 页</span><button id="next">下一页</button></section>
+      <aside class="method-note">A股仅展示CSV手工维护的重点股票，当前价由AKShare/东方财富自动更新；A股估值数据为手工录入。港股当前价及评级数据来自富途OpenD自动采集。评级和目标价仅供研究，不构成投资建议。</aside>
+    </main>
+    <script src="expectation-gap.js"></script>
+  </body>
+</html>
