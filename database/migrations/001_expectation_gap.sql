@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS stocks (
     security_type TEXT NOT NULL DEFAULT 'STOCK',
     is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
     listing_date TEXT,
+    is_reit INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -24,6 +25,7 @@ CREATE TABLE IF NOT EXISTS stock_expectations (
     price_time TEXT,
     price_status TEXT CHECK (price_status IN ('success', 'no_data', 'error')),
     price_source TEXT,
+    price_check_status TEXT,
     morningstar_fair_value NUMERIC,
     morningstar_star_rating INTEGER,
     morningstar_rating_type INTEGER,
@@ -33,6 +35,8 @@ CREATE TABLE IF NOT EXISTS stock_expectations (
     morningstar_source TEXT,
     morningstar_imported_at TEXT,
     morningstar_gap_pct NUMERIC,
+    morningstar_check_status TEXT,
+    morningstar_next_check_at TEXT,
     analyst_average_target NUMERIC,
     analyst_high_target NUMERIC,
     analyst_low_target NUMERIC,
@@ -45,6 +49,8 @@ CREATE TABLE IF NOT EXISTS stock_expectations (
     analyst_report_count INTEGER,
     analyst_window_days INTEGER,
     analyst_gap_pct NUMERIC,
+    analyst_check_status TEXT,
+    analyst_next_check_at TEXT,
     last_success_at TEXT,
     last_error TEXT,
     consecutive_failures INTEGER NOT NULL DEFAULT 0,
@@ -61,6 +67,7 @@ CREATE TABLE IF NOT EXISTS refresh_runs (
     processed_count INTEGER NOT NULL DEFAULT 0,
     success_count INTEGER NOT NULL DEFAULT 0,
     failure_count INTEGER NOT NULL DEFAULT 0,
+    no_data_count INTEGER NOT NULL DEFAULT 0,
     last_code TEXT,
     error_message TEXT
 );

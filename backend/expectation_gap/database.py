@@ -39,8 +39,19 @@ def migrate(connection: sqlite3.Connection) -> None:
         "analyst_report_count": "INTEGER",
         "analyst_window_days": "INTEGER",
         "analyst_gap_pct": "NUMERIC",
+        "price_check_status": "TEXT",
+        "morningstar_check_status": "TEXT",
+        "morningstar_next_check_at": "TEXT",
+        "analyst_check_status": "TEXT",
+        "analyst_next_check_at": "TEXT",
     }
     for column, sql_type in additions.items():
         if column not in existing:
             connection.execute(f"ALTER TABLE stock_expectations ADD COLUMN {column} {sql_type}")
+    stock_columns = {row[1] for row in connection.execute("PRAGMA table_info(stocks)")}
+    if "is_reit" not in stock_columns:
+        connection.execute("ALTER TABLE stocks ADD COLUMN is_reit INTEGER NOT NULL DEFAULT 0")
+    run_columns = {row[1] for row in connection.execute("PRAGMA table_info(refresh_runs)")}
+    if "no_data_count" not in run_columns:
+        connection.execute("ALTER TABLE refresh_runs ADD COLUMN no_data_count INTEGER NOT NULL DEFAULT 0")
     connection.commit()

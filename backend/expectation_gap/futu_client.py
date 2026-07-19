@@ -53,6 +53,10 @@ class FutuResearchClient:
         self._context = None
 
     def __enter__(self) -> "FutuResearchClient":
+        self._connect()
+        return self
+
+    def _connect(self) -> None:
         try:
             from futu import OpenQuoteContext
             self._context = OpenQuoteContext(host=self.host, port=self.port)
@@ -60,7 +64,15 @@ class FutuResearchClient:
             raise ConnectionError(
                 f"无法连接富途 OpenD，请确认 OpenD 已启动、已登录且监听 {self.host}:{self.port}。原始错误: {exc}"
             ) from exc
-        return self
+
+    def _reconnect(self) -> None:
+        if self._context is not None:
+            try:
+                self._context.close()
+            except Exception:
+                pass
+        self._context = None
+        self._connect()
 
     def __exit__(self, *_: Any) -> None:
         if self._context is not None:
@@ -69,6 +81,33 @@ class FutuResearchClient:
 
     def global_state(self) -> CollectionResult:
         return self._call(lambda: self._context.get_global_state(), rate_limited=False)
+
+    def hk_security_pool(self):
+        from futu import Market, SecurityType
+        return self._call(lambda: self._context.get_stock_basicinfo(Market.HK, SecurityType.STOCK), rate_limited=False)
+
+    def security_type_count(self, security_type: str) -> int | None:
+        from futu import Market
+        result = self._call(lambda: self._context.get_stock_basicinfo(Market.HK, security_type), rate_limited=False)
+        return len(result.raw) if result.status == "success" and hasattr(result.raw, "__len__") else None
+
+    def batch_snapshots(self, codes: list[str], batch_size: int = 200) -> dict[str, CollectionResult]:
+        output: dict[str, CollectionResult] = {}
+        for start in range(0, len(codes), batch_size):
+            chunk = codes[start:start + batch_size]
+            result = self._call(lambda chunk=chunk: self._context.get_market_snapshot(chunk), rate_limited=False)
+            if result.status != "success":
+                for code in chunk:
+                    output[code] = CollectionResult(result.status, error=result.error)
+                continue
+            frame = result.raw
+            returned = {row["code"]: row for _, row in frame.iterrows()}
+            for code in chunk:
+                row = returned.get(code)
+                price = _valid_positive(row.get("last_price")) if row is not None else None
+                output[code] = (CollectionResult("success", {"last_price": price, "price_time": row.get("update_time")})
+                                if price is not None else CollectionResult("no_data"))
+        return output
 
     def snapshot(self, code: str) -> CollectionResult:
         result = self._call(lambda: self._context.get_market_snapshot([code]), rate_limited=False)
@@ -138,11 +177,27 @@ class FutuResearchClient:
                         return CollectionResult("no_data", raw=payload)
                     return CollectionResult("success", raw=payload)
                 error = str(payload)
-            retryable = any(token in error.lower() for token in ("频率", "frequency", "timeout", "断开", "disconnect"))
+            retryable = any(token in error.lower() for token in ("频率", "frequency", "rate limit", "timeout", "断开", "disconnect", "connection", "连接"))
             if not retryable or attempt >= self.max_retries:
-                return CollectionResult("error", error=error)
+                return CollectionResult(self._classify_error(error), error=error)
+            if self._classify_error(error) == "connection_error":
+                try:
+                    self._reconnect()
+                except ConnectionError as exc:
+                    error = str(exc)
             time.sleep(backoffs[min(attempt, len(backoffs) - 1)])
         return CollectionResult("error", error="未知富途接口错误")
+
+    @staticmethod
+    def _classify_error(error: str) -> str:
+        lowered = error.lower()
+        if any(token in lowered for token in ("permission", "权限", "无权")):
+            return "permission_denied"
+        if any(token in lowered for token in ("frequency", "rate limit", "频率", "限频")):
+            return "rate_limited"
+        if any(token in lowered for token in ("disconnect", "connection", "timeout", "断开", "连接")):
+            return "connection_error"
+        return "connection_error"
 
 
 def utc_now() -> str:

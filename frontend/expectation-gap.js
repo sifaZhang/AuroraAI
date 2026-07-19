@@ -1,4 +1,4 @@
-const state = { market: "all", q: "", sort_by: "morningstar_gap_pct", sort_order: "desc", page: 1, page_size: 50, include_unrated: true, total: 0 };
+const state = { market: "all", q: "", sort_by: "morningstar_gap_pct", sort_order: "desc", page: 1, page_size: 50, include_unrated: false, total: 0 };
 const $ = (selector) => document.querySelector(selector);
 const rows = $("#rows");
 
@@ -34,7 +34,7 @@ let timer; $("#search").addEventListener("input", e => { clearTimeout(timer); ti
 $("#market").addEventListener("change", e => { state.market = e.target.value; state.page = 1; load(); });
 $("#include-unrated").addEventListener("change", e => { state.include_unrated = e.target.checked; state.page = 1; load(); });
 $("#page-size").addEventListener("change", e => { state.page_size = Number(e.target.value); state.page = 1; load(); });
-$("#reset").addEventListener("click", () => { Object.assign(state, {market:"all",q:"",sort_by:"morningstar_gap_pct",sort_order:"desc",page:1,page_size:50,include_unrated:true}); applyControls(); load(); });
+$("#reset").addEventListener("click", () => { Object.assign(state, {market:"all",q:"",sort_by:"morningstar_gap_pct",sort_order:"desc",page:1,page_size:50,include_unrated:false}); applyControls(); load(); });
 document.querySelectorAll("[data-sort]").forEach(button => button.addEventListener("click", () => { const field = button.dataset.sort; state.sort_order = state.sort_by === field && state.sort_order === "desc" ? "asc" : "desc"; state.sort_by = field; state.page = 1; load(); }));
 $("#prev").addEventListener("click", () => { if (state.page > 1) { state.page--; load(); } }); $("#next").addEventListener("click", () => { if (state.page * state.page_size < state.total) { state.page++; load(); } });
 function applyControls() { $("#search").value=state.q; $("#market").value=state.market; $("#include-unrated").checked=state.include_unrated; $("#page-size").value=String(state.page_size); }

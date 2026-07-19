@@ -489,4 +489,21 @@ futu_code,name,morningstar_fair_value,morningstar_star_rating,analyst_average_ta
 ```powershell
 python -m pytest -q tests -p no:cacheprovider
 ```
+
+### 港股初始化（阶段D）
+
+先只查看富途港股证券池统计，不写入数据：
+
+```powershell
+python -m backend.collector.init_hk_expectations --dry-run
+```
+
+显式限制样本数量后初始化；不提供 `--limit` 或 `--codes` 时程序会拒绝执行：
+
+```powershell
+python -m backend.collector.init_hk_expectations --limit 100
+python -m backend.collector.init_hk_expectations --limit 100 --resume
+```
+
+可选参数包括 `--force`、`--codes HK.00700,HK.09988`、`--only-unrated` 和 `--include-reit`。默认排除可识别的REIT名称，研究接口无数据使用30天TTL。
 # AuroraAI

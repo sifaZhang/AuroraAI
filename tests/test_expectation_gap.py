@@ -1,12 +1,14 @@
 import math
 import sqlite3
 import pytest
+import pandas as pd
 
 from backend.expectation_gap.database import migrate
 from backend.expectation_gap.futu_client import CollectionResult
 from backend.expectation_gap.service import calculate_gap_pct, positive_number
 from backend.expectation_gap.repository import patch_analyst, patch_morningstar, patch_price
 from backend.collector.collect_expectations import collect_one
+from backend.collector.init_hk_expectations import filter_hk_pool
 from backend.expectation_gap.query import list_expectation_gaps
 from backend.expectation_gap.repository import patch_manual_a_share_valuation
 
@@ -185,3 +187,31 @@ def test_hk_update_does_not_modify_a_share_manual_data(tmp_path):
     patch_price(connection, hk_id, CollectionResult("success", {"last_price": 400}), "futu_opend")
     patch_morningstar(connection, hk_id, CollectionResult("success", {"fair_value": 500, "data_date": "2026-07-20"}), "futu_opend")
     assert tuple(morningstar_row(connection)[:4]) == before
+
+
+def test_hk_pool_keeps_normal_stock_and_excludes_delisted_reit_and_non_stock():
+    frame = pd.DataFrame([
+        {"code": "HK.00001", "name": "Normal", "stock_type": "STOCK", "delisting": False, "listing_date": "2000-01-01"},
+        {"code": "HK.00002", "name": "Old", "stock_type": "STOCK", "delisting": True, "listing_date": "2000-01-01"},
+        {"code": "HK.00003", "name": "Example REIT", "stock_type": "STOCK", "delisting": False, "listing_date": "2000-01-01"},
+        {"code": "HK.00004", "name": "Fund", "stock_type": "ETF", "delisting": False, "listing_date": "2000-01-01"},
+    ])
+    pool, stats = filter_hk_pool(frame)
+    assert [item["futu_code"] for item in pool] == ["HK.00001"]
+    assert stats["excluded_delisted"] == 1
+    assert stats["excluded_reit"] == 1
+    assert stats["excluded_non_stock"] == 1
+
+
+def test_no_data_sets_30_day_ttl_and_specific_check_status(tmp_path):
+    connection, stock_id = expectation_connection(tmp_path)
+    patch_morningstar(connection, stock_id, CollectionResult("no_data"), "futu_opend", "2026-07-19T00:00:00+00:00")
+    row = connection.execute("SELECT morningstar_status,morningstar_check_status,morningstar_next_check_at FROM stock_expectations").fetchone()
+    assert tuple(row) == ("no_data", "no_data", "2026-08-18T00:00:00+00:00")
+
+
+def test_specific_futu_error_classification():
+    from backend.expectation_gap.futu_client import FutuResearchClient
+    assert FutuResearchClient._classify_error("permission denied") == "permission_denied"
+    assert FutuResearchClient._classify_error("rate limit exceeded") == "rate_limited"
+    assert FutuResearchClient._classify_error("connection timeout") == "connection_error"

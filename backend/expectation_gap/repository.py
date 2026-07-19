@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from backend.expectation_gap.futu_client import CollectionResult, utc_now
@@ -37,6 +37,16 @@ def recalculate_gaps(connection, stock_id: int, now: str | None = None) -> None:
     )
 
 
+def _legacy_status(status: str) -> str:
+    return status if status in {"success", "no_data"} else "error"
+
+
+def _next_check(now: str, status: str, success_hours: int) -> str:
+    parsed = datetime.fromisoformat(now)
+    delta = timedelta(days=30) if status == "no_data" else timedelta(hours=success_hours)
+    return (parsed + delta).isoformat(timespec="seconds")
+
+
 def patch_price(connection, stock_id: int, result: CollectionResult, source: str, checked_at: str | None = None) -> None:
     now = checked_at or utc_now()
     ensure_expectation_row(connection, stock_id, now)
@@ -50,8 +60,9 @@ def patch_price(connection, stock_id: int, result: CollectionResult, source: str
     else:
         connection.execute(
             "UPDATE stock_expectations SET price_status=?,last_error=?,updated_at=? WHERE stock_id=?",
-            (result.status, result.error, now, stock_id),
+            (_legacy_status(result.status), result.error, now, stock_id),
         )
+    connection.execute("UPDATE stock_expectations SET price_check_status=? WHERE stock_id=?", (result.status, stock_id))
     recalculate_gaps(connection, stock_id, now)
 
 
@@ -83,10 +94,11 @@ def patch_morningstar(
         connection.execute(
             """UPDATE stock_expectations SET
                    morningstar_fair_value=?,morningstar_star_rating=?,morningstar_rating_type=?,morningstar_data_date=?,
-                   morningstar_checked_at=?,morningstar_status='success',morningstar_source=?,morningstar_imported_at=?,
+                   morningstar_checked_at=?,morningstar_status='success',morningstar_check_status='success',morningstar_source=?,morningstar_imported_at=?,
+                   morningstar_next_check_at=?,
                    last_error=NULL,last_success_at=?,updated_at=? WHERE stock_id=?""",
             (fair_value, data.get("star_rating"), data.get("rating_type"), data_date, now, source,
-             now if manual else None, now, now, stock_id),
+             now if manual else None, _next_check(now, "success", 168), now, now, stock_id),
         )
     else:
         error = result.error
@@ -97,8 +109,8 @@ def patch_morningstar(
         elif result.status == "success" and current_date and data_date and data_date < current_date:
             error = error or "stale morningstar data"
         connection.execute(
-            "UPDATE stock_expectations SET morningstar_checked_at=?,morningstar_status=?,last_error=?,updated_at=? WHERE stock_id=?",
-            (now, result.status, error, now, stock_id),
+            "UPDATE stock_expectations SET morningstar_checked_at=?,morningstar_status=?,morningstar_check_status=?,morningstar_next_check_at=?,last_error=?,updated_at=? WHERE stock_id=?",
+            (now, _legacy_status(result.status), result.status, _next_check(now, result.status, 168), error, now, stock_id),
         )
     recalculate_gaps(connection, stock_id, now)
     return can_write
@@ -122,15 +134,15 @@ def patch_analyst(
         connection.execute(
             """UPDATE stock_expectations SET analyst_average_target=?,analyst_high_target=?,analyst_low_target=?,
                    analyst_count=?,analyst_report_count=?,analyst_rating=?,analyst_data_date=?,analyst_checked_at=?,
-                   analyst_status='success',analyst_source=?,analyst_window_days=?,last_error=NULL,last_success_at=?,updated_at=?
+                   analyst_status='success',analyst_check_status='success',analyst_source=?,analyst_window_days=?,analyst_next_check_at=?,last_error=NULL,last_success_at=?,updated_at=?
                WHERE stock_id=?""",
             (average, positive_number(data.get("highest")), positive_number(data.get("lowest")), data.get("total"),
-             data.get("report_count", data.get("total")), data.get("rating"), data_date, now, source, window_days, now, now, stock_id),
+             data.get("report_count", data.get("total")), data.get("rating"), data_date, now, source, window_days, _next_check(now, "success", 24), now, now, stock_id),
         )
     else:
         connection.execute(
-            "UPDATE stock_expectations SET analyst_checked_at=?,analyst_status=?,last_error=?,updated_at=? WHERE stock_id=?",
-            (now, result.status, result.error or ("invalid analyst target" if result.status == "success" else None), now, stock_id),
+            "UPDATE stock_expectations SET analyst_checked_at=?,analyst_status=?,analyst_check_status=?,analyst_next_check_at=?,last_error=?,updated_at=? WHERE stock_id=?",
+            (now, _legacy_status(result.status), result.status, _next_check(now, result.status, 24), result.error or ("invalid analyst target" if result.status == "success" else None), now, stock_id),
         )
     recalculate_gaps(connection, stock_id, now)
     return can_write
