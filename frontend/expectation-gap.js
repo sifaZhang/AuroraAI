@@ -1,41 +1,10 @@
-const state = { market: "all", q: "", sort_by: "morningstar_gap_pct", sort_order: "desc", page: 1, page_size: 50, include_unrated: false, total: 0 };
-const $ = (selector) => document.querySelector(selector);
-const rows = $("#rows");
-
-function valueOrDash(value, digits = 2) { return value === null || value === undefined ? "—" : Number(value).toFixed(digits); }
-function gap(value) { if (value === null || value === undefined) return '<span class="muted">—</span>'; const cls = Number(value) >= 0 ? "positive" : "negative"; return `<span class="${cls}">${Number(value).toFixed(2)}%</span>`; }
-function escapeHtml(value) { const div = document.createElement("div"); div.textContent = value ?? ""; return div.innerHTML; }
-
-function syncUrl() { const params = new URLSearchParams(); Object.entries(state).forEach(([key, value]) => { if (key !== "total" && value !== "" && value !== false) params.set(key, value); }); history.replaceState(null, "", `${location.pathname}?${params}`); }
-function readUrl() { const p = new URLSearchParams(location.search); ["market", "q", "sort_by", "sort_order"].forEach(k => { if (p.has(k)) state[k] = p.get(k); }); ["page", "page_size"].forEach(k => { if (p.has(k)) state[k] = Number(p.get(k)); }); if (p.has("include_unrated")) state.include_unrated = p.get("include_unrated") === "true"; }
-
-async function load() {
-  syncUrl(); rows.innerHTML = '<tr><td colspan="12" class="empty-state">加载中…</td></tr>'; $("#error").hidden = true;
-  const params = new URLSearchParams(state); params.delete("total");
-  try {
-    const response = await fetch(`/api/expectation-gaps?${params}`, { cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json(); state.total = data.total;
-    $("#total-count").textContent = `${data.total} 条`; $("#last-refresh").textContent = `最后更新：${data.last_refresh?.finished_at || "—"}`;
-    $("#page-label").textContent = `第 ${state.page} 页 / 共 ${Math.max(1, Math.ceil(data.total / state.page_size))} 页`;
-    $("#prev").disabled = state.page <= 1; $("#next").disabled = state.page * state.page_size >= data.total;
-    if (!data.items.length) { rows.innerHTML = '<tr><td colspan="12" class="empty-state">没有符合条件的数据</td></tr>'; return; }
-    rows.innerHTML = data.items.map(item => `<tr>
-      <td><span class="market-tag ${item.market.toLowerCase()}">${item.market === "A" ? "A股" : "港股"}</span></td>
-      <td>${escapeHtml(item.symbol)}</td><td class="stock-name">${escapeHtml(item.name)}</td>
-      <td>${valueOrDash(item.last_price)}</td><td>${valueOrDash(item.morningstar_fair_value)}</td><td>${gap(item.morningstar_gap_pct)}</td>
-      <td>${item.morningstar_star_rating == null ? "—" : "★".repeat(item.morningstar_star_rating)}</td>
-      <td>${valueOrDash(item.analyst_average_target)}</td><td>${gap(item.analyst_gap_pct)}</td><td>${item.analyst_count ?? "—"}</td>
-      <td>${escapeHtml(item.data_date || "—")}</td><td><span class="source-tag">${escapeHtml(item.display_source)}</span></td></tr>`).join("");
-  } catch (error) { $("#error").hidden = false; $("#error").textContent = `加载失败：${error.message}。请确认本地API已启动。`; rows.innerHTML = '<tr><td colspan="12" class="empty-state">数据加载失败</td></tr>'; }
-}
-
-let timer; $("#search").addEventListener("input", e => { clearTimeout(timer); timer = setTimeout(() => { state.q = e.target.value; state.page = 1; load(); }, 300); });
-$("#market").addEventListener("change", e => { state.market = e.target.value; state.page = 1; load(); });
-$("#include-unrated").addEventListener("change", e => { state.include_unrated = e.target.checked; state.page = 1; load(); });
-$("#page-size").addEventListener("change", e => { state.page_size = Number(e.target.value); state.page = 1; load(); });
-$("#reset").addEventListener("click", () => { Object.assign(state, {market:"all",q:"",sort_by:"morningstar_gap_pct",sort_order:"desc",page:1,page_size:50,include_unrated:false}); applyControls(); load(); });
-document.querySelectorAll("[data-sort]").forEach(button => button.addEventListener("click", () => { const field = button.dataset.sort; state.sort_order = state.sort_by === field && state.sort_order === "desc" ? "asc" : "desc"; state.sort_by = field; state.page = 1; load(); }));
-$("#prev").addEventListener("click", () => { if (state.page > 1) { state.page--; load(); } }); $("#next").addEventListener("click", () => { if (state.page * state.page_size < state.total) { state.page++; load(); } });
-function applyControls() { $("#search").value=state.q; $("#market").value=state.market; $("#include-unrated").checked=state.include_unrated; $("#page-size").value=String(state.page_size); }
-readUrl(); applyControls(); load();
+const state={market:"all",q:"",sort_by:"morningstar_gap_pct",sort_order:"desc",page:1,page_size:50,include_unrated:false,include_anomalies:false,total:0};
+const $=s=>document.querySelector(s),rows=$("#rows");
+const esc=v=>{const d=document.createElement("div");d.textContent=v??"";return d.innerHTML};
+const val=(v,d=2)=>v==null?"—":Number(v).toFixed(d);
+const gap=v=>v==null?'<span class="muted">—</span>':`<span class="${Number(v)>=0?"positive":"negative"}">${Number(v).toFixed(2)}%</span>`;
+function syncUrl(){const p=new URLSearchParams();Object.entries(state).forEach(([k,v])=>{if(k!=="total"&&v!==""&&v!==false)p.set(k,v)});history.replaceState(null,"",`${location.pathname}?${p}`)}
+function readUrl(){const p=new URLSearchParams(location.search);["market","q","sort_by","sort_order"].forEach(k=>{if(p.has(k))state[k]=p.get(k)});["page","page_size"].forEach(k=>{if(p.has(k))state[k]=Number(p.get(k))});["include_unrated","include_anomalies"].forEach(k=>{if(p.has(k))state[k]=p.get(k)==="true"})}
+function quality(item){const status=item.display_quality_status||item.quality_status||"ok",reasons=item.display_quality_reasons||item.quality_reasons||[];const labels={invalid_price:"价格无效",invalid_target:"目标价无效",extreme_gap:"极端预期差",possible_corporate_action:"公司行动待核",corporate_action_review:"公司行动邻近目标价日期",possible_unadjusted_target:"疑似目标价未复权",single_analyst_extreme_gap:"单一分析师极端值",low_price:"低价股",low_price_extreme_gap:"低价股极端预期差",low_analyst_coverage:"分析师覆盖低",stale_price:"价格过旧",stale_target:"目标价过旧"};return `<span class="quality-tag ${status}" title="${esc(reasons.map(r=>labels[r]||r).join("；"))}">${status==="ok"?"正常":status==="warning"?"警告":status==="suspicious"?"可疑":"排除"}</span>${reasons.length?`<small>${esc(reasons.map(r=>labels[r]||r).join("、"))}</small>`:""}`}
+async function load(){syncUrl();rows.innerHTML='<tr><td colspan="13" class="empty-state">加载中…</td></tr>';$("#error").hidden=true;const p=new URLSearchParams(state);p.delete("total");try{const res=await fetch(`/api/expectation-gaps?${p}`,{cache:"no-store"});if(!res.ok)throw new Error(`HTTP ${res.status}`);const data=await res.json();state.total=data.total;$("#total-count").textContent=`${data.total} 条`;$("#last-refresh").textContent=`最后更新：${data.last_refresh?.finished_at||"—"}`;$("#page-label").textContent=`第 ${state.page} 页 / 共 ${Math.max(1,Math.ceil(data.total/state.page_size))} 页`;$("#prev").disabled=state.page<=1;$("#next").disabled=state.page*state.page_size>=data.total;if(!data.items.length){rows.innerHTML='<tr><td colspan="13" class="empty-state">没有符合条件的数据</td></tr>';return}rows.innerHTML=data.items.map(i=>`<tr><td><span class="market-tag ${i.market.toLowerCase()}">${i.market==="A"?"A股":"港股"}</span></td><td>${esc(i.symbol)}</td><td class="stock-name">${esc(i.name)}</td><td>${val(i.last_price)}</td><td>${val(i.morningstar_fair_value)}</td><td>${gap(i.morningstar_gap_pct)}</td><td>${i.morningstar_star_rating==null?"—":"★".repeat(i.morningstar_star_rating)} ${i.morningstar_star_rating==null?"":`<span class="rating-tag">${esc(i.rating_label)}</span>`}</td><td>${val(i.analyst_average_target)}</td><td>${gap(i.analyst_gap_pct)}</td><td>${i.analyst_count??"—"}</td><td>${esc(i.data_date||"—")}</td><td><span class="source-tag">${esc(i.display_source)}</span></td><td>${quality(i)}</td></tr>`).join("")}catch(e){$("#error").hidden=false;$("#error").textContent=`加载失败：${e.message}`;rows.innerHTML='<tr><td colspan="13" class="empty-state">数据加载失败</td></tr>'}}
+let timer;$("#search").addEventListener("input",e=>{clearTimeout(timer);timer=setTimeout(()=>{state.q=e.target.value;state.page=1;load()},300)});$("#market").addEventListener("change",e=>{state.market=e.target.value;state.page=1;load()});["include-unrated","include-anomalies"].forEach(id=>$("#"+id).addEventListener("change",e=>{state[id.replaceAll("-","_")]=e.target.checked;state.page=1;load()}));$("#page-size").addEventListener("change",e=>{state.page_size=Number(e.target.value);state.page=1;load()});$("#reset").addEventListener("click",()=>{Object.assign(state,{market:"all",q:"",sort_by:"morningstar_gap_pct",sort_order:"desc",page:1,page_size:50,include_unrated:false,include_anomalies:false});controls();load()});document.querySelectorAll("[data-sort]").forEach(b=>b.addEventListener("click",()=>{const f=b.dataset.sort;state.sort_order=state.sort_by===f&&state.sort_order==="desc"?"asc":"desc";state.sort_by=f;state.page=1;load()}));$("#prev").onclick=()=>{if(state.page>1){state.page--;load()}};$("#next").onclick=()=>{if(state.page*state.page_size<state.total){state.page++;load()}};function controls(){$("#search").value=state.q;$("#market").value=state.market;$("#include-unrated").checked=state.include_unrated;$("#include-anomalies").checked=state.include_anomalies;$("#page-size").value=String(state.page_size)}readUrl();controls();load();

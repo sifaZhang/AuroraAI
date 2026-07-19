@@ -7,6 +7,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DB_PATH = PROJECT_ROOT / "data" / "aurora.db"
 MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "001_expectation_gap.sql"
+QUALITY_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "002_expectation_quality.sql"
 
 
 def database_path() -> Path:
@@ -29,6 +30,7 @@ def connect(path: Path | None = None) -> sqlite3.Connection:
 
 def migrate(connection: sqlite3.Connection) -> None:
     connection.executescript(MIGRATION_PATH.read_text(encoding="utf-8"))
+    connection.executescript(QUALITY_MIGRATION_PATH.read_text(encoding="utf-8"))
     existing = {row[1] for row in connection.execute("PRAGMA table_info(stock_expectations)")}
     additions = {
         "price_source": "TEXT",
@@ -54,4 +56,8 @@ def migrate(connection: sqlite3.Connection) -> None:
     run_columns = {row[1] for row in connection.execute("PRAGMA table_info(refresh_runs)")}
     if "no_data_count" not in run_columns:
         connection.execute("ALTER TABLE refresh_runs ADD COLUMN no_data_count INTEGER NOT NULL DEFAULT 0")
+    quality_columns = {row[1] for row in connection.execute("PRAGMA table_info(stock_expectation_quality)")}
+    for column in ("morningstar_quality_details", "analyst_quality_details"):
+        if column not in quality_columns:
+            connection.execute(f"ALTER TABLE stock_expectation_quality ADD COLUMN {column} TEXT NOT NULL DEFAULT '{{}}'")
     connection.commit()

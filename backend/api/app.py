@@ -15,14 +15,14 @@ FRONTEND = PROJECT_ROOT / "frontend"
 def expectation_gaps(
     market: str = "all", q: str = "", sort_by: str = "morningstar_gap_pct",
     sort_order: str = "desc", page: int = Query(1, ge=1), page_size: int = 50,
-    include_unrated: bool = False,
+    include_unrated: bool = False, include_anomalies: bool = False,
 ):
     connection = connect()
     migrate(connection)
     try:
         return list_expectation_gaps(connection, market=market, q=q, sort_by=sort_by,
                                      sort_order=sort_order, page=page, page_size=page_size,
-                                     include_unrated=include_unrated)
+                                     include_unrated=include_unrated, include_anomalies=include_anomalies)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     finally:
