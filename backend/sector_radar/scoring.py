@@ -1,8 +1,22 @@
-"""Pure 70-point trend scoring for the Sector Trend Radar."""
+"""Pure 70-point trend scoring shared by sector data-source probes."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import pandas as pd
+
+
+@dataclass(frozen=True)
+class TrendMetrics:
+    score: int
+    level: str
+    close: float
+    ma5: float
+    ma10: float
+    ma20: float
+    volume_ratio: float
+    is_20d_high: bool
 
 
 def normalize_daily_bars(
@@ -12,7 +26,7 @@ def normalize_daily_bars(
     close_column: object,
     volume_column: object,
 ) -> pd.DataFrame:
-    """Normalize explicitly selected source columns without guessing fields."""
+    """Normalize explicitly selected real source columns."""
 
     result = frame.loc[:, [date_column, close_column, volume_column]].copy()
     result = result.rename(
@@ -28,34 +42,63 @@ def normalize_daily_bars(
     )
 
 
-def calculate_trend_score(sector_bars: pd.DataFrame) -> int:
-    """Calculate the six V1 trend rules; the maximum is exactly 70."""
+def calculate_trend_metrics(sector_bars: pd.DataFrame) -> TrendMetrics:
+    """Calculate six V1 trend rules; maximum score is exactly 70."""
 
     if len(sector_bars) < 21:
         raise ValueError(f"板块K线至少需要21个有效交易日，实际只有{len(sector_bars)}个")
     if not {"close", "volume"}.issubset(sector_bars.columns):
         raise ValueError("板块K线缺少close或volume列")
-
     closes = sector_bars["close"].astype(float)
     volumes = sector_bars["volume"].astype(float)
-    ma5 = closes.rolling(5).mean()
-    ma10 = closes.rolling(10).mean()
-    ma20 = closes.rolling(20).mean()
-    latest_close = float(closes.iloc[-1])
-
+    ma5_series = closes.rolling(5).mean()
+    ma10_series = closes.rolling(10).mean()
+    ma20_series = closes.rolling(20).mean()
+    close = float(closes.iloc[-1])
+    ma5 = float(ma5_series.iloc[-1])
+    ma10 = float(ma10_series.iloc[-1])
+    ma20 = float(ma20_series.iloc[-1])
+    volume_ma5 = float(volumes.tail(5).mean())
+    volume_ratio = float(volumes.iloc[-1]) / volume_ma5 if volume_ma5 > 0 else 0.0
+    is_20d_high = close >= float(closes.tail(20).max())
     score = 0
-    score += 10 if latest_close > float(ma5.iloc[-1]) else 0
-    score += 10 if float(ma5.iloc[-1]) > float(ma5.iloc[-2]) else 0
-    score += 15 if float(ma5.iloc[-1]) > float(ma10.iloc[-1]) else 0
-    score += 15 if float(ma10.iloc[-1]) > float(ma20.iloc[-1]) else 0
-    score += 10 if latest_close >= float(closes.tail(20).max()) else 0
-    score += 10 if float(volumes.iloc[-1]) > float(volumes.tail(5).mean()) else 0
-    return score
+    score += 10 if close > ma5 else 0
+    score += 10 if ma5 > float(ma5_series.iloc[-2]) else 0
+    score += 15 if ma5 > ma10 else 0
+    score += 15 if ma10 > ma20 else 0
+    score += 10 if is_20d_high else 0
+    score += 10 if volume_ratio > 1 else 0
+    return TrendMetrics(
+        score=score,
+        level=trend_level(score),
+        close=close,
+        ma5=ma5,
+        ma10=ma10,
+        ma20=ma20,
+        volume_ratio=round(volume_ratio, 4),
+        is_20d_high=is_20d_high,
+    )
+
+
+def calculate_trend_score(sector_bars: pd.DataFrame) -> int:
+    return calculate_trend_metrics(sector_bars).score
+
+
+def trend_level(score: int) -> str:
+    if not 0 <= score <= 70:
+        raise ValueError("Trend Score必须在0到70之间")
+    if score >= 60:
+        return "strong"
+    if score >= 45:
+        return "bullish"
+    if score >= 30:
+        return "neutral"
+    if score >= 15:
+        return "weak"
+    return "bearish"
 
 
 def trend_stars(score: int) -> str:
-    """Render five bands against the 70-point trend scale."""
-
     if not 0 <= score <= 70:
         raise ValueError("Trend Score必须在0到70之间")
     filled = min(5, max(0, (score * 5 + 69) // 70))
