@@ -1,4 +1,4 @@
-"""Pure 70-point trend scoring shared by sector data-source probes."""
+"""Pure 70-point trend scoring shared by sector data sources."""
 
 from __future__ import annotations
 
@@ -26,8 +26,6 @@ def normalize_daily_bars(
     close_column: object,
     volume_column: object,
 ) -> pd.DataFrame:
-    """Normalize explicitly selected real source columns."""
-
     result = frame.loc[:, [date_column, close_column, volume_column]].copy()
     result = result.rename(
         columns={date_column: "date", close_column: "close", volume_column: "volume"}
@@ -43,7 +41,7 @@ def normalize_daily_bars(
 
 
 def calculate_trend_metrics(sector_bars: pd.DataFrame) -> TrendMetrics:
-    """Calculate six V1 trend rules; maximum score is exactly 70."""
+    """Calculate the six V1 rules without Breadth; maximum is 70."""
 
     if len(sector_bars) < 21:
         raise ValueError(f"板块K线至少需要21个有效交易日，实际只有{len(sector_bars)}个")
