@@ -9,8 +9,10 @@ from backend.expectation_gap.query import list_expectation_gaps
 from backend.expectation_gap.refresh_jobs import (
     JobConflictError, get_job, latest_job, recover_interrupted_jobs, start_background_job,
 )
+from backend.api.data_source_health import router as data_source_health_router
 
 app = FastAPI(title="AuroraAI")
+app.include_router(data_source_health_router)
 FRONTEND = PROJECT_ROOT / "frontend"
 
 
@@ -96,6 +98,11 @@ def refresh_job_status(job_id: int):
 @app.get("/expectation-gap")
 def expectation_page():
     return FileResponse(FRONTEND / "expectation-gap.html")
+
+
+@app.get("/data-source-health")
+def data_source_health_page():
+    return FileResponse(FRONTEND / "data-source-health.html")
 
 
 app.mount("/", StaticFiles(directory=FRONTEND, html=True), name="frontend")

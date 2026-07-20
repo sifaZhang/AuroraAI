@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
+
+from backend.sector_radar.health_repository import record_degraded, record_failure, record_success
 
 
 @dataclass(frozen=True)
@@ -40,7 +42,7 @@ def upsert_sector_scores(connection: sqlite3.Connection, records: list[SectorSco
 
     if not records:
         return 0
-    now = datetime.now().astimezone().isoformat(timespec="seconds")
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     values = [
         (
             row.source,
@@ -77,30 +79,27 @@ def upsert_sector_scores(connection: sqlite3.Connection, records: list[SectorSco
 
 
 def upsert_source_status(connection: sqlite3.Connection, record: SourceStatusRecord) -> None:
-    now = datetime.now().astimezone().isoformat(timespec="seconds")
-    last_success_at = now if record.status in {"available", "partial"} and record.successful_sector_count > 0 else None
+    metadata = {
+        "sector_count": record.sector_count,
+        "successful_sector_count": record.successful_sector_count,
+        "failed_sector_count": record.failed_sector_count,
+        "check_type": "trend_collection",
+    }
+    latency_ms = record.elapsed_seconds * 1000
+    if record.status == "available":
+        record_success(connection, record.source, latency_ms=latency_ms, metadata=metadata)
+    elif record.status == "partial":
+        record_degraded(
+            connection, record.source, error_type="PartialCollection",
+            error_message=record.last_error or "部分行业采集失败", latency_ms=latency_ms, metadata=metadata,
+        )
+    else:
+        record_failure(
+            connection, record.source, error_type="CollectionUnavailable",
+            error_message=record.last_error or "行业采集不可用", latency_ms=latency_ms, metadata=metadata,
+        )
     connection.execute(
-        """INSERT INTO sector_source_status(
-               source,status,sector_count,successful_sector_count,failed_sector_count,
-               last_attempt_at,last_success_at,last_error,elapsed_seconds,updated_at)
-           VALUES(?,?,?,?,?,?,?,?,?,?)
-           ON CONFLICT(source) DO UPDATE SET
-               status=excluded.status,sector_count=excluded.sector_count,
-               successful_sector_count=excluded.successful_sector_count,
-               failed_sector_count=excluded.failed_sector_count,last_attempt_at=excluded.last_attempt_at,
-               last_success_at=COALESCE(excluded.last_success_at,sector_source_status.last_success_at),
-               last_error=excluded.last_error,elapsed_seconds=excluded.elapsed_seconds,
-               updated_at=excluded.updated_at""",
-        (
-            record.source,
-            record.status,
-            record.sector_count,
-            record.successful_sector_count,
-            record.failed_sector_count,
-            now,
-            last_success_at,
-            record.last_error,
-            record.elapsed_seconds,
-            now,
-        ),
+        """UPDATE sector_source_status SET sector_count=?,successful_sector_count=?,failed_sector_count=?
+           WHERE source=?""",
+        (record.sector_count, record.successful_sector_count, record.failed_sector_count, record.source),
     )

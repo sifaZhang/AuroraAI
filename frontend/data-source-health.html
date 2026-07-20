@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AuroraAI 数据源健康状态</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="data-source-health.css">
+</head>
+<body>
+<main class="app-shell health-shell">
+  <nav class="site-nav"><a href="/">最近分红</a><a href="/expectation-gap">预期差</a><a class="active" href="/data-source-health">数据源状态</a></nav>
+  <header class="topbar">
+    <div><p class="eyebrow">AuroraAI</p><h1>数据源健康状态</h1><p class="subtitle">轻量检查行业列表，不触发K线、评分或成分股刷新。</p></div>
+    <button id="check-all" type="button">检查全部数据源</button>
+  </header>
+  <div id="health-error" class="api-error" role="alert" hidden></div>
+  <section class="table-region">
+    <table class="health-table">
+      <thead><tr><th>数据源</th><th>状态</th><th>上次检查</th><th>上次成功</th><th>响应耗时</th><th>连续失败</th><th>最近错误</th><th>操作</th></tr></thead>
+      <tbody id="health-rows"><tr><td colspan="8" class="empty-state">加载中…</td></tr></tbody>
+    </table>
+  </section>
+</main>
+<script src="data-source-health.js"></script>
+</body>
+</html>
