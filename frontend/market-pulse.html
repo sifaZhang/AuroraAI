@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AuroraAI Market Pulse</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="expectation-gap.css">
+  <link rel="stylesheet" href="market-pulse.css">
+</head>
+<body>
+<main class="app-shell market-pulse-shell">
+  <nav class="site-nav"><a href="/">最近分红</a><a href="/expectation-gap">预期差</a><a class="active" href="/market-pulse.html">Market Pulse</a><a href="/data-source-health">数据源状态</a></nav>
+  <header class="topbar pulse-header">
+    <div>
+      <p class="eyebrow">AuroraAI</p>
+      <h1>Market Pulse</h1>
+      <p class="subtitle">申万一级行业趋势雷达，Trend Score满分70。</p>
+    </div>
+    <button id="refresh-sectors" type="button">刷新板块数据</button>
+  </header>
+
+  <section class="pulse-meta" aria-label="当前数据">
+    <div><span>当前数据源</span><strong id="current-source">申万一级行业</strong></div>
+    <div><span>最后交易日</span><strong id="last-trade-date">—</strong></div>
+    <div><span>最后刷新</span><strong id="last-refresh">—</strong></div>
+    <div><span>刷新状态</span><strong id="refresh-state">就绪</strong></div>
+  </section>
+  <div id="pulse-error" class="api-error" role="alert" hidden></div>
+
+  <section class="source-section">
+    <h2>数据源状态</h2>
+    <div id="source-statuses" class="source-statuses"><div class="loading-card">加载中…</div></div>
+  </section>
+
+  <section class="sector-section">
+    <div class="section-heading"><h2>Sector Table</h2><span id="sector-count">—</span></div>
+    <div class="table-region pulse-table-wrap">
+      <table class="pulse-table">
+        <thead><tr><th>行业</th><th>Trend Score</th><th>Trend Level</th><th>更新时间</th><th>数据来源</th></tr></thead>
+        <tbody id="sector-rows"><tr><td colspan="5" class="empty-state">加载中…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+<script src="market-pulse.js"></script>
+</body>
+</html>
