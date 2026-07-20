@@ -490,6 +490,25 @@ futu_code,name,morningstar_fair_value,morningstar_star_rating,analyst_average_ta
 python -m pytest -q tests -p no:cacheprovider
 ```
 
+### 页面刷新任务与每周港股评级
+
+启动本地服务后，预期差页面提供“刷新A股”“刷新港股股价”“刷新港股评级”三个后台任务按钮。HTTP 请求会立即返回任务编号，页面每2秒显示进度；关闭或刷新页面不会中止后台线程。为保护 SQLite 和 OpenD，同一时间只允许一个刷新任务运行。
+
+服务仅绑定本机：
+
+```powershell
+python -m uvicorn backend.api.app:app --host 127.0.0.1 --port 8000
+```
+
+每周港股评级也可由 Windows 任务计划程序调用：
+
+```powershell
+cd F:\Stock\Projects\AuroraAI
+python -m backend.collector.refresh_weekly_hk_ratings
+```
+
+建议每周日或周一的非交易时间运行一次。命令复用页面任务的 TTL/resume 机制，不使用 force；如果已有冲突任务，会安全退出。本项目不会自动修改 Windows 任务计划程序。
+
 ### 港股初始化（阶段D）
 
 先只查看富途港股证券池统计，不写入数据：

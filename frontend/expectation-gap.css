@@ -17,7 +17,13 @@
 .stock-name { font-weight:650; }.pager { display:flex; justify-content:center; align-items:center; gap:14px; padding:18px; }
 .method-note { padding:14px 16px; border-left:3px solid var(--accent); background:#eef6f4; color:#475569; font-size:13px; line-height:1.7; }
 .api-error { margin:0 0 14px; padding:12px; border:1px solid #efc27a; background:#fff8eb; color:#8a4b00; }
+.refresh-panel { margin:18px 0 4px;padding:16px;border:1px solid var(--line-strong);border-radius:10px;background:var(--surface); }
+.refresh-actions { display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:12px; }
+.refresh-actions div { display:flex;flex-direction:column;gap:5px }.refresh-actions button { height:40px;border:0;border-radius:7px;background:var(--accent);color:white;font:inherit;font-weight:650;cursor:pointer }
+.refresh-actions button:disabled { opacity:.55;cursor:not-allowed }.refresh-actions small,.job-grid { color:var(--muted) }
+.job-status { margin-top:16px;padding-top:14px;border-top:1px solid var(--line-strong) }.job-status>div:first-child { display:flex;justify-content:space-between }
+.job-status progress { width:100%;height:14px;margin:10px 0 }.job-grid { display:grid;grid-template-columns:repeat(2,1fr);gap:6px;font-size:13px }.job-error { margin-top:9px;color:#b42318;font-size:13px;white-space:pre-wrap }
 .quality-tag,.rating-tag { display:inline-block; padding:2px 6px; border-radius:999px; font-size:11px; white-space:nowrap; }
 .quality-tag.ok { background:#e8f5ef;color:#08745b }.quality-tag.warning { background:#fff4db;color:#8a4b00 }.quality-tag.suspicious,.quality-tag.excluded { background:#feeceb;color:#b42318 }
 .rating-tag { background:#eef2f8;color:#475569 }.expectation-table td small { display:block;color:var(--muted);max-width:180px }
-@media(max-width:700px){.expectation-shell{width:calc(100vw - 20px)}.filters>*{flex:1 1 140px}.filters input[type="search"]{flex-basis:100%}}
+@media(max-width:700px){.expectation-shell{width:calc(100vw - 20px)}.filters>*{flex:1 1 140px}.filters input[type="search"]{flex-basis:100%}.refresh-actions{grid-template-columns:1fr}.job-grid{grid-template-columns:1fr}}

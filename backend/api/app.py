@@ -6,9 +6,21 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.expectation_gap.database import PROJECT_ROOT, connect, migrate
 from backend.expectation_gap.query import list_expectation_gaps
+from backend.expectation_gap.refresh_jobs import (
+    JobConflictError, get_job, latest_job, recover_interrupted_jobs, start_background_job,
+)
 
 app = FastAPI(title="AuroraAI")
 FRONTEND = PROJECT_ROOT / "frontend"
+
+
+@app.on_event("startup")
+def recover_refresh_jobs_after_restart():
+    connection = connect(); migrate(connection)
+    try:
+        recover_interrupted_jobs(connection)
+    finally:
+        connection.close()
 
 
 @app.get("/api/expectation-gaps")
@@ -36,6 +48,49 @@ def refresh_status():
     row = connection.execute("SELECT * FROM refresh_runs ORDER BY id DESC LIMIT 1").fetchone()
     connection.close()
     return dict(row) if row else {"status": "never_run"}
+
+
+def _start_refresh_job(job_type: str):
+    try:
+        return start_background_job(job_type)
+    except JobConflictError as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+
+@app.post("/api/refresh-jobs/a-share", status_code=202)
+def start_a_share_refresh():
+    return _start_refresh_job("refresh_a_share")
+
+
+@app.post("/api/refresh-jobs/hk-prices", status_code=202)
+def start_hk_price_refresh():
+    return _start_refresh_job("refresh_hk_prices")
+
+
+@app.post("/api/refresh-jobs/hk-ratings", status_code=202)
+def start_hk_rating_refresh():
+    return _start_refresh_job("refresh_hk_ratings")
+
+
+@app.get("/api/refresh-jobs/latest")
+def latest_refresh_job():
+    connection = connect(); migrate(connection)
+    try:
+        return latest_job(connection) or {"status": "never_run"}
+    finally:
+        connection.close()
+
+
+@app.get("/api/refresh-jobs/{job_id}")
+def refresh_job_status(job_id: int):
+    connection = connect(); migrate(connection)
+    try:
+        job = get_job(connection, job_id)
+        if job is None:
+            raise HTTPException(404, "刷新任务不存在")
+        return job
+    finally:
+        connection.close()
 
 
 @app.get("/expectation-gap")

@@ -8,6 +8,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DB_PATH = PROJECT_ROOT / "data" / "aurora.db"
 MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "001_expectation_gap.sql"
 QUALITY_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "002_expectation_quality.sql"
+REFRESH_JOBS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "003_refresh_jobs.sql"
 
 
 def database_path() -> Path:
@@ -31,6 +32,7 @@ def connect(path: Path | None = None) -> sqlite3.Connection:
 def migrate(connection: sqlite3.Connection) -> None:
     connection.executescript(MIGRATION_PATH.read_text(encoding="utf-8"))
     connection.executescript(QUALITY_MIGRATION_PATH.read_text(encoding="utf-8"))
+    connection.executescript(REFRESH_JOBS_MIGRATION_PATH.read_text(encoding="utf-8"))
     existing = {row[1] for row in connection.execute("PRAGMA table_info(stock_expectations)")}
     additions = {
         "price_source": "TEXT",

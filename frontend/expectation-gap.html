@@ -1,8 +1,22 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AuroraAI 预期差排行</title><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="expectation-gap.css"></head>
 <body><main class="app-shell expectation-shell">
 <nav class="site-nav"><a href="/">最近分红</a><a class="active" href="/expectation-gap">预期差</a></nav>
 <header class="topbar"><div><p class="eyebrow">AuroraAI</p><h1>预期差排行</h1><p class="subtitle">晨星与分析师预期差独立排序；默认排除异常值。</p></div><div class="run-meta"><span id="total-count">— 条</span><span id="last-refresh">最后更新：—</span></div></header>
+<section class="refresh-panel" aria-label="刷新任务">
+  <div class="refresh-actions">
+    <div><button id="refresh-a" data-job="a-share">刷新A股</button><small>重新导入手工CSV并刷新A股股价</small></div>
+    <div><button id="refresh-hk-prices" data-job="hk-prices">刷新港股股价</button><small>只刷新价格，不刷新晨星和分析师评级</small></div>
+    <div><button id="refresh-hk-ratings" data-job="hk-ratings">刷新港股评级</button><small>刷新过期的晨星和分析师数据，计划每周执行</small></div>
+  </div>
+  <div id="job-status" class="job-status" hidden>
+    <div><strong id="job-name">刷新任务</strong><span id="job-state">—</span></div>
+    <progress id="job-progress" max="100" value="0"></progress>
+    <div class="job-grid"><span id="job-counts">0 / 0</span><span id="job-results">成功 0 · 跳过 0 · 无数据 0 · 失败 0</span><span id="job-current">当前：—</span><span id="job-times">开始：— · 完成：—</span></div>
+    <div id="job-error" class="job-error" hidden></div>
+  </div>
+</section>
 <section class="filters"><input id="search" type="search" placeholder="搜索股票名称或代码"><select id="market"><option value="all">全部市场</option><option value="a">A股</option><option value="hk">港股</option></select><label><input id="include-unrated" type="checkbox"> 包含无目标价</label><label><input id="include-anomalies" type="checkbox"> 包含异常值</label><select id="page-size"><option>20</option><option selected>50</option><option>100</option></select><button id="reset" type="button">重置</button></section>
 <div id="error" class="api-error" hidden></div><section class="table-region expectation-table-wrap"><table class="expectation-table"><thead><tr>
 <th>市场</th><th>代码</th><th>名称</th><th><button data-sort="last_price">当前价</button></th><th><button data-sort="morningstar_fair_value">晨星公允价值</button></th><th><button data-sort="morningstar_gap_pct">晨星预期差</button></th><th>晨星星级</th><th><button data-sort="analyst_average_target">分析师目标价</button></th><th><button data-sort="analyst_gap_pct">分析师预期差</button></th><th><button data-sort="analyst_count">分析师人数</button></th><th>数据日期</th><th>数据来源</th><th>质量状态</th>
