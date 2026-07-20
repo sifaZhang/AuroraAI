@@ -13,6 +13,7 @@ QUALITY_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "002_expecta
 REFRESH_JOBS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "003_refresh_jobs.sql"
 SECTOR_SCORES_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "004_sector_scores.sql"
 DATA_SOURCE_HEALTH_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "005_data_source_health.sql"
+MARKET_PULSE_REFRESH_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "006_market_pulse_refresh.sql"
 
 
 def database_path() -> Path:
@@ -40,6 +41,8 @@ def migrate(connection: sqlite3.Connection) -> None:
     connection.executescript(SECTOR_SCORES_MIGRATION_PATH.read_text(encoding="utf-8"))
     _migrate_sector_source_status(connection)
     connection.executescript(DATA_SOURCE_HEALTH_MIGRATION_PATH.read_text(encoding="utf-8"))
+    _migrate_refresh_jobs_for_market_pulse(connection)
+    connection.executescript(MARKET_PULSE_REFRESH_MIGRATION_PATH.read_text(encoding="utf-8"))
     existing = {row[1] for row in connection.execute("PRAGMA table_info(stock_expectations)")}
     additions = {
         "price_source": "TEXT",
@@ -135,3 +138,38 @@ def _migrate_sector_source_status(connection: sqlite3.Connection) -> None:
             ),
         )
     connection.execute("DROP TABLE sector_source_status_legacy")
+
+
+def _migrate_refresh_jobs_for_market_pulse(connection: sqlite3.Connection) -> None:
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(refresh_jobs)")}
+    table_row = connection.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='refresh_jobs'").fetchone()
+    table_sql = table_row[0] if table_row else ""
+    if "source" in columns and "refresh_market_pulse" in table_sql:
+        return
+    rows = [dict(row) for row in connection.execute("SELECT * FROM refresh_jobs")]
+    connection.execute("ALTER TABLE refresh_jobs RENAME TO refresh_jobs_legacy")
+    connection.execute(
+        """CREATE TABLE refresh_jobs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            job_type TEXT NOT NULL CHECK(job_type IN ('refresh_a_share','refresh_hk_prices','refresh_hk_ratings','refresh_market_pulse')),
+            source TEXT CHECK(source IS NULL OR source IN ('sw_l1','sw_l2','eastmoney','all')),
+            status TEXT NOT NULL CHECK(status IN ('pending','running','success','partial','failed')),
+            total INTEGER NOT NULL DEFAULT 0, processed INTEGER NOT NULL DEFAULT 0,
+            success_count INTEGER NOT NULL DEFAULT 0, no_data_count INTEGER NOT NULL DEFAULT 0,
+            failure_count INTEGER NOT NULL DEFAULT 0, skipped_count INTEGER NOT NULL DEFAULT 0,
+            progress_pct NUMERIC NOT NULL DEFAULT 0, current_code TEXT, message TEXT,
+            error_summary TEXT, started_at TEXT, finished_at TEXT, created_at TEXT NOT NULL
+        )"""
+    )
+    fields = (
+        "id", "job_type", "status", "total", "processed", "success_count", "no_data_count",
+        "failure_count", "skipped_count", "progress_pct", "current_code", "message",
+        "error_summary", "started_at", "finished_at", "created_at",
+    )
+    placeholders = ",".join("?" for _ in fields)
+    for row in rows:
+        connection.execute(
+            f"INSERT INTO refresh_jobs({','.join(fields)}) VALUES({placeholders})",
+            tuple(row.get(field) for field in fields),
+        )
+    connection.execute("DROP TABLE refresh_jobs_legacy")

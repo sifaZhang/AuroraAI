@@ -10,9 +10,11 @@ from backend.expectation_gap.refresh_jobs import (
     JobConflictError, get_job, latest_job, recover_interrupted_jobs, start_background_job,
 )
 from backend.api.data_source_health import router as data_source_health_router
+from backend.api.market_pulse import router as market_pulse_router
 
 app = FastAPI(title="AuroraAI")
 app.include_router(data_source_health_router)
+app.include_router(market_pulse_router)
 FRONTEND = PROJECT_ROOT / "frontend"
 
 

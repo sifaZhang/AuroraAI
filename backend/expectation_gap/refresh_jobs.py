@@ -13,19 +13,24 @@ from backend.expectation_gap.database import PROJECT_ROOT, connect, migrate
 from backend.expectation_gap.futu_client import CollectionResult, FutuResearchClient, utc_now
 from backend.expectation_gap.quality import refresh_quality
 from backend.expectation_gap.repository import patch_analyst, patch_morningstar, patch_price
+from backend.collector.dividend_collector import get_akshare
+from backend.sector_radar.service import refresh_source, sources_for
 
-JOB_TYPES = {"refresh_a_share", "refresh_hk_prices", "refresh_hk_ratings"}
+JOB_TYPES = {"refresh_a_share", "refresh_hk_prices", "refresh_hk_ratings", "refresh_market_pulse"}
 ACTIVE_STATUSES = {"pending", "running"}
 JOB_LABELS = {
     "refresh_a_share": "正在刷新A股",
     "refresh_hk_prices": "正在刷新港股股价",
     "refresh_hk_ratings": "正在刷新港股评级",
+    "refresh_market_pulse": "正在刷新行业趋势",
 }
 _worker_lock = threading.Lock()
 
 
 class JobConflictError(RuntimeError):
-    pass
+    def __init__(self, message: str, existing_job_id: int | None = None):
+        super().__init__(message)
+        self.existing_job_id = existing_job_id
 
 
 def recover_interrupted_jobs(connection) -> int:
@@ -37,16 +42,16 @@ def recover_interrupted_jobs(connection) -> int:
     return cursor.rowcount
 
 
-def create_job(connection, job_type: str) -> int:
+def create_job(connection, job_type: str, *, source: str | None = None) -> int:
     if job_type not in JOB_TYPES:
         raise ValueError("不支持的刷新任务类型")
     connection.execute("BEGIN IMMEDIATE")
     try:
         active = connection.execute("SELECT id,job_type FROM refresh_jobs WHERE status IN ('pending','running') ORDER BY id DESC LIMIT 1").fetchone()
         if active:
-            raise JobConflictError(f"已有刷新任务运行中（任务 {active['id']}，类型 {active['job_type']}）")
-        job_id = connection.execute("INSERT INTO refresh_jobs(job_type,status,message,created_at) VALUES(?,'pending','等待执行',?)",
-                                    (job_type, utc_now())).lastrowid
+            raise JobConflictError(f"已有刷新任务运行中（任务 {active['id']}，类型 {active['job_type']}）", active["id"])
+        job_id = connection.execute("INSERT INTO refresh_jobs(job_type,source,status,message,created_at) VALUES(?,?,'pending','等待执行',?)",
+                                    (job_type, source, utc_now())).lastrowid
         connection.commit()
         return job_id
     except Exception:
@@ -176,6 +181,50 @@ def refresh_hk_ratings_job(connection, job_id: int, *, codes: list[str] | None =
     _finish(connection, job_id, counts, total, errors)
 
 
+def refresh_market_pulse_job(connection, job_id: int, *, source: str = "sw_l1", ak=None) -> None:
+    selected = sources_for(source)
+    total_sources = len(selected)
+    _update(connection, job_id, total=total_sources, processed=0, progress_pct=0, message="准备刷新行业趋势")
+    client = ak or get_akshare()
+    results, errors = [], []
+    saved_total = 0
+    for source_index, current_source in enumerate(selected):
+        def report(completed: int, total: int, current: str) -> None:
+            fraction = completed / total if total else 1
+            progress_pct = round((source_index + fraction) / total_sources * 100, 2)
+            _update(
+                connection, job_id, current_code=current, progress_pct=progress_pct,
+                message=f"正在刷新 {current_source}：{completed}/{total}",
+            )
+
+        outcome = refresh_source(connection, current_source, ak=client, progress=report)
+        results.append(outcome)
+        saved_total += outcome.saved_count
+        status = outcome.source_result.status
+        if status.status != "available":
+            errors.append(f"{current_source}: {status.last_error or status.status}"[:1000])
+        _update(
+            connection, job_id, processed=source_index + 1,
+            success_count=sum(item.source_result.status.status == "available" for item in results),
+            failure_count=sum(item.source_result.status.status != "available" for item in results),
+            progress_pct=round((source_index + 1) / total_sources * 100, 2),
+            current_code=current_source, message=f"{current_source} 刷新完成，保存 {outcome.saved_count} 条",
+        )
+    sw_l1_failed = source == "all" and results[0].source_result.status.status == "unavailable"
+    any_problem = any(item.source_result.status.status != "available" for item in results)
+    if sw_l1_failed or (source != "all" and results[0].source_result.status.status == "unavailable"):
+        final_status = "failed"
+    elif any_problem:
+        final_status = "partial"
+    else:
+        final_status = "success"
+    _update(
+        connection, job_id, status=final_status, processed=total_sources, progress_pct=100,
+        current_code=None, message=f"行业趋势刷新完成，保存 {saved_total} 条",
+        error_summary="；".join(errors)[:1000] or None, finished_at=utc_now(),
+    )
+
+
 def _hk_stocks(connection, codes: list[str] | None):
     if not codes:
         return connection.execute("SELECT id,futu_code FROM stocks WHERE market='HK' AND is_active=1 ORDER BY futu_code").fetchall()
@@ -193,28 +242,31 @@ def _finish(connection, job_id: int, counts: Counter, total: int, errors: Iterab
 
 
 RUNNERS = {"refresh_a_share": refresh_a_share_job, "refresh_hk_prices": refresh_hk_prices_job,
-           "refresh_hk_ratings": refresh_hk_ratings_job}
+           "refresh_hk_ratings": refresh_hk_ratings_job, "refresh_market_pulse": refresh_market_pulse_job}
 
 
 def run_job(job_id: int, *, runner_kwargs: dict | None = None) -> None:
     connection = connect(); migrate(connection)
     try:
         with _worker_lock:
-            row = connection.execute("SELECT job_type,status FROM refresh_jobs WHERE id=?", (job_id,)).fetchone()
+            row = connection.execute("SELECT job_type,source,status FROM refresh_jobs WHERE id=?", (job_id,)).fetchone()
             if row is None or row["status"] not in ACTIVE_STATUSES:
                 return
             _update(connection, job_id, status="running", started_at=utc_now(), message=JOB_LABELS[row["job_type"]])
-            RUNNERS[row["job_type"]](connection, job_id, **(runner_kwargs or {}))
+            kwargs = dict(runner_kwargs or {})
+            if row["job_type"] == "refresh_market_pulse":
+                kwargs.setdefault("source", row["source"] or "sw_l1")
+            RUNNERS[row["job_type"]](connection, job_id, **kwargs)
     except Exception as exc:
         _update(connection, job_id, status="failed", message="刷新失败", error_summary=str(exc), finished_at=utc_now())
     finally:
         connection.close()
 
 
-def start_background_job(job_type: str) -> dict:
+def start_background_job(job_type: str, *, source: str | None = None) -> dict:
     connection = connect(); migrate(connection)
     try:
-        job_id = create_job(connection, job_type)
+        job_id = create_job(connection, job_type, source=source)
         job = get_job(connection, job_id)
     finally:
         connection.close()
