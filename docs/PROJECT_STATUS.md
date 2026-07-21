@@ -533,6 +533,23 @@ No full-market sector history synchronization was run.
 
 Status: Completed
 
+Commit:
+
+`c885d2b`
+
+Summary:
+
+- 新增 Market Breadth Production
+- 新增 `sector_breadth_scores`
+- Breadth Score（30分）
+- 六项 Breadth 指标
+- Version 化
+- Dry Run
+- 幂等写入
+- 失败隔离
+- SQLite 本地计算
+- Quality Gate
+
 Scope:
 
 - Six Breadth diagnostics: above MA5/MA10/MA20, advancing, 20-day closing high, volume expansion
