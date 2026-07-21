@@ -1,6 +1,6 @@
 # AuroraAI Project Status
 
-Last Updated: 2026-07-21
+Last Updated: 2026-07-22
 
 ---
 
@@ -20,7 +20,7 @@ AuroraAI 是一个本地运行的 AI 股票研究平台。
 
 当前开发阶段：
 
-> Phase 5.4B - Historical Sync Engine Completed
+> Phase 5.4C - SW Level-1 Sector History Sync Completed
 
 ---
 
@@ -490,6 +490,42 @@ PR5.4A已解决数据层。
 PR5.4B已完成初始化、增量同步、断点续跑与失败恢复引擎。
 
 下一步将Market Breadth接入本地历史缓存并进入生产评分。
+
+---
+
+## PR5.4C
+
+Status: Completed
+
+Scope:
+
+- Official V1 classification source: `sw_level1`
+- SW level-1 industry metadata
+- Industry historical daily bars
+- Current constituent snapshots with `snapshot_date`, `first_seen_at`, and `last_seen_at`
+- Explicit approximate/look-ahead warning for historical use of current membership
+- Incremental, idempotent, resumable synchronization with retry and failure isolation
+- Conservative limited concurrency; SQLite writes remain on the main thread
+- Schema keeps `classification_system` for future `eastmoney_industry` and `sw_level2` support
+
+Command:
+
+```powershell
+python -m backend.collector.sync_sector_history --limit 1 --workers 1
+python -m backend.collector.sync_sector_history --codes 801010 --workers 1
+python -m backend.collector.sync_sector_history --retry-failed
+```
+
+Real validation (one industry only):
+
+- Classification: `sw_level1`
+- Sector: `801010`
+- Historical bars: 6416
+- Current snapshot members: 104
+- Latest trade date: 2026-07-21
+- Snapshot date: 2026-07-22
+
+No full-market sector history synchronization was run.
 
 ---
 
