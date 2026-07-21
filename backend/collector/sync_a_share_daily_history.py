@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import math
 import os
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
@@ -28,6 +29,12 @@ MAX_WORKERS = 8
 DEFAULT_LOOKBACK_DAYS = 7
 MAX_LOOKBACK_DAYS = 30
 MAX_ATTEMPTS = 3
+
+# AKShare's Sina decoder uses py_mini_racer. On Windows, concurrent creation
+# of its first V8 context can abort the whole process, so only the first real
+# download is serialized. Later downloads retain bounded parallelism.
+_SINA_INITIALIZATION_LOCK = threading.Lock()
+_sina_initialized = False
 
 
 @dataclass(frozen=True)
@@ -233,12 +240,23 @@ def normalize_download_frame(stock_code: str, frame: pd.DataFrame, start_date: d
     )
 
 
-def default_downloader(stock_code: str, start_date: date, end_date: date):
+def _download_from_sina(stock_code: str, start_date: date, end_date: date):
     ak = get_akshare()
     return ak.stock_zh_a_daily(
         symbol=_sina_symbol(stock_code), start_date=start_date.strftime("%Y%m%d"),
         end_date=end_date.strftime("%Y%m%d"), adjust="",
     )
+
+
+def default_downloader(stock_code: str, start_date: date, end_date: date):
+    global _sina_initialized
+    if not _sina_initialized:
+        with _SINA_INITIALIZATION_LOCK:
+            if not _sina_initialized:
+                frame = _download_from_sina(stock_code, start_date, end_date)
+                _sina_initialized = True
+                return frame
+    return _download_from_sina(stock_code, start_date, end_date)
 
 
 def download_plan(plan: SyncPlan, *, downloader=default_downloader, attempts: int = MAX_ATTEMPTS,

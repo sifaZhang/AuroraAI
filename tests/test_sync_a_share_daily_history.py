@@ -1,8 +1,11 @@
 import threading
+import time
 from datetime import date
 
 import pandas as pd
 import pytest
+
+import backend.collector.sync_a_share_daily_history as sync_module
 
 from backend.collector.sync_a_share_daily_history import (
     DEFAULT_WORKERS, SOURCE, StockItem, SyncPlan, build_sync_plans, download_plan,
@@ -178,6 +181,35 @@ def test_dry_run_does_not_download_or_write(tmp_path):
     assert connection.execute("SELECT COUNT(*) FROM a_share_daily_bars").fetchone()[0] == 0
     assert connection.execute("SELECT COUNT(*) FROM a_share_history_sync_status").fetchone()[0] == 0
     connection.close()
+
+
+def test_default_downloader_serializes_first_sina_initialization(monkeypatch):
+    calls = []
+    first_finished = threading.Event()
+
+    def fake_download(code, *_):
+        calls.append((code, "start", first_finished.is_set()))
+        if code == "000001":
+            time.sleep(0.05)
+            first_finished.set()
+        calls.append((code, "end", first_finished.is_set()))
+        return frame(periods=1)
+
+    monkeypatch.setattr(sync_module, "_download_from_sina", fake_download)
+    monkeypatch.setattr(sync_module, "_sina_initialized", False)
+    with sync_module.ThreadPoolExecutor(max_workers=2) as executor:
+        first = executor.submit(
+            sync_module.default_downloader, "000001", date(2026, 7, 1), date(2026, 7, 2)
+        )
+        time.sleep(0.01)
+        second = executor.submit(
+            sync_module.default_downloader, "600000", date(2026, 7, 1), date(2026, 7, 2)
+        )
+        first.result()
+        second.result()
+
+    second_start = next(item for item in calls if item[:2] == ("600000", "start"))
+    assert second_start[2] is True
 
 
 def test_concurrency_failure_isolation_main_thread_sql_and_stable_counts(tmp_path):
