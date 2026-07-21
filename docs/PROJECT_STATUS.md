@@ -20,7 +20,7 @@ AuroraAI 是一个本地运行的 AI 股票研究平台。
 
 当前开发阶段：
 
-> Phase 5.4C - SW Level-1 Sector History Sync Completed
+> Phase 5.5 - Market Breadth Production Scoring Completed
 
 ---
 
@@ -397,7 +397,7 @@ Status：Completed
 
 ---
 
-## PR5.5（Next）
+## PR5.5（Completed）
 
 Market Breadth Production
 
@@ -529,6 +529,50 @@ No full-market sector history synchronization was run.
 
 ---
 
+## PR5.5
+
+Status: Completed
+
+Scope:
+
+- Six Breadth diagnostics: above MA5/MA10/MA20, advancing, 20-day closing high, volume expansion
+- Official 30-point score uses MA20 (10), advancing (7), 20-day high (6), and volume expansion (7)
+- Piecewise-linear thresholds avoid abrupt boundary jumps
+- Existing 70-point Technical Trend implementation is reused unchanged
+- `total_score = trend_score + breadth_score`, with nullable scores when coverage is insufficient
+- Minimum 10 total members, 10 valid members per core metric, and 60% coverage per core metric
+- Current memberships are explicitly snapshots, not historical membership
+- Historical use is marked approximate with a future-data leakage warning
+- Versioned, idempotent SQLite results in `sector_breadth_scores`
+- Calculation command is local-only and never triggers network downloads
+
+Command:
+
+```powershell
+python -m backend.collector.calculate_sector_breadth --codes 801010 --latest
+python -m backend.collector.calculate_sector_breadth --codes 801010 --latest --recalculate
+python -m backend.collector.calculate_sector_breadth --limit 1 --dry-run
+python -m backend.collector.calculate_sector_breadth --codes 801010 --trade-date 2026-07-21
+```
+
+Real validation (`801010` only):
+
+- Total current members: 104
+- Controlled local-history sync: 20 stocks, 1079 rows; no full-market sync
+- Target trade date: 2026-07-21
+- Membership snapshot date: 2026-07-22
+- Core valid members: 20
+- Coverage: 19.23%
+- Status: `insufficient_data`
+- Breadth score: NULL (minimum coverage intentionally not relaxed)
+- Existing 70-point trend score: 50
+- Total score: NULL
+- Approximate: true, with look-ahead warning
+
+Next recommended task: PR5.6 Market Pulse API and dashboard integration.
+
+---
+
 # Files Never Touch Automatically
 
 以下文件属于用户维护：
@@ -547,10 +591,10 @@ feature/expectation-refresh-jobs
 
 # Next Task
 
-PR5.5
+PR5.6
 
-Market Breadth Production
+Market Pulse API and dashboard integration
 
 目标：
 
-基于本地A股日线缓存计算Breadth并接入Market Pulse生产评分。
+Expose the versioned Breadth results through the existing Market Pulse API and dashboard.

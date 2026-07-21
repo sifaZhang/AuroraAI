@@ -229,6 +229,40 @@ def get_recent_daily_bars_for_stocks(connection: sqlite3.Connection, stock_codes
     return sorted(results, key=lambda item: (str(item.stock_code), str(item.trade_date)))
 
 
+def get_daily_bars_for_stocks_through_date(
+    connection: sqlite3.Connection,
+    stock_codes: Iterable[object],
+    trade_date: str | date,
+    limit_per_stock: int,
+    adjustment: str = "none",
+) -> list[DailyBar]:
+    """Return bounded per-stock history ending on, and never after, trade_date."""
+
+    if limit_per_stock <= 0:
+        raise ValueError("limit_per_stock must be positive")
+    if sqlite3.sqlite_version_info < (3, 25, 0):
+        raise RuntimeError("SQLite 3.25+ is required for window functions")
+    target = _iso_date(trade_date)
+    codes = sorted({normalize_stock_code(code) for code in stock_codes})
+    results: list[DailyBar] = []
+    for offset in range(0, len(codes), SQL_PARAMETER_BATCH_SIZE):
+        batch = codes[offset:offset + SQL_PARAMETER_BATCH_SIZE]
+        if not batch:
+            continue
+        placeholders = ",".join("?" for _ in batch)
+        rows = connection.execute(
+            f"""SELECT stock_code,trade_date,open,high,low,close,volume,amount,source,adjustment,fetched_at
+                FROM (SELECT *, ROW_NUMBER() OVER (
+                    PARTITION BY stock_code ORDER BY trade_date DESC) AS row_number
+                    FROM a_share_daily_bars
+                    WHERE adjustment=? AND trade_date<=? AND stock_code IN ({placeholders}))
+                WHERE row_number<=? ORDER BY stock_code ASC,trade_date ASC""",
+            (adjustment, target, *batch, limit_per_stock),
+        ).fetchall()
+        results.extend(_bar(row) for row in rows)
+    return sorted(results, key=lambda item: (str(item.stock_code), str(item.trade_date)))
+
+
 def get_daily_bar_stats(connection: sqlite3.Connection, stock_code: object,
                         adjustment: str = "none") -> tuple[str | None, str | None, int]:
     row = connection.execute(

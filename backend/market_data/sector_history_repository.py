@@ -197,6 +197,51 @@ def list_failed_sector_codes(connection: sqlite3.Connection,
     return [row[0] for row in rows]
 
 
+def list_current_members(connection: sqlite3.Connection, sector_code: str,
+                         classification_system: str = CLASSIFICATION_SYSTEM) -> list[sqlite3.Row]:
+    return connection.execute(
+        """SELECT stock_code,stock_name,snapshot_date,membership_scope,
+                  historical_use_is_approximate,lookahead_bias_warning
+           FROM sector_memberships WHERE classification_system=? AND sector_code=? AND is_current=1
+           ORDER BY stock_code""",
+        (_system(classification_system), str(sector_code).strip()),
+    ).fetchall()
+
+
+def latest_sector_trade_date(connection: sqlite3.Connection, sector_code: str,
+                             classification_system: str = CLASSIFICATION_SYSTEM) -> str | None:
+    row = connection.execute(
+        """SELECT MAX(trade_date) FROM sector_daily_bars
+           WHERE classification_system=? AND sector_code=?""",
+        (_system(classification_system), str(sector_code).strip()),
+    ).fetchone()
+    return row[0] if row else None
+
+
+def get_sector_bars_through_date(connection: sqlite3.Connection, sector_code: str,
+                                 trade_date: str | date, limit: int = 21,
+                                 classification_system: str = CLASSIFICATION_SYSTEM) -> list[sqlite3.Row]:
+    if limit <= 0:
+        raise ValueError("limit must be positive")
+    rows = connection.execute(
+        """SELECT trade_date,close,volume FROM sector_daily_bars
+           WHERE classification_system=? AND sector_code=? AND trade_date<=?
+           ORDER BY trade_date DESC LIMIT ?""",
+        (_system(classification_system), str(sector_code).strip(), _date(trade_date), limit),
+    ).fetchall()
+    return list(reversed(rows))
+
+
+def list_sector_codes_with_history(connection: sqlite3.Connection,
+                                   classification_system: str = CLASSIFICATION_SYSTEM) -> list[str]:
+    rows = connection.execute(
+        """SELECT DISTINCT sector_code FROM sector_daily_bars
+           WHERE classification_system=? ORDER BY sector_code""",
+        (_system(classification_system),),
+    ).fetchall()
+    return [row[0] for row in rows]
+
+
 def record_sync_success(connection: sqlite3.Connection, sector: Sector, snapshot_date: str | date,
                         bar_count: int, member_count: int, attempted_at=None, succeeded_at=None) -> None:
     attempted, succeeded = _timestamp(attempted_at), _timestamp(succeeded_at)
