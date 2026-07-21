@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 
 import pandas as pd
 
@@ -41,7 +42,12 @@ def normalize_daily_bars(
 
 
 def calculate_trend_metrics(sector_bars: pd.DataFrame) -> TrendMetrics:
-    """Calculate the six V1 rules without Breadth; maximum is 70."""
+    """Calculate six 70-point trend rules using closing prices and prior volume.
+
+    The moving-average rules describe the current trend structure, not crossover
+    events.  The volume rule compares today with the five completed sessions
+    before today, so today's volume never participates in its own baseline.
+    """
 
     if len(sector_bars) < 21:
         raise ValueError(f"板块K线至少需要21个有效交易日，实际只有{len(sector_bars)}个")
@@ -56,14 +62,17 @@ def calculate_trend_metrics(sector_bars: pd.DataFrame) -> TrendMetrics:
     ma5 = float(ma5_series.iloc[-1])
     ma10 = float(ma10_series.iloc[-1])
     ma20 = float(ma20_series.iloc[-1])
-    volume_ma5 = float(volumes.tail(5).mean())
-    volume_ratio = float(volumes.iloc[-1]) / volume_ma5 if volume_ma5 > 0 else 0.0
+    volume_window = volumes.iloc[-6:]
+    if len(volume_window) != 6 or not all(math.isfinite(value) and value >= 0 for value in volume_window):
+        raise ValueError("最近6个交易日成交量包含NaN、无穷值或负数")
+    previous_volume_ma5 = float(volume_window.iloc[:-1].mean())
+    volume_ratio = float(volume_window.iloc[-1]) / previous_volume_ma5 if previous_volume_ma5 > 0 else 0.0
     is_20d_high = close >= float(closes.tail(20).max())
     score = 0
     score += 10 if close > ma5 else 0
     score += 10 if ma5 > float(ma5_series.iloc[-2]) else 0
-    score += 15 if ma5 > ma10 else 0
-    score += 15 if ma10 > ma20 else 0
+    score += 15 if ma5 > ma10 else 0  # MA5位于MA10上方，并非当天上穿
+    score += 15 if ma10 > ma20 else 0  # MA10位于MA20上方，并非当天上穿
     score += 10 if is_20d_high else 0
     score += 10 if volume_ratio > 1 else 0
     return TrendMetrics(
