@@ -229,6 +229,50 @@ def get_recent_daily_bars_for_stocks(connection: sqlite3.Connection, stock_codes
     return sorted(results, key=lambda item: (str(item.stock_code), str(item.trade_date)))
 
 
+def get_daily_bars_for_stocks_through_date(
+    connection: sqlite3.Connection,
+    stock_codes: Iterable[object],
+    trade_date: str | date,
+    limit_per_stock: int,
+    adjustment: str = "none",
+) -> list[DailyBar]:
+    """Return bounded per-stock history ending on, and never after, trade_date."""
+
+    if limit_per_stock <= 0:
+        raise ValueError("limit_per_stock must be positive")
+    if sqlite3.sqlite_version_info < (3, 25, 0):
+        raise RuntimeError("SQLite 3.25+ is required for window functions")
+    target = _iso_date(trade_date)
+    codes = sorted({normalize_stock_code(code) for code in stock_codes})
+    results: list[DailyBar] = []
+    for offset in range(0, len(codes), SQL_PARAMETER_BATCH_SIZE):
+        batch = codes[offset:offset + SQL_PARAMETER_BATCH_SIZE]
+        if not batch:
+            continue
+        placeholders = ",".join("?" for _ in batch)
+        rows = connection.execute(
+            f"""SELECT stock_code,trade_date,open,high,low,close,volume,amount,source,adjustment,fetched_at
+                FROM (SELECT *, ROW_NUMBER() OVER (
+                    PARTITION BY stock_code ORDER BY trade_date DESC) AS row_number
+                    FROM a_share_daily_bars
+                    WHERE adjustment=? AND trade_date<=? AND stock_code IN ({placeholders}))
+                WHERE row_number<=? ORDER BY stock_code ASC,trade_date ASC""",
+            (adjustment, target, *batch, limit_per_stock),
+        ).fetchall()
+        results.extend(_bar(row) for row in rows)
+    return sorted(results, key=lambda item: (str(item.stock_code), str(item.trade_date)))
+
+
+def get_daily_bar_stats(connection: sqlite3.Connection, stock_code: object,
+                        adjustment: str = "none") -> tuple[str | None, str | None, int]:
+    row = connection.execute(
+        """SELECT MIN(trade_date),MAX(trade_date),COUNT(*) FROM a_share_daily_bars
+           WHERE stock_code=? AND adjustment=?""",
+        (normalize_stock_code(stock_code), adjustment),
+    ).fetchone()
+    return row[0], row[1], row[2]
+
+
 def _status(row: sqlite3.Row | None) -> HistorySyncStatus | None:
     return HistorySyncStatus(**dict(row)) if row else None
 
@@ -256,7 +300,8 @@ def upsert_sync_success(connection: sqlite3.Connection, stock_code: object, stoc
                stock_code,stock_name,first_trade_date,last_trade_date,last_success_at,last_attempt_at,
                last_error,consecutive_failures,source,adjustment,row_count,updated_at)
                VALUES(?,?,?,?,?,?,NULL,0,?,?,?,?)
-               ON CONFLICT(stock_code) DO UPDATE SET stock_name=excluded.stock_name,
+               ON CONFLICT(stock_code) DO UPDATE SET
+               stock_name=COALESCE(excluded.stock_name,a_share_history_sync_status.stock_name),
                first_trade_date=excluded.first_trade_date,last_trade_date=excluded.last_trade_date,
                last_success_at=excluded.last_success_at,last_attempt_at=excluded.last_attempt_at,
                last_error=NULL,consecutive_failures=0,source=excluded.source,
@@ -283,6 +328,24 @@ def upsert_sync_failure(connection: sqlite3.Connection, stock_code: object, stoc
                source=excluded.source,adjustment=excluded.adjustment,updated_at=excluded.updated_at""",
             (normalize_stock_code(stock_code), stock_name, attempted, message,
              source, adjustment, updated),
+        )
+
+
+def upsert_sync_no_data(connection: sqlite3.Connection, stock_code: object, stock_name: str | None,
+                        source: str, adjustment: str, attempted_at: str | datetime) -> None:
+    """Record a successful empty response without erasing an earlier successful range."""
+
+    attempted, updated = _timestamp(attempted_at), _timestamp()
+    with connection:
+        connection.execute(
+            """INSERT INTO a_share_history_sync_status(
+               stock_code,stock_name,last_attempt_at,last_error,consecutive_failures,
+               source,adjustment,row_count,updated_at) VALUES(?,?,?,NULL,0,?,?,0,?)
+               ON CONFLICT(stock_code) DO UPDATE SET
+               stock_name=COALESCE(excluded.stock_name,a_share_history_sync_status.stock_name),
+               last_attempt_at=excluded.last_attempt_at,last_error=NULL,consecutive_failures=0,
+               source=excluded.source,adjustment=excluded.adjustment,updated_at=excluded.updated_at""",
+            (normalize_stock_code(stock_code), stock_name, attempted, source, adjustment, updated),
         )
 
 
