@@ -242,6 +242,21 @@ def list_sector_codes_with_history(connection: sqlite3.Connection,
     return [row[0] for row in rows]
 
 
+def list_current_member_stocks(connection: sqlite3.Connection,
+                               classification_system: str = CLASSIFICATION_SYSTEM) -> list[sqlite3.Row]:
+    """Return the deduplicated current stock pool without refreshing memberships."""
+
+    return connection.execute(
+        """SELECT stock_code,MAX(stock_name) AS stock_name,MAX(snapshot_date) AS snapshot_date,
+                  MAX(historical_use_is_approximate) AS historical_use_is_approximate,
+                  MAX(lookahead_bias_warning) AS lookahead_bias_warning
+           FROM sector_memberships
+           WHERE classification_system=? AND is_current=1
+           GROUP BY stock_code ORDER BY stock_code""",
+        (_system(classification_system),),
+    ).fetchall()
+
+
 def record_sync_success(connection: sqlite3.Connection, sector: Sector, snapshot_date: str | date,
                         bar_count: int, member_count: int, attempted_at=None, succeeded_at=None) -> None:
     attempted, succeeded = _timestamp(attempted_at), _timestamp(succeeded_at)

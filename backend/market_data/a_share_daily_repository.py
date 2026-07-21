@@ -331,6 +331,24 @@ def upsert_sync_failure(connection: sqlite3.Connection, stock_code: object, stoc
         )
 
 
+def upsert_sync_no_data(connection: sqlite3.Connection, stock_code: object, stock_name: str | None,
+                        source: str, adjustment: str, attempted_at: str | datetime) -> None:
+    """Record a successful empty response without erasing an earlier successful range."""
+
+    attempted, updated = _timestamp(attempted_at), _timestamp()
+    with connection:
+        connection.execute(
+            """INSERT INTO a_share_history_sync_status(
+               stock_code,stock_name,last_attempt_at,last_error,consecutive_failures,
+               source,adjustment,row_count,updated_at) VALUES(?,?,?,NULL,0,?,?,0,?)
+               ON CONFLICT(stock_code) DO UPDATE SET
+               stock_name=COALESCE(excluded.stock_name,a_share_history_sync_status.stock_name),
+               last_attempt_at=excluded.last_attempt_at,last_error=NULL,consecutive_failures=0,
+               source=excluded.source,adjustment=excluded.adjustment,updated_at=excluded.updated_at""",
+            (normalize_stock_code(stock_code), stock_name, attempted, source, adjustment, updated),
+        )
+
+
 def list_sync_statuses(connection: sqlite3.Connection, failed_only: bool = False,
                        limit: int | None = None) -> list[HistorySyncStatus]:
     if limit is not None and limit <= 0:

@@ -20,7 +20,7 @@ AuroraAI 是一个本地运行的 AI 股票研究平台。
 
 当前开发阶段：
 
-> Phase 5.5 - Market Breadth Production Scoring Completed
+> Phase 5.6 - Incremental A-share History Sync Completed
 
 ---
 
@@ -590,6 +590,49 @@ Next recommended task: PR5.6 Market Pulse API and dashboard integration.
 
 ---
 
+## PR5.6
+
+Status: Completed
+
+Summary:
+
+- Added a local SQLite-driven A-share stock pool from current `sw_level1` membership snapshots
+- Added explicit initialization and incremental modes
+- Added deterministic code normalization, deduplication, sorting, and `limit`
+- Added `retry-failed`, bounded concurrency, three-attempt retry, and 1s/2s backoff
+- Added 0-30 day incremental lookback, defaulting to 7 calendar days
+- Added strict date, OHLC, volume, amount, duplicate-date, and range validation
+- Download workers never access SQLite; writes and status updates stay on the main thread
+- Added true dry-run behavior: SQLite reads only, no network and no database writes
+- Reused `a_share_daily_bars`, `a_share_history_sync_status`, and existing Repository upserts
+- Source is `sina_stock_zh_a_daily`; adjustment remains `none`
+
+Command:
+
+```powershell
+python -m backend.collector.sync_a_share_daily_history --start-date 2026-07-01
+python -m backend.collector.sync_a_share_daily_history --incremental
+python -m backend.collector.sync_a_share_daily_history --retry-failed --incremental
+python -m backend.collector.sync_a_share_daily_history --codes 000001,600000 --start-date 2026-07-01 --workers 1
+python -m backend.collector.sync_a_share_daily_history --start-date 2026-07-01 --limit 5 --dry-run
+```
+
+Real validation:
+
+- Stocks: `000001`, `600000` only
+- Initial requested range: 2026-07-01 through 2026-07-22
+- Stored range: 2026-07-01 through 2026-07-21
+- Stored rows: 15 per stock
+- Incremental lookback: 7 calendar days
+- Incremental response: 6 rows per stock
+- Repeating the same incremental run kept 15 rows per stock
+- Both statuses ended with no error and zero consecutive failures
+- No full-market synchronization was run
+
+Next recommended task: PR5.7 Market Pulse API and dashboard integration.
+
+---
+
 # Files Never Touch Automatically
 
 以下文件属于用户维护：
@@ -608,7 +651,7 @@ feature/expectation-refresh-jobs
 
 # Next Task
 
-PR5.6
+PR5.7
 
 Market Pulse API and dashboard integration
 
