@@ -20,7 +20,7 @@ AuroraAI 是一个本地运行的 AI 股票研究平台。
 
 当前开发阶段：
 
-> Phase 5.4B - Historical Sync Engine
+> Phase 5.4B - Historical Sync Engine Completed
 
 ---
 
@@ -277,6 +277,42 @@ Market Breadth、尾盘选股、回测等后续统一使用该Repository。
 
 ---
 
+## PR5.4B
+
+Status：
+
+Completed
+
+Commit：
+
+本次提交（feat: add resumable A-share history sync engine）
+
+Summary：
+
+- 支持全市场历史行情初始化
+- 按本地最后交易日增量同步
+- 断点续跑和幂等写入
+- 失败隔离、状态记录及仅重试失败股票
+- 下载线程与SQLite写入严格分离
+- 默认2线程，最大8线程
+- 股票池主接口失败时回退申万一级行业成分
+
+命令：
+
+```powershell
+python -m backend.collector.sync_a_share_history --limit 10
+python -m backend.collector.sync_a_share_history --retry-failed
+python -m backend.collector.sync_a_share_history --codes 000001,600000 --workers 2
+```
+
+真实小样本：
+
+- 2只股票同步成功
+- 28条日线写入
+- 重复运行正确跳过已是最新的数据
+
+---
+
 # Current Architecture
 
 Market Pulse
@@ -333,9 +369,11 @@ Dashboard
 
 # Current Roadmap
 
-## PR5.4B（Next）
+## PR5.4B
 
 Historical Sync Engine
+
+Status：Completed
 
 目标：
 
@@ -359,7 +397,7 @@ Historical Sync Engine
 
 ---
 
-## PR5.5
+## PR5.5（Next）
 
 Market Breadth Production
 
@@ -449,7 +487,9 @@ Market Breadth：
 
 PR5.4A已解决数据层。
 
-下一步完成历史同步即可进入生产。
+PR5.4B已完成初始化、增量同步、断点续跑与失败恢复引擎。
+
+下一步将Market Breadth接入本地历史缓存并进入生产评分。
 
 ---
 
@@ -471,10 +511,10 @@ feature/expectation-refresh-jobs
 
 # Next Task
 
-PR5.4B
+PR5.5
 
-Historical Sync Engine
+Market Breadth Production
 
 目标：
 
-建立本地A股历史行情同步系统，为Market Breadth、尾盘选股、回测及未来所有技术分析模块提供统一的数据来源。
+基于本地A股日线缓存计算Breadth并接入Market Pulse生产评分。

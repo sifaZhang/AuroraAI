@@ -229,6 +229,16 @@ def get_recent_daily_bars_for_stocks(connection: sqlite3.Connection, stock_codes
     return sorted(results, key=lambda item: (str(item.stock_code), str(item.trade_date)))
 
 
+def get_daily_bar_stats(connection: sqlite3.Connection, stock_code: object,
+                        adjustment: str = "none") -> tuple[str | None, str | None, int]:
+    row = connection.execute(
+        """SELECT MIN(trade_date),MAX(trade_date),COUNT(*) FROM a_share_daily_bars
+           WHERE stock_code=? AND adjustment=?""",
+        (normalize_stock_code(stock_code), adjustment),
+    ).fetchone()
+    return row[0], row[1], row[2]
+
+
 def _status(row: sqlite3.Row | None) -> HistorySyncStatus | None:
     return HistorySyncStatus(**dict(row)) if row else None
 
@@ -256,7 +266,8 @@ def upsert_sync_success(connection: sqlite3.Connection, stock_code: object, stoc
                stock_code,stock_name,first_trade_date,last_trade_date,last_success_at,last_attempt_at,
                last_error,consecutive_failures,source,adjustment,row_count,updated_at)
                VALUES(?,?,?,?,?,?,NULL,0,?,?,?,?)
-               ON CONFLICT(stock_code) DO UPDATE SET stock_name=excluded.stock_name,
+               ON CONFLICT(stock_code) DO UPDATE SET
+               stock_name=COALESCE(excluded.stock_name,a_share_history_sync_status.stock_name),
                first_trade_date=excluded.first_trade_date,last_trade_date=excluded.last_trade_date,
                last_success_at=excluded.last_success_at,last_attempt_at=excluded.last_attempt_at,
                last_error=NULL,consecutive_failures=0,source=excluded.source,
