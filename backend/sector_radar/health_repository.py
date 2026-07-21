@@ -11,6 +11,7 @@ SOURCES = {
     "sw_l1": "申万一级行业",
     "sw_l2": "申万二级行业",
     "eastmoney": "东方财富行业",
+    "benchmark_csi300": "沪深300基准",
 }
 ERROR_LIMIT = 1000
 
@@ -54,7 +55,7 @@ def list_statuses(connection: sqlite3.Connection) -> list[dict[str, Any]]:
     for source in SOURCES:
         ensure_source(connection, source)
     rows = connection.execute(
-        "SELECT * FROM sector_source_status ORDER BY CASE source WHEN 'sw_l1' THEN 1 WHEN 'sw_l2' THEN 2 ELSE 3 END"
+        "SELECT * FROM sector_source_status ORDER BY CASE source WHEN 'sw_l1' THEN 1 WHEN 'sw_l2' THEN 2 WHEN 'eastmoney' THEN 3 ELSE 4 END"
     ).fetchall()
     return [_row(row) for row in rows]
 

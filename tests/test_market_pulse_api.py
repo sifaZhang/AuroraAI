@@ -43,6 +43,12 @@ def test_list_defaults_latest_sort_pagination_and_max_score(tmp_path, monkeypatc
     assert body["total"] == 2 and len(body["items"]) == 1
     assert body["items"][0]["sector_name"] == "煤炭"
     assert body["items"][0]["trend_max_score"] == 70
+    assert body["items"][0]["relative_strength_score"] is None
+    assert body["items"][0]["relative_strength_max_score"] == 15
+    assert body["items"][0]["capital_flow_score"] is None
+    assert body["items"][0]["composite_score"] is None
+    assert body["items"][0]["score_status"] == "partial"
+    assert body["items"][0]["missing_components"] == ["capital_flow", "relative_strength"]
 
     page_two = client.get("/api/market-pulse/sectors?page=2&page_size=1").json()
     assert page_two["items"][0]["sector_name"] == "农林牧渔"

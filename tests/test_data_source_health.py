@@ -53,11 +53,11 @@ def test_repository_lifecycle_counters_metadata_and_error_limit(tmp_path):
     connection.close()
 
 
-def test_list_statuses_registers_three_unknown_sources(tmp_path):
+def test_list_statuses_registers_all_unknown_sources(tmp_path):
     connection = connect(tmp_path / "health.db")
     migrate(connection)
     items = list_statuses(connection)
-    assert [item["source"] for item in items] == ["sw_l1", "sw_l2", "eastmoney"]
+    assert [item["source"] for item in items] == ["sw_l1", "sw_l2", "eastmoney", "benchmark_csi300"]
     assert all(item["status"] == "unknown" for item in items)
     connection.close()
 
@@ -120,7 +120,7 @@ def test_eastmoney_remote_disconnect_and_all_isolation(tmp_path, monkeypatch):
     migrate(connection)
     items = health_checks.run_health_checks(connection, "all", ak=MixedAk())
     states = {item["source"]: item["status"] for item in items}
-    assert states == {"sw_l1": "healthy", "sw_l2": "unavailable", "eastmoney": "unavailable"}
+    assert states == {"sw_l1": "healthy", "sw_l2": "unavailable", "eastmoney": "unavailable", "benchmark_csi300": "unknown"}
     assert "RemoteDisconnected" in get_status(connection, "eastmoney")["last_error_message"]
     connection.close()
 

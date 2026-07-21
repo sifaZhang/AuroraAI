@@ -2,12 +2,13 @@
   "use strict";
 
   const TERMINAL_STATUSES = new Set(["completed", "partial", "failed"]);
-  const SOURCE_ORDER = ["sw_l1", "sw_l2", "eastmoney"];
-  const SOURCE_NAMES = {sw_l1: "申万一级行业", sw_l2: "申万二级行业", eastmoney: "东方财富行业"};
+  const SOURCE_ORDER = ["sw_l1", "sw_l2", "eastmoney", "benchmark_csi300"];
+  const SOURCE_NAMES = {sw_l1: "申万一级行业", sw_l2: "申万二级行业", eastmoney: "东方财富行业", benchmark_csi300: "沪深300基准"};
   const TABLE_SOURCE_NAMES = {sw_l1: "申万一级", sw_l2: "申万二级", eastmoney: "东方财富"};
   const STATUS_NAMES = {healthy: "正常", degraded: "部分可用", unavailable: "不可用", unknown: "未检查"};
   const JOB_STATUS_NAMES = {queued: "排队中", running: "刷新中", completed: "已完成", partial: "部分完成", failed: "失败"};
   const LEVEL_NAMES = {strong: "A", bullish: "B", neutral: "C", weak: "D", bearish: "E"};
+  const LEVEL_LABELS = {A: "A / 强势", B: "B / 偏强", C: "C / 中性", D: "D / 偏弱", E: "E / 弱势"};
 
   class RequestError extends Error {
     constructor(message, status, data) { super(message); this.status = status; this.data = data; }
@@ -69,7 +70,7 @@
     const elements = {
       rows: byId("sector-rows"), statuses: byId("source-statuses"), button: byId("refresh-sectors"), pageError: byId("pulse-error"),
       sectorError: byId("sector-error"), healthError: byId("health-error"), tradeDate: byId("last-trade-date"), lastRefresh: byId("last-refresh"),
-      marketStatus: byId("market-status"), count: byId("sector-count"), jobStatus: byId("job-status"), jobCounts: byId("job-counts"),
+      marketStatus: byId("market-status"), rsAvailable: byId("rs-available"), rsOutperforming: byId("rs-outperforming"), count: byId("sector-count"), jobStatus: byId("job-status"), jobCounts: byId("job-counts"),
       jobStep: byId("job-step"), jobStarted: byId("job-started"), jobFinished: byId("job-finished"), jobDuration: byId("job-duration"),
       jobProgress: byId("job-progress"), jobError: byId("job-error"), currentSource: byId("current-source"), search: byId("sector-search"), levelFilter: byId("level-filter"),
       sourceFilter: byId("source-filter"), resetFilters: byId("reset-sector-filters"), sortButtons: Array.from(doc.querySelectorAll(".sort-button"))
@@ -113,6 +114,9 @@
       elements.marketStatus.textContent = `${status === "healthy" ? "🟢 " : status === "degraded" ? "🟡 " : status === "unavailable" ? "🔴 " : "⚪ "}${STATUS_NAMES[status] || status}`;
       const latest = state.sectors.reduce((value, item) => !value || String(item.updated_at) > String(value) ? item.updated_at : value, null) || meta.source_status?.updated_at;
       elements.lastRefresh.textContent = formatDateTime(latest);
+      const rsAvailable = state.sectors.filter(item => item.relative_strength_score != null);
+      elements.rsAvailable.textContent = `${rsAvailable.length} / ${state.sectors.length}`;
+      elements.rsOutperforming.textContent = String(rsAvailable.filter(item => Number(item.relative_strength_score) > 0).length);
     }
 
     function emptyMessage(meta) {
@@ -126,10 +130,12 @@
 
     function displayLevel(item) { return LEVEL_NAMES[item.trend_level] || item.trend_level || fallbackLevel(item.trend_score); }
 
+    function sortValue(item, key) { return key === "rank" ? item._rank : key === "level" ? displayLevel(item) : item[key]; }
+
     function compareValues(left, right, key) {
-      const leftValue = key === "rank" ? left._rank : key === "level" ? displayLevel(left) : left[key];
-      const rightValue = key === "rank" ? right._rank : key === "level" ? displayLevel(right) : right[key];
-      if (key === "trend_score" || key === "rank") return Number(leftValue ?? -Infinity) - Number(rightValue ?? -Infinity);
+      const leftValue = sortValue(left, key);
+      const rightValue = sortValue(right, key);
+      if (key === "trend_score" || key === "relative_strength_score" || key === "rank") return Number(leftValue ?? -Infinity) - Number(rightValue ?? -Infinity);
       return String(leftValue ?? "").localeCompare(String(rightValue ?? ""), "zh-CN", {numeric: true, sensitivity: "base"});
     }
 
@@ -140,13 +146,16 @@
         .filter(item => !state.level || displayLevel(item) === state.level)
         .slice()
         .sort((left, right) => {
+          const leftMissing = sortValue(left, state.sortKey) == null;
+          const rightMissing = sortValue(right, state.sortKey) == null;
+          if (leftMissing !== rightMissing) return leftMissing ? 1 : -1;
           const result = compareValues(left, right, state.sortKey);
           return (state.sortOrder === "asc" ? result : -result) || left._rank - right._rank;
         });
     }
 
     function updateSortHeaders() {
-      const labels = {rank: "Rank", sector_name: "行业", trend_score: "Trend Score", level: "等级", trade_date: "最新交易日", updated_at: "更新时间", source: "数据来源"};
+      const labels = {rank: "Rank", sector_name: "行业", trend_score: "技术趋势", relative_strength_score: "相对强度", level: "等级", trade_date: "最新交易日", updated_at: "更新时间", source: "数据来源"};
       elements.sortButtons.forEach(button => {
         const active = button.dataset.sort === state.sortKey;
         button.className = `sort-button${active ? " active" : ""}`;
@@ -160,14 +169,23 @@
       clearChildren(elements.rows);
       elements.count.textContent = `当前显示 ${items.length} / 总计 ${state.sectors.length} 个行业`;
       if (!items.length) {
-        const row = doc.createElement("tr"); const cell = appendText(row, "td", emptyMessage(state.marketMeta), "empty-state"); cell.colSpan = 7; elements.rows.appendChild(row); return;
+        const row = doc.createElement("tr"); const cell = appendText(row, "td", emptyMessage(state.marketMeta), "empty-state"); cell.colSpan = 10; elements.rows.appendChild(row); return;
       }
       items.forEach(item => {
         const row = doc.createElement("tr");
         appendText(row, "td", String(item._rank));
         appendText(row, "td", item.sector_name || "—");
         const scoreCell = doc.createElement("td"); appendText(scoreCell, "span", `${item.trend_score ?? "—"}/${item.trend_max_score || 70}`, `trend-score ${getScoreClass(item.trend_score)}`); row.appendChild(scoreCell);
-        const levelCell = doc.createElement("td"); appendText(levelCell, "span", displayLevel(item), "trend-level"); row.appendChild(levelCell);
+        const rsCell = doc.createElement("td");
+        const rs = appendText(rsCell, "span", item.relative_strength_score == null ? "—" : `${item.relative_strength_score}/${item.relative_strength_max_score || 15}`, item.relative_strength_score == null ? "pending-score" : "module-score");
+        if (item.relative_strength_score != null) rs.title = [5, 10, 20].map(period => `${period}日：${item[`excess_return_${period}d`] == null ? "—" : `${(Number(item[`excess_return_${period}d`]) * 100).toFixed(2)}%`}`).join(" · ");
+        row.appendChild(rsCell);
+        appendText(row, "td", item.capital_flow_score == null ? "—" : `${item.capital_flow_score}/${item.capital_flow_max_score || 15}`, item.capital_flow_score == null ? "pending-score" : "module-score");
+        const compositeCell = doc.createElement("td");
+        appendText(compositeCell, "span", item.composite_score == null ? "待补齐" : `${item.composite_score}/${item.composite_max_score || 100}`, item.composite_score == null ? "pending-score" : "module-score");
+        if (item.composite_score == null && Array.isArray(item.missing_components) && item.missing_components.includes("capital_flow")) appendText(compositeCell, "small", "缺少资金流数据", "missing-note");
+        row.appendChild(compositeCell);
+        const levelCell = doc.createElement("td"); const level = displayLevel(item); appendText(levelCell, "span", LEVEL_LABELS[level] || level, "trend-level"); row.appendChild(levelCell);
         appendText(row, "td", item.trade_date || state.marketMeta.latest_trade_date || state.marketMeta.trade_date || "—");
         appendText(row, "td", formatDateTime(item.updated_at), "secondary-column");
         appendText(row, "td", TABLE_SOURCE_NAMES[item.source] || item.source || "—", "secondary-column");
@@ -192,7 +210,7 @@
       state.source = elements.sourceFilter.value;
       showError(elements.sectorError, "");
       clearChildren(elements.rows);
-      const row = doc.createElement("tr"); const cell = appendText(row, "td", "正在加载行业数据…", "empty-state"); cell.colSpan = 7; elements.rows.appendChild(row);
+      const row = doc.createElement("tr"); const cell = appendText(row, "td", "正在加载行业数据…", "empty-state"); cell.colSpan = 10; elements.rows.appendChild(row);
       elements.count.textContent = "加载中…";
       try { return await loadMarketPulse(); } catch (_) { return null; }
     }

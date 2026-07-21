@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import sqlite3
+import json
 from typing import Any
 
 SOURCES = {"sw_l1", "sw_l2", "eastmoney", "all"}
-SORT_FIELDS = {"trend_score", "sector_name", "trade_date", "updated_at"}
+SORT_FIELDS = {"trend_score", "relative_strength_score", "sector_name", "trade_date", "updated_at"}
 ORDERS = {"asc", "desc"}
 
 
@@ -61,18 +62,20 @@ def list_sector_scores(
     total = connection.execute(f"SELECT COUNT(*) FROM sector_scores WHERE {where}", params).fetchone()[0]
     rows = connection.execute(
         f"""SELECT source,sector_level,sector_code,sector_name,trade_date,trend_score,trend_level,
-                   close,ma5,ma10,ma20,volume_ratio,is_20d_high,updated_at
+                   close,ma5,ma10,ma20,volume_ratio,is_20d_high,
+                   relative_strength_score,benchmark_code,benchmark_trade_date,
+                   sector_return_5d,benchmark_return_5d,excess_return_5d,
+                   sector_return_10d,benchmark_return_10d,excess_return_10d,
+                   sector_return_20d,benchmark_return_20d,excess_return_20d,
+                   relative_strength_updated_at,capital_flow_score,composite_score,
+                   score_status,missing_components,updated_at
             FROM sector_scores WHERE {where}
-            ORDER BY {sort_by} {order.upper()}, sector_code ASC LIMIT ? OFFSET ?""",
+            ORDER BY ({sort_by} IS NULL) ASC, {sort_by} {order.upper()}, sector_code ASC LIMIT ? OFFSET ?""",
         (*params, page_size, (page - 1) * page_size),
     ).fetchall()
     items = []
     for row in rows:
-        item = dict(row)
-        item["sector_level"] = int(item["sector_level"]) if str(item["sector_level"]).isdigit() else item["sector_level"]
-        item["is_20d_high"] = bool(item["is_20d_high"])
-        item["trend_max_score"] = 70
-        items.append(item)
+        items.append(_public_item(dict(row)))
     statuses = {item: _status(connection, item) for item in selected_sources}
     resolved_date = trade_date or (latest_dates.get(source) if source != "all" else None)
     return {
@@ -93,16 +96,36 @@ def get_sector_score(connection: sqlite3.Connection, source: str, sector_code: s
         params.append(trade_date)
     row = connection.execute(
         f"""SELECT source,sector_level,sector_code,sector_name,trade_date,trend_score,trend_level,
-                   close,ma5,ma10,ma20,volume_ratio,is_20d_high,updated_at
+                   close,ma5,ma10,ma20,volume_ratio,is_20d_high,
+                   relative_strength_score,benchmark_code,benchmark_trade_date,
+                   sector_return_5d,benchmark_return_5d,excess_return_5d,
+                   sector_return_10d,benchmark_return_10d,excess_return_10d,
+                   sector_return_20d,benchmark_return_20d,excess_return_20d,
+                   relative_strength_updated_at,capital_flow_score,composite_score,
+                   score_status,missing_components,updated_at
             FROM sector_scores WHERE source=? AND sector_code=?{date_clause}
             ORDER BY trade_date DESC LIMIT 1""",
         params,
     ).fetchone()
     if not row:
         return None
-    item = dict(row)
+    item = _public_item(dict(row))
+    item["source_status"] = _status(connection, source)
+    return item
+
+
+def _public_item(item: dict[str, Any]) -> dict[str, Any]:
     item["sector_level"] = int(item["sector_level"]) if str(item["sector_level"]).isdigit() else item["sector_level"]
     item["is_20d_high"] = bool(item["is_20d_high"])
     item["trend_max_score"] = 70
-    item["source_status"] = _status(connection, source)
+    item["relative_strength_max_score"] = 15
+    item["capital_flow_max_score"] = 15
+    item["composite_max_score"] = 100
+    if item.get("score_status") is None:
+        item["score_status"] = "partial"
+    raw_missing = item.get("missing_components")
+    try:
+        item["missing_components"] = json.loads(raw_missing) if raw_missing else ["capital_flow", "relative_strength"]
+    except (json.JSONDecodeError, TypeError):
+        item["missing_components"] = ["capital_flow", "relative_strength"]
     return item

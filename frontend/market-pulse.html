@@ -22,6 +22,8 @@
     <div><span>最新交易日</span><strong id="last-trade-date">加载中…</strong></div>
     <div><span>当前状态</span><strong id="market-status">加载中…</strong></div>
     <div><span>最近更新时间</span><strong id="last-refresh">加载中…</strong></div>
+    <div><span>RS可用行业</span><strong id="rs-available">加载中…</strong></div>
+    <div><span>跑赢沪深300</span><strong id="rs-outperforming">加载中…</strong></div>
   </section>
 
   <section id="sector-table-card" class="dashboard-card sector-table-card">
@@ -38,13 +40,16 @@
         <thead><tr>
           <th><button class="sort-button" data-sort="rank" type="button">Rank</button></th>
           <th><button class="sort-button" data-sort="sector_name" type="button">行业</button></th>
-          <th><button class="sort-button active" data-sort="trend_score" type="button">Trend Score <span class="sort-indicator">↓</span></button></th>
+          <th><button class="sort-button active" data-sort="trend_score" type="button">技术趋势 <span class="sort-indicator">↓</span></button></th>
+          <th><button class="sort-button" data-sort="relative_strength_score" type="button">相对强度</button></th>
+          <th>资金流</th>
+          <th>综合评分</th>
           <th><button class="sort-button" data-sort="level" type="button">等级</button></th>
           <th><button class="sort-button" data-sort="trade_date" type="button">最新交易日</button></th>
           <th class="secondary-column"><button class="sort-button" data-sort="updated_at" type="button">更新时间</button></th>
           <th class="secondary-column"><button class="sort-button" data-sort="source" type="button">数据来源</button></th>
         </tr></thead>
-        <tbody id="sector-rows"><tr><td colspan="7" class="empty-state">正在加载行业数据…</td></tr></tbody>
+        <tbody id="sector-rows"><tr><td colspan="10" class="empty-state">正在加载行业数据…</td></tr></tbody>
       </table>
     </div>
   </section>

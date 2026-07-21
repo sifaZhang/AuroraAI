@@ -10,6 +10,12 @@ def history():
 
 
 class MixedAk:
+    benchmark_calls = 0
+
+    def stock_zh_index_hist_csindex(self, symbol, start_date, end_date):
+        self.benchmark_calls += 1
+        return pd.DataFrame({"日期": pd.date_range("2026-06-01", periods=25), "收盘": [10] * 25})
+
     def index_realtime_sw(self, symbol):
         if symbol == "二级行业":
             raise KeyError("data")
@@ -27,6 +33,12 @@ class FailedSwAk(MixedAk):
         raise ConnectionError("sw unavailable")
 
 
+class FailedBenchmarkAk(MixedAk):
+    def stock_zh_index_hist_csindex(self, symbol, start_date, end_date):
+        self.benchmark_calls += 1
+        raise ConnectionError("benchmark unavailable")
+
+
 def prepare(monkeypatch, tmp_path):
     db = tmp_path / "jobs.db"
     monkeypatch.setenv("EXPECTATION_DB_URL", f"sqlite:///{db}")
@@ -40,7 +52,8 @@ def prepare(monkeypatch, tmp_path):
 def test_all_partial_commits_sw_l1_and_updates_progress(tmp_path, monkeypatch):
     connection = prepare(monkeypatch, tmp_path)
     job_id = create_job(connection, "refresh_market_pulse", source="all")
-    refresh_market_pulse_job(connection, job_id, source="all", ak=MixedAk())
+    client = MixedAk()
+    refresh_market_pulse_job(connection, job_id, source="all", ak=client)
     job = connection.execute("SELECT * FROM refresh_jobs WHERE id=?", (job_id,)).fetchone()
     assert job["status"] == "partial"
     assert job["processed"] == 3 and job["total"] == 3 and job["progress_pct"] == 100
@@ -49,6 +62,8 @@ def test_all_partial_commits_sw_l1_and_updates_progress(tmp_path, monkeypatch):
     states = dict(connection.execute("SELECT source,status FROM sector_source_status"))
     assert states["sw_l1"] == "healthy"
     assert states["sw_l2"] == states["eastmoney"] == "unavailable"
+    assert states["benchmark_csi300"] == "healthy"
+    assert client.benchmark_calls == 1
     connection.close()
 
 
@@ -73,4 +88,24 @@ def test_run_job_transitions_pending_running_completed(tmp_path, monkeypatch):
     assert job["status"] == "success"
     assert job["started_at"] and job["finished_at"]
     assert job["processed"] == job["total"] == 1
+    row = connection.execute("SELECT relative_strength_score,capital_flow_score,composite_score,score_status FROM sector_scores").fetchone()
+    assert 0 <= row["relative_strength_score"] <= 15
+    assert row["capital_flow_score"] is None and row["composite_score"] is None
+    assert row["score_status"] == "partial"
+    connection.close()
+
+
+def test_benchmark_failure_keeps_technical_and_marks_job_partial(tmp_path, monkeypatch):
+    connection = prepare(monkeypatch, tmp_path)
+    job_id = create_job(connection, "refresh_market_pulse", source="sw_l1")
+    client = FailedBenchmarkAk()
+    refresh_market_pulse_job(connection, job_id, source="sw_l1", ak=client)
+    job = connection.execute("SELECT status,error_summary FROM refresh_jobs WHERE id=?", (job_id,)).fetchone()
+    row = connection.execute("SELECT trend_score,relative_strength_score,composite_score,score_status,missing_components FROM sector_scores").fetchone()
+    health = connection.execute("SELECT status,last_error_message FROM sector_source_status WHERE source='benchmark_csi300'").fetchone()
+    assert job["status"] == "partial" and "benchmark unavailable" in job["error_summary"]
+    assert row["trend_score"] is not None and row["relative_strength_score"] is None
+    assert row["composite_score"] is None and row["score_status"] == "partial"
+    assert row["missing_components"] == '["capital_flow", "relative_strength"]'
+    assert health["status"] == "unavailable" and client.benchmark_calls == 1
     connection.close()

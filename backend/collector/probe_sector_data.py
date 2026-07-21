@@ -48,6 +48,23 @@ class SectorTrend:
     ma20: float
     volume_ratio: float
     is_20d_high: bool
+    relative_strength_score: int | None = None
+    benchmark_code: str | None = None
+    benchmark_trade_date: str | None = None
+    sector_return_5d: float | None = None
+    benchmark_return_5d: float | None = None
+    excess_return_5d: float | None = None
+    sector_return_10d: float | None = None
+    benchmark_return_10d: float | None = None
+    excess_return_10d: float | None = None
+    sector_return_20d: float | None = None
+    benchmark_return_20d: float | None = None
+    excess_return_20d: float | None = None
+    relative_strength_updated_at: str | None = None
+    capital_flow_score: int | None = None
+    composite_score: int | None = None
+    score_status: str = "partial"
+    missing_components: tuple[str, ...] = ("capital_flow", "relative_strength")
 
 
 @dataclass(frozen=True)

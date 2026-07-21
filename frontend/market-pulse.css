@@ -4,7 +4,7 @@
 .pulse-header > button { padding: .7rem 1.05rem; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
 .pulse-header > button:hover { background: var(--accent-strong); }
 .pulse-header > button:disabled { cursor: not-allowed; opacity: .58; }
-.market-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
+.market-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
 .market-summary > div, .dashboard-card { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
 .market-summary > div { padding: 14px 16px; }
 .market-summary span { display: block; margin-bottom: 5px; color: var(--muted); font-size: 13px; }
@@ -20,7 +20,7 @@
 .secondary-button { min-height: 38px; padding: 7px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: inherit; font: inherit; font-weight: 650; cursor: pointer; }
 .secondary-button:hover { border-color: var(--accent); color: var(--accent); }
 .pulse-table-wrap { overflow-x: auto; }
-.pulse-table { min-width: 850px; table-layout: auto; }
+.pulse-table { min-width: 1120px; table-layout: auto; }
 .pulse-table th, .pulse-table td { text-align: left; }
 .pulse-table th:nth-child(1), .pulse-table td:nth-child(1) { width: 55px; text-align: center; }
 .pulse-table th:nth-child(3), .pulse-table td:nth-child(3) { text-align: center; }
@@ -30,6 +30,7 @@
 .trend-score { display: inline-block; min-width: 52px; padding: .25rem .5rem; border-radius: 6px; color: #fff; text-align: center; font-weight: 800; }
 .score-70 { background: #14532d; }.score-60 { background: #16a34a; }.score-50 { background: #65a30d; }.score-40 { background: #ca8a04; }.score-30 { background: #ea580c; }.score-low { background: #dc2626; }
 .trend-level { display: inline-block; padding: .2rem .48rem; border-radius: 999px; background: #eef2f7; color: #334155; font-weight: 700; }
+.module-score { white-space: nowrap; font-weight: 750; }.pending-score { color: var(--muted); font-weight: 650; }.missing-note { display: block; margin-top: 3px; color: #92400e; font-size: 11px; }
 .dashboard-lower { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
 .source-status-row { padding: 10px 0; border-bottom: 1px solid var(--line); }.source-status-row:last-child { border-bottom: 0; }
 .source-main { display: flex; align-items: center; justify-content: space-between; gap: 12px; }.source-name { font-weight: 700; }

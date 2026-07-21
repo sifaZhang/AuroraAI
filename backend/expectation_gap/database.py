@@ -14,6 +14,7 @@ REFRESH_JOBS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "003_re
 SECTOR_SCORES_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "004_sector_scores.sql"
 DATA_SOURCE_HEALTH_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "005_data_source_health.sql"
 MARKET_PULSE_REFRESH_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "006_market_pulse_refresh.sql"
+SECTOR_RELATIVE_STRENGTH_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "007_sector_relative_strength.sql"
 
 
 def database_path() -> Path:
@@ -43,6 +44,8 @@ def migrate(connection: sqlite3.Connection) -> None:
     connection.executescript(DATA_SOURCE_HEALTH_MIGRATION_PATH.read_text(encoding="utf-8"))
     _migrate_refresh_jobs_for_market_pulse(connection)
     connection.executescript(MARKET_PULSE_REFRESH_MIGRATION_PATH.read_text(encoding="utf-8"))
+    _migrate_sector_relative_strength(connection)
+    connection.executescript(SECTOR_RELATIVE_STRENGTH_MIGRATION_PATH.read_text(encoding="utf-8"))
     existing = {row[1] for row in connection.execute("PRAGMA table_info(stock_expectations)")}
     additions = {
         "price_source": "TEXT",
@@ -85,16 +88,16 @@ def _migrate_sector_source_status(connection: sqlite3.Connection) -> None:
         "SELECT sql FROM sqlite_master WHERE type='table' AND name='sector_source_status'"
     ).fetchone()
     table_sql = table_row[0] if table_row else ""
-    if required.issubset(columns) and "healthy" in table_sql and "unknown" in table_sql:
+    if required.issubset(columns) and "healthy" in table_sql and "unknown" in table_sql and "benchmark_csi300" in table_sql:
         return
 
     existing = [dict(row) for row in connection.execute("SELECT * FROM sector_source_status")]
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    display_names = {"sw_l1": "申万一级行业", "sw_l2": "申万二级行业", "eastmoney": "东方财富行业"}
+    display_names = {"sw_l1": "申万一级行业", "sw_l2": "申万二级行业", "eastmoney": "东方财富行业", "benchmark_csi300": "沪深300基准"}
     connection.execute("ALTER TABLE sector_source_status RENAME TO sector_source_status_legacy")
     connection.execute(
         """CREATE TABLE sector_source_status (
-            source TEXT PRIMARY KEY CHECK(source IN ('sw_l1','sw_l2','eastmoney')),
+            source TEXT PRIMARY KEY CHECK(source IN ('sw_l1','sw_l2','eastmoney','benchmark_csi300')),
             display_name TEXT NOT NULL,
             status TEXT NOT NULL CHECK(status IN ('healthy','degraded','unavailable','unknown')),
             sector_count INTEGER NOT NULL DEFAULT 0,
@@ -138,6 +141,32 @@ def _migrate_sector_source_status(connection: sqlite3.Connection) -> None:
             ),
         )
     connection.execute("DROP TABLE sector_source_status_legacy")
+
+
+def _migrate_sector_relative_strength(connection: sqlite3.Connection) -> None:
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(sector_scores)")}
+    additions = {
+        "relative_strength_score": "INTEGER CHECK(relative_strength_score BETWEEN 0 AND 15)",
+        "benchmark_code": "TEXT",
+        "benchmark_trade_date": "TEXT",
+        "sector_return_5d": "NUMERIC",
+        "benchmark_return_5d": "NUMERIC",
+        "excess_return_5d": "NUMERIC",
+        "sector_return_10d": "NUMERIC",
+        "benchmark_return_10d": "NUMERIC",
+        "excess_return_10d": "NUMERIC",
+        "sector_return_20d": "NUMERIC",
+        "benchmark_return_20d": "NUMERIC",
+        "excess_return_20d": "NUMERIC",
+        "relative_strength_updated_at": "TEXT",
+        "capital_flow_score": "INTEGER CHECK(capital_flow_score BETWEEN 0 AND 15)",
+        "composite_score": "INTEGER CHECK(composite_score BETWEEN 0 AND 100)",
+        "score_status": "TEXT CHECK(score_status IN ('complete','partial','unavailable'))",
+        "missing_components": "TEXT",
+    }
+    for column, definition in additions.items():
+        if column not in columns:
+            connection.execute(f"ALTER TABLE sector_scores ADD COLUMN {column} {definition}")
 
 
 def _migrate_refresh_jobs_for_market_pulse(connection: sqlite3.Connection) -> None:

@@ -22,7 +22,7 @@ def test_market_pulse_page_contract_and_navigation():
     assert "Market Pulse" in page and "板块脉搏" in page
     for element_id in ("refresh-sectors", "sector-rows", "source-statuses", "refresh-job-card", "job-progress", "sector-search", "level-filter", "source-filter", "reset-sector-filters"):
         assert f'id="{element_id}"' in page
-    assert page.count('class="sort-button') == 7
+    assert page.count('class="sort-button') == 8
     for filename in ("index.html", "expectation-gap.html", "data-source-health.html"):
         content = (ROOT / "frontend" / filename).read_text(encoding="utf-8")
         assert 'href="/market-pulse.html"' in content
@@ -38,5 +38,8 @@ def test_market_pulse_frontend_scope_and_safety():
     assert "/api/market-pulse/refresh/${jobId}" in script
     assert "Promise.allSettled" in script
     assert "textContent" in script and ".innerHTML" not in script
+    assert "relative_strength_score" in script and "relative_strength_max_score" in script
+    assert "capital_flow_score == null" in script and "composite_score == null" in script
+    assert "缺少资金流数据" in script and "待补齐" in script
     assert "Breadth =" not in page and "Composite =" not in page
     assert all(library not in page.lower() for library in ("react", "vue", "bootstrap", "tailwind", "jquery"))

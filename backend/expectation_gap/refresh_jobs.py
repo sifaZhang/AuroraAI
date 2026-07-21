@@ -203,6 +203,8 @@ def refresh_market_pulse_job(connection, job_id: int, *, source: str = "sw_l1", 
         status = outcome.source_result.status
         if status.status != "available":
             errors.append(f"{current_source}: {status.last_error or status.status}"[:1000])
+        if outcome.relative_strength_failures:
+            errors.extend(f"relative_strength: {error}"[:1000] for error in outcome.relative_strength_failures[:20])
         _update(
             connection, job_id, processed=source_index + 1,
             success_count=sum(item.source_result.status.status == "available" for item in results),
@@ -211,7 +213,7 @@ def refresh_market_pulse_job(connection, job_id: int, *, source: str = "sw_l1", 
             current_code=current_source, message=f"{current_source} 刷新完成，保存 {outcome.saved_count} 条",
         )
     sw_l1_failed = source == "all" and results[0].source_result.status.status == "unavailable"
-    any_problem = any(item.source_result.status.status != "available" for item in results)
+    any_problem = any(item.source_result.status.status != "available" or item.module_partial for item in results)
     if sw_l1_failed or (source != "all" and results[0].source_result.status.status == "unavailable"):
         final_status = "failed"
     elif any_problem:

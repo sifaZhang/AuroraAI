@@ -11,14 +11,14 @@ class Element {
   get firstChild() { return this.children[0] || null; }
 }
 function documentMock() {
-  const ids = ["sector-rows", "source-statuses", "refresh-sectors", "pulse-error", "sector-error", "health-error", "last-trade-date", "last-refresh", "market-status", "current-source", "sector-count", "job-status", "job-counts", "job-step", "job-started", "job-finished", "job-duration", "job-progress", "job-error", "sector-search", "level-filter", "source-filter", "reset-sector-filters"];
+  const ids = ["sector-rows", "source-statuses", "refresh-sectors", "pulse-error", "sector-error", "health-error", "last-trade-date", "last-refresh", "market-status", "current-source", "rs-available", "rs-outperforming", "sector-count", "job-status", "job-counts", "job-step", "job-started", "job-finished", "job-duration", "job-progress", "job-error", "sector-search", "level-filter", "source-filter", "reset-sector-filters"];
   const elements = {}; ids.forEach(id => { elements[id] = new Element(); });
-  const sortButtons = ["rank", "sector_name", "trend_score", "level", "trade_date", "updated_at", "source"].map(key => { const button = new Element("button"); button.dataset.sort = key; return button; });
+  const sortButtons = ["rank", "sector_name", "trend_score", "relative_strength_score", "level", "trade_date", "updated_at", "source"].map(key => { const button = new Element("button"); button.dataset.sort = key; return button; });
   return {elements, sortButtons, getElementById: id => elements[id], createElement: tag => new Element(tag), querySelectorAll: selector => selector === ".sort-button" ? sortButtons : []};
 }
 function response(data, ok = true, status = 200) { return {ok, status, json: async () => data}; }
-function sectors(count = 31) { return {trade_date: "2026-07-20", latest_trade_date: "2026-07-20", source_status: {status: "healthy"}, items: Array.from({length: count}, (_, index) => ({source: "sw_l1", sector_name: `行业${index + 1}`, trade_date: "2026-07-20", trend_score: index ? 60 : 70, trend_max_score: 70, trend_level: index ? "B" : "A", updated_at: "2026-07-20T10:00:00Z"}))}; }
-function health() { return {items: [{source: "sw_l1", display_name: "申万一级行业", status: "healthy"}, {source: "sw_l2", display_name: "申万二级行业", status: "unavailable", last_error_message: "HTTP 507"}, {source: "eastmoney", display_name: "东方财富行业", status: "unavailable", last_error_message: "RemoteDisconnected"}]}; }
+function sectors(count = 31) { return {trade_date: "2026-07-20", latest_trade_date: "2026-07-20", source_status: {status: "healthy"}, items: Array.from({length: count}, (_, index) => ({source: "sw_l1", sector_name: `行业${index + 1}`, trade_date: "2026-07-20", trend_score: index ? 60 : 70, trend_max_score: 70, trend_level: index ? "bullish" : "strong", relative_strength_score: index % 2 ? null : 15, relative_strength_max_score: 15, excess_return_5d: .01, excess_return_10d: .02, excess_return_20d: .03, capital_flow_score: null, composite_score: null, score_status: "partial", missing_components: ["capital_flow"], updated_at: "2026-07-20T10:00:00Z"}))}; }
+function health() { return {items: [{source: "sw_l1", display_name: "申万一级行业", status: "healthy"}, {source: "sw_l2", display_name: "申万二级行业", status: "unavailable", last_error_message: "HTTP 507"}, {source: "eastmoney", display_name: "东方财富行业", status: "unavailable", last_error_message: "RemoteDisconnected"}, {source: "benchmark_csi300", display_name: "沪深300基准", status: "healthy"}]}; }
 
 async function testIndependentInitialLoad() {
   const doc = documentMock(), calls = [];
@@ -27,8 +27,12 @@ async function testIndependentInitialLoad() {
   assert.deepStrictEqual(calls, ["/api/market-pulse/sectors?source=sw_l1", "/api/data-source-health"]);
   assert.strictEqual(doc.elements["sector-rows"].children.length, 31);
   assert.strictEqual(doc.elements["sector-rows"].children[0].children[2].children[0].textContent, "70/70");
-  assert.strictEqual(doc.elements["sector-rows"].children[0].children[3].children[0].textContent, "A");
-  assert.strictEqual(doc.elements["source-statuses"].children.length, 3);
+  assert.strictEqual(doc.elements["sector-rows"].children[0].children[3].children[0].textContent, "15/15");
+  assert.strictEqual(doc.elements["sector-rows"].children[0].children[4].textContent, "—");
+  assert.strictEqual(doc.elements["sector-rows"].children[0].children[5].children[0].textContent, "待补齐");
+  assert.strictEqual(doc.elements["sector-rows"].children[0].children[5].children[1].textContent, "缺少资金流数据");
+  assert.strictEqual(doc.elements["sector-rows"].children[0].children[6].children[0].textContent, "A / 强势");
+  assert.strictEqual(doc.elements["source-statuses"].children.length, 4);
   assert.strictEqual(getScoreClass(70), "score-70");
 
   const partialDoc = documentMock();
@@ -78,7 +82,7 @@ async function testFiltersSortingAndReset() {
   const doc = documentMock();
   const dashboard = createDashboard({document: doc, fetch: async () => response({items: []}), setTimeout: () => 1, clearTimeout: () => {}});
   dashboard.renderSectorTable({items: [
-    {source: "sw_l1", sector_name: "食品饮料", trend_score: 70, trend_level: "strong", trade_date: "2026-07-20", updated_at: "2026-07-20T10:00:00Z"},
+    {source: "sw_l1", sector_name: "食品饮料", trend_score: 70, trend_level: "strong", relative_strength_score: 15, trade_date: "2026-07-20", updated_at: "2026-07-20T10:00:00Z"},
     {source: "eastmoney", sector_name: "医药生物", trend_score: 40, trend_level: "neutral", trade_date: "2026-07-19", updated_at: "2026-07-19T10:00:00Z"},
     {source: "sw_l2", sector_name: "医疗服务", trend_score: 60, trend_level: "bullish", trade_date: "2026-07-18", updated_at: "2026-07-18T10:00:00Z"}
   ]});
@@ -91,6 +95,7 @@ async function testFiltersSortingAndReset() {
   dashboard.changeSort("sector_name"); assert.strictEqual(dashboard.state.sortOrder, "asc");
   assert.strictEqual(dashboard.visibleSectors()[0].sector_name, "食品饮料");
   dashboard.changeSort("sector_name"); assert.strictEqual(dashboard.state.sortOrder, "desc");
+  dashboard.changeSort("relative_strength_score"); assert.strictEqual(dashboard.visibleSectors()[0].relative_strength_score, 15);
 }
 
 async function testSourceSelectionUsesApi() {

@@ -25,7 +25,7 @@ def test_health_get_and_post_endpoints(tmp_path, monkeypatch):
     client = TestClient(app)
     initial = client.get("/api/data-source-health")
     assert initial.status_code == 200
-    assert len(initial.json()["items"]) == 3
+    assert len(initial.json()["items"]) == 4
 
     response = client.post("/api/data-source-health/check", json={"source": "all"})
     assert response.status_code == 200
