@@ -20,8 +20,9 @@ def test_market_pulse_frontend_with_mocked_network():
 def test_market_pulse_page_contract_and_navigation():
     page = (ROOT / "frontend" / "market-pulse.html").read_text(encoding="utf-8")
     assert "Market Pulse" in page and "板块脉搏" in page
-    for element_id in ("refresh-sectors", "sector-rows", "source-statuses", "refresh-job-card", "job-progress"):
+    for element_id in ("refresh-sectors", "sector-rows", "source-statuses", "refresh-job-card", "job-progress", "sector-search", "level-filter", "source-filter", "reset-sector-filters"):
         assert f'id="{element_id}"' in page
+    assert page.count('class="sort-button') == 7
     for filename in ("index.html", "expectation-gap.html", "data-source-health.html"):
         content = (ROOT / "frontend" / filename).read_text(encoding="utf-8")
         assert 'href="/market-pulse.html"' in content
@@ -30,7 +31,7 @@ def test_market_pulse_page_contract_and_navigation():
 def test_market_pulse_frontend_scope_and_safety():
     script = (ROOT / "frontend" / "market-pulse.js").read_text(encoding="utf-8")
     page = (ROOT / "frontend" / "market-pulse.html").read_text(encoding="utf-8")
-    assert 'fetchJson("/api/market-pulse/sectors"' in script
+    assert "`/api/market-pulse/sectors?source=${encodeURIComponent(state.source)}`" in script
     assert 'fetchJson("/api/data-source-health"' in script
     assert 'JSON.stringify({source: "sw_l1"})' in script
     assert 'source: "all"' not in script

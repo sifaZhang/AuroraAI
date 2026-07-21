@@ -64,14 +64,15 @@
     const clearTimer = options.clearTimeout || clearTimeout;
     const now = options.now || (() => Date.now());
     const AbortControllerClass = options.AbortController || root?.AbortController;
-    const state = {sectors: [], marketMeta: null, sourceHealth: [], activeJobId: null, pollTimer: null, refreshStartedAt: null, pollErrors: 0};
+    const state = {sectors: [], marketMeta: null, sourceHealth: [], search: "", level: "", source: "sw_l1", sortKey: "trend_score", sortOrder: "desc", activeJobId: null, pollTimer: null, refreshStartedAt: null, pollErrors: 0};
     const byId = id => doc.getElementById(id);
     const elements = {
       rows: byId("sector-rows"), statuses: byId("source-statuses"), button: byId("refresh-sectors"), pageError: byId("pulse-error"),
       sectorError: byId("sector-error"), healthError: byId("health-error"), tradeDate: byId("last-trade-date"), lastRefresh: byId("last-refresh"),
       marketStatus: byId("market-status"), count: byId("sector-count"), jobStatus: byId("job-status"), jobCounts: byId("job-counts"),
       jobStep: byId("job-step"), jobStarted: byId("job-started"), jobFinished: byId("job-finished"), jobDuration: byId("job-duration"),
-      jobProgress: byId("job-progress"), jobError: byId("job-error")
+      jobProgress: byId("job-progress"), jobError: byId("job-error"), currentSource: byId("current-source"), search: byId("sector-search"), levelFilter: byId("level-filter"),
+      sourceFilter: byId("source-filter"), resetFilters: byId("reset-sector-filters"), sortButtons: Array.from(doc.querySelectorAll(".sort-button"))
     };
 
     function showError(element, message) { element.textContent = message || ""; element.hidden = !message; }
@@ -106,6 +107,7 @@
 
     function renderSummary() {
       const meta = state.marketMeta || {};
+      elements.currentSource.textContent = meta.source === "all" ? "全部数据源" : SOURCE_NAMES[meta.source || state.source] || meta.source || state.source;
       elements.tradeDate.textContent = meta.latest_trade_date || meta.trade_date || "—";
       const status = resolveMarketStatus(meta);
       elements.marketStatus.textContent = `${status === "healthy" ? "🟢 " : status === "degraded" ? "🟡 " : status === "unavailable" ? "🔴 " : "⚪ "}${STATUS_NAMES[status] || status}`;
@@ -114,6 +116,7 @@
     }
 
     function emptyMessage(meta) {
+      if (state.search || state.level) return "没有符合当前筛选条件的行业。";
       const status = resolveMarketStatus(meta);
       if (status === "unavailable") return "暂无行业数据，当前数据源不可用。";
       if (status === "unknown") return "暂无行业数据，数据源尚未检查。";
@@ -121,26 +124,92 @@
       return "暂无行业趋势数据。";
     }
 
-    function renderSectorTable(data) {
-      state.marketMeta = data || {};
-      state.sectors = Array.isArray(data?.items) ? data.items : [];
+    function displayLevel(item) { return LEVEL_NAMES[item.trend_level] || item.trend_level || fallbackLevel(item.trend_score); }
+
+    function compareValues(left, right, key) {
+      const leftValue = key === "rank" ? left._rank : key === "level" ? displayLevel(left) : left[key];
+      const rightValue = key === "rank" ? right._rank : key === "level" ? displayLevel(right) : right[key];
+      if (key === "trend_score" || key === "rank") return Number(leftValue ?? -Infinity) - Number(rightValue ?? -Infinity);
+      return String(leftValue ?? "").localeCompare(String(rightValue ?? ""), "zh-CN", {numeric: true, sensitivity: "base"});
+    }
+
+    function visibleSectors() {
+      const query = state.search.trim();
+      return state.sectors
+        .filter(item => !query || String(item.sector_name || "").includes(query))
+        .filter(item => !state.level || displayLevel(item) === state.level)
+        .slice()
+        .sort((left, right) => {
+          const result = compareValues(left, right, state.sortKey);
+          return (state.sortOrder === "asc" ? result : -result) || left._rank - right._rank;
+        });
+    }
+
+    function updateSortHeaders() {
+      const labels = {rank: "Rank", sector_name: "行业", trend_score: "Trend Score", level: "等级", trade_date: "最新交易日", updated_at: "更新时间", source: "数据来源"};
+      elements.sortButtons.forEach(button => {
+        const active = button.dataset.sort === state.sortKey;
+        button.className = `sort-button${active ? " active" : ""}`;
+        button.textContent = `${labels[button.dataset.sort]}${active ? (state.sortOrder === "asc" ? " ↑" : " ↓") : ""}`;
+        button.setAttribute("aria-sort", active ? (state.sortOrder === "asc" ? "ascending" : "descending") : "none");
+      });
+    }
+
+    function renderSectorRows() {
+      const items = visibleSectors();
       clearChildren(elements.rows);
-      elements.count.textContent = `${state.sectors.length} 个行业`;
-      if (!state.sectors.length) {
-        const row = doc.createElement("tr"); const cell = appendText(row, "td", emptyMessage(data), "empty-state"); cell.colSpan = 7; elements.rows.appendChild(row); renderSummary(); return;
+      elements.count.textContent = `当前显示 ${items.length} / 总计 ${state.sectors.length} 个行业`;
+      if (!items.length) {
+        const row = doc.createElement("tr"); const cell = appendText(row, "td", emptyMessage(state.marketMeta), "empty-state"); cell.colSpan = 7; elements.rows.appendChild(row); return;
       }
-      state.sectors.forEach((item, index) => {
+      items.forEach(item => {
         const row = doc.createElement("tr");
-        appendText(row, "td", String(index + 1));
+        appendText(row, "td", String(item._rank));
         appendText(row, "td", item.sector_name || "—");
         const scoreCell = doc.createElement("td"); appendText(scoreCell, "span", `${item.trend_score ?? "—"}/${item.trend_max_score || 70}`, `trend-score ${getScoreClass(item.trend_score)}`); row.appendChild(scoreCell);
-        const levelCell = doc.createElement("td"); appendText(levelCell, "span", LEVEL_NAMES[item.trend_level] || item.trend_level || fallbackLevel(item.trend_score), "trend-level"); row.appendChild(levelCell);
-        appendText(row, "td", item.trade_date || data.latest_trade_date || data.trade_date || "—");
+        const levelCell = doc.createElement("td"); appendText(levelCell, "span", displayLevel(item), "trend-level"); row.appendChild(levelCell);
+        appendText(row, "td", item.trade_date || state.marketMeta.latest_trade_date || state.marketMeta.trade_date || "—");
         appendText(row, "td", formatDateTime(item.updated_at), "secondary-column");
         appendText(row, "td", TABLE_SOURCE_NAMES[item.source] || item.source || "—", "secondary-column");
         elements.rows.appendChild(row);
       });
+    }
+
+    function renderSectorTable(data) {
+      state.marketMeta = data || {};
+      state.sectors = (Array.isArray(data?.items) ? data.items : []).map((item, index) => ({...item, _rank: index + 1}));
+      renderSectorRows();
+      updateSortHeaders();
       renderSummary();
+    }
+
+    function applyFilters() {
+      state.search = elements.search.value.trim(); state.level = elements.levelFilter.value;
+      renderSectorRows();
+    }
+
+    async function changeSource() {
+      state.source = elements.sourceFilter.value;
+      showError(elements.sectorError, "");
+      clearChildren(elements.rows);
+      const row = doc.createElement("tr"); const cell = appendText(row, "td", "正在加载行业数据…", "empty-state"); cell.colSpan = 7; elements.rows.appendChild(row);
+      elements.count.textContent = "加载中…";
+      try { return await loadMarketPulse(); } catch (_) { return null; }
+    }
+
+    function changeSort(key) {
+      if (state.sortKey === key) state.sortOrder = state.sortOrder === "asc" ? "desc" : "asc";
+      else { state.sortKey = key; state.sortOrder = key === "trend_score" ? "desc" : "asc"; }
+      updateSortHeaders(); renderSectorRows();
+    }
+
+    async function resetFilters() {
+      const sourceChanged = state.source !== "sw_l1";
+      elements.search.value = ""; elements.levelFilter.value = ""; elements.sourceFilter.value = "sw_l1";
+      state.search = ""; state.level = ""; state.source = "sw_l1"; state.sortKey = "trend_score"; state.sortOrder = "desc";
+      updateSortHeaders();
+      if (sourceChanged) return changeSource();
+      renderSectorRows(); return null;
     }
 
     function renderSourceHealth(data) {
@@ -164,7 +233,7 @@
 
     async function loadMarketPulse({preserve = false} = {}) {
       showError(elements.sectorError, "");
-      try { const data = await fetchJson("/api/market-pulse/sectors", {}, 30000); renderSectorTable(data); return data; }
+      try { const data = await fetchJson(`/api/market-pulse/sectors?source=${encodeURIComponent(state.source)}`, {}, 30000); renderSectorTable(data); return data; }
       catch (error) { showError(elements.sectorError, "行业数据加载失败，请确认后端服务是否正在运行。"); if (!preserve) { state.sectors = []; elements.count.textContent = "加载失败"; } throw error; }
     }
 
@@ -238,8 +307,13 @@
       }
     }
 
-    function init() { elements.button.addEventListener("click", () => { startRefresh(); }); if (root?.addEventListener) root.addEventListener("beforeunload", stopPolling); return load(); }
-    return {state, init, load, loadMarketPulse, loadSourceHealth, startRefresh, pollRefreshJob, renderSectorTable, renderSourceHealth, renderRefreshJob, stopPolling};
+    function init() {
+      elements.button.addEventListener("click", () => { startRefresh(); });
+      elements.search.addEventListener("input", applyFilters); elements.levelFilter.addEventListener("change", applyFilters); elements.sourceFilter.addEventListener("change", changeSource);
+      elements.resetFilters.addEventListener("click", resetFilters); elements.sortButtons.forEach(button => button.addEventListener("click", () => changeSort(button.dataset.sort)));
+      if (root?.addEventListener) root.addEventListener("beforeunload", stopPolling); return load();
+    }
+    return {state, init, load, loadMarketPulse, loadSourceHealth, startRefresh, pollRefreshJob, renderSectorTable, renderSourceHealth, renderRefreshJob, applyFilters, changeSource, changeSort, resetFilters, visibleSectors, stopPolling};
   }
 
   const api = {createDashboard, getScoreClass, formatDateTime, formatDuration, formatError};

@@ -18,7 +18,7 @@
 
   <div id="pulse-error" class="api-error" role="alert" hidden></div>
   <section id="market-summary" class="market-summary" aria-label="市场摘要">
-    <div><span>数据源</span><strong>申万一级行业</strong></div>
+    <div><span>数据源</span><strong id="current-source">申万一级行业</strong></div>
     <div><span>最新交易日</span><strong id="last-trade-date">加载中…</strong></div>
     <div><span>当前状态</span><strong id="market-status">加载中…</strong></div>
     <div><span>最近更新时间</span><strong id="last-refresh">加载中…</strong></div>
@@ -26,10 +26,24 @@
 
   <section id="sector-table-card" class="dashboard-card sector-table-card">
     <div class="section-heading"><h2>行业趋势排名</h2><span id="sector-count">加载中…</span></div>
+    <div class="sector-filters" aria-label="行业快速筛选">
+      <label><span>搜索行业</span><input id="sector-search" type="search" placeholder="输入行业名称"></label>
+      <label><span>等级</span><select id="level-filter"><option value="">全部</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></label>
+      <label><span>数据源</span><select id="source-filter"><option value="all">全部数据源</option><option value="sw_l1" selected>申万一级</option><option value="sw_l2">申万二级</option><option value="eastmoney">东方财富</option></select></label>
+      <button id="reset-sector-filters" type="button" class="secondary-button">重置</button>
+    </div>
     <div id="sector-error" class="card-error" role="alert" hidden></div>
     <div class="table-region pulse-table-wrap">
       <table class="pulse-table">
-        <thead><tr><th>Rank</th><th>行业</th><th>Trend Score</th><th>等级</th><th>最新交易日</th><th class="secondary-column">更新时间</th><th class="secondary-column">数据来源</th></tr></thead>
+        <thead><tr>
+          <th><button class="sort-button" data-sort="rank" type="button">Rank</button></th>
+          <th><button class="sort-button" data-sort="sector_name" type="button">行业</button></th>
+          <th><button class="sort-button active" data-sort="trend_score" type="button">Trend Score <span class="sort-indicator">↓</span></button></th>
+          <th><button class="sort-button" data-sort="level" type="button">等级</button></th>
+          <th><button class="sort-button" data-sort="trade_date" type="button">最新交易日</button></th>
+          <th class="secondary-column"><button class="sort-button" data-sort="updated_at" type="button">更新时间</button></th>
+          <th class="secondary-column"><button class="sort-button" data-sort="source" type="button">数据来源</button></th>
+        </tr></thead>
         <tbody id="sector-rows"><tr><td colspan="7" class="empty-state">正在加载行业数据…</td></tr></tbody>
       </table>
     </div>
