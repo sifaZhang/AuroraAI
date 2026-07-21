@@ -11,13 +11,13 @@ class Element {
   get firstChild() { return this.children[0] || null; }
 }
 function documentMock() {
-  const ids = ["sector-rows", "source-statuses", "refresh-sectors", "pulse-error", "sector-error", "health-error", "last-trade-date", "last-refresh", "market-status", "current-source", "rs-available", "rs-outperforming", "sector-count", "job-status", "job-counts", "job-step", "job-started", "job-finished", "job-duration", "job-progress", "job-error", "sector-search", "level-filter", "source-filter", "reset-sector-filters"];
+  const ids = ["sector-rows", "source-statuses", "refresh-sectors", "pulse-error", "sector-error", "health-error", "last-trade-date", "last-refresh", "market-status", "current-source", "breadth-available", "approximate-count", "sector-count", "job-status", "job-counts", "job-step", "job-started", "job-finished", "job-duration", "job-progress", "job-error", "sector-search", "level-filter", "source-filter", "reset-sector-filters"];
   const elements = {}; ids.forEach(id => { elements[id] = new Element(); });
-  const sortButtons = ["rank", "sector_name", "trend_score", "relative_strength_score", "level", "trade_date", "updated_at", "source"].map(key => { const button = new Element("button"); button.dataset.sort = key; return button; });
+  const sortButtons = ["rank", "sector_name", "total_score", "trend_score", "breadth_score", "breadth_status", "level", "trade_date", "updated_at", "source"].map(key => { const button = new Element("button"); button.dataset.sort = key; return button; });
   return {elements, sortButtons, getElementById: id => elements[id], createElement: tag => new Element(tag), querySelectorAll: selector => selector === ".sort-button" ? sortButtons : []};
 }
 function response(data, ok = true, status = 200) { return {ok, status, json: async () => data}; }
-function sectors(count = 31) { return {trade_date: "2026-07-20", latest_trade_date: "2026-07-20", source_status: {status: "healthy"}, items: Array.from({length: count}, (_, index) => ({source: "sw_l1", sector_name: `行业${index + 1}`, trade_date: "2026-07-20", trend_score: index ? 60 : 70, trend_max_score: 70, trend_level: index ? "bullish" : "strong", relative_strength_score: index % 2 ? null : 15, relative_strength_max_score: 15, excess_return_5d: .01, excess_return_10d: .02, excess_return_20d: .03, capital_flow_score: null, composite_score: null, score_status: "partial", missing_components: ["capital_flow"], updated_at: "2026-07-20T10:00:00Z"}))}; }
+function sectors(count = 31) { return {trade_date: "2026-07-20", latest_trade_date: "2026-07-20", source_status: {status: "healthy"}, items: Array.from({length: count}, (_, index) => ({source: "sw_l1", sector_name: `行业${index + 1}`, trade_date: "2026-07-20", total_score: index ? null : 91.5, trend_score: index ? 60 : 70, trend_max_score: 70, trend_level: index ? "bullish" : "strong", breadth_score: index ? null : 21.5, breadth_status: index ? "not_calculated" : "success", breadth_metrics: index ? null : {above_ma5: {ratio: .5, numerator: 5, denominator: 10}, above_ma10: {ratio: .6, numerator: 6, denominator: 10}, above_ma20: {ratio: .7, numerator: 7, denominator: 10}, advancing: {ratio: .5, numerator: 5, denominator: 10}, new_high_20: {ratio: .2, numerator: 2, denominator: 10}, volume_expansion: {ratio: .4, numerator: 4, denominator: 10}}, is_approximate: index === 0, lookahead_warning: "approximate membership", updated_at: "2026-07-20T10:00:00Z"}))}; }
 function health() { return {items: [{source: "sw_l1", display_name: "申万一级行业", status: "healthy"}, {source: "sw_l2", display_name: "申万二级行业", status: "unavailable", last_error_message: "HTTP 507"}, {source: "eastmoney", display_name: "东方财富行业", status: "unavailable", last_error_message: "RemoteDisconnected"}, {source: "benchmark_csi300", display_name: "沪深300基准", status: "healthy"}]}; }
 
 async function testIndependentInitialLoad() {
@@ -26,12 +26,12 @@ async function testIndependentInitialLoad() {
   await dashboard.init();
   assert.deepStrictEqual(calls, ["/api/market-pulse/sectors?source=sw_l1", "/api/data-source-health"]);
   assert.strictEqual(doc.elements["sector-rows"].children.length, 31);
-  assert.strictEqual(doc.elements["sector-rows"].children[0].children[2].children[0].textContent, "70/70");
-  assert.strictEqual(doc.elements["sector-rows"].children[0].children[3].children[0].textContent, "15/15");
-  assert.strictEqual(doc.elements["sector-rows"].children[0].children[4].textContent, "—");
-  assert.strictEqual(doc.elements["sector-rows"].children[0].children[5].children[0].textContent, "待补齐");
-  assert.strictEqual(doc.elements["sector-rows"].children[0].children[5].children[1].textContent, "缺少资金流数据");
-  assert.strictEqual(doc.elements["sector-rows"].children[0].children[6].children[0].textContent, "A / 强势");
+  assert.strictEqual(doc.elements["sector-rows"].children[0].children[2].children[0].textContent, "91.5/100");
+  assert.strictEqual(doc.elements["sector-rows"].children[0].children[3].textContent, "70/70");
+  assert.strictEqual(doc.elements["sector-rows"].children[0].children[4].textContent, "21.5/30");
+  assert.strictEqual(doc.elements["sector-rows"].children[0].children[5].children[0].textContent, "有效 · 近似");
+  assert.strictEqual(doc.elements["sector-rows"].children[0].children[6].children[0].children.length, 7);
+  assert.strictEqual(doc.elements["sector-rows"].children[0].children[7].children[0].textContent, "A / 强势");
   assert.strictEqual(doc.elements["source-statuses"].children.length, 4);
   assert.strictEqual(getScoreClass(70), "score-70");
 
@@ -91,7 +91,7 @@ async function testFiltersSortingAndReset() {
   assert.strictEqual(doc.elements["sector-rows"].children.length, 2);
   doc.elements["level-filter"].value = "B"; dashboard.applyFilters();
   assert.strictEqual(doc.elements["sector-rows"].children.length, 1);
-  dashboard.resetFilters(); assert.strictEqual(dashboard.state.sortKey, "trend_score"); assert.strictEqual(dashboard.state.sortOrder, "desc");
+  dashboard.resetFilters(); assert.strictEqual(dashboard.state.sortKey, "total_score"); assert.strictEqual(dashboard.state.sortOrder, "desc");
   dashboard.changeSort("sector_name"); assert.strictEqual(dashboard.state.sortOrder, "asc");
   assert.strictEqual(dashboard.visibleSectors()[0].sector_name, "食品饮料");
   dashboard.changeSort("sector_name"); assert.strictEqual(dashboard.state.sortOrder, "desc");

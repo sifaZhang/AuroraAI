@@ -9,6 +9,8 @@
   const JOB_STATUS_NAMES = {queued: "排队中", running: "刷新中", completed: "已完成", partial: "部分完成", failed: "失败"};
   const LEVEL_NAMES = {strong: "A", bullish: "B", neutral: "C", weak: "D", bearish: "E"};
   const LEVEL_LABELS = {A: "A / 强势", B: "B / 偏强", C: "C / 中性", D: "D / 偏弱", E: "E / 弱势"};
+  const BREADTH_STATUS_NAMES = {success: "有效", insufficient_data: "数据不足", not_calculated: "未计算", failed: "失败"};
+  const METRIC_NAMES = {above_ma5: "MA5", above_ma10: "MA10", above_ma20: "MA20", advancing: "上涨", new_high_20: "20日新高", volume_expansion: "放量"};
 
   class RequestError extends Error {
     constructor(message, status, data) { super(message); this.status = status; this.data = data; }
@@ -65,12 +67,12 @@
     const clearTimer = options.clearTimeout || clearTimeout;
     const now = options.now || (() => Date.now());
     const AbortControllerClass = options.AbortController || root?.AbortController;
-    const state = {sectors: [], marketMeta: null, sourceHealth: [], search: "", level: "", source: "sw_l1", sortKey: "trend_score", sortOrder: "desc", activeJobId: null, pollTimer: null, refreshStartedAt: null, pollErrors: 0};
+    const state = {sectors: [], marketMeta: null, sourceHealth: [], search: "", level: "", source: "sw_l1", sortKey: "total_score", sortOrder: "desc", activeJobId: null, pollTimer: null, refreshStartedAt: null, pollErrors: 0};
     const byId = id => doc.getElementById(id);
     const elements = {
       rows: byId("sector-rows"), statuses: byId("source-statuses"), button: byId("refresh-sectors"), pageError: byId("pulse-error"),
       sectorError: byId("sector-error"), healthError: byId("health-error"), tradeDate: byId("last-trade-date"), lastRefresh: byId("last-refresh"),
-      marketStatus: byId("market-status"), rsAvailable: byId("rs-available"), rsOutperforming: byId("rs-outperforming"), count: byId("sector-count"), jobStatus: byId("job-status"), jobCounts: byId("job-counts"),
+      marketStatus: byId("market-status"), breadthAvailable: byId("breadth-available"), approximateCount: byId("approximate-count"), count: byId("sector-count"), jobStatus: byId("job-status"), jobCounts: byId("job-counts"),
       jobStep: byId("job-step"), jobStarted: byId("job-started"), jobFinished: byId("job-finished"), jobDuration: byId("job-duration"),
       jobProgress: byId("job-progress"), jobError: byId("job-error"), currentSource: byId("current-source"), search: byId("sector-search"), levelFilter: byId("level-filter"),
       sourceFilter: byId("source-filter"), resetFilters: byId("reset-sector-filters"), sortButtons: Array.from(doc.querySelectorAll(".sort-button"))
@@ -114,9 +116,9 @@
       elements.marketStatus.textContent = `${status === "healthy" ? "🟢 " : status === "degraded" ? "🟡 " : status === "unavailable" ? "🔴 " : "⚪ "}${STATUS_NAMES[status] || status}`;
       const latest = state.sectors.reduce((value, item) => !value || String(item.updated_at) > String(value) ? item.updated_at : value, null) || meta.source_status?.updated_at;
       elements.lastRefresh.textContent = formatDateTime(latest);
-      const rsAvailable = state.sectors.filter(item => item.relative_strength_score != null);
-      elements.rsAvailable.textContent = `${rsAvailable.length} / ${state.sectors.length}`;
-      elements.rsOutperforming.textContent = String(rsAvailable.filter(item => Number(item.relative_strength_score) > 0).length);
+      const breadthAvailable = state.sectors.filter(item => item.breadth_status === "success");
+      elements.breadthAvailable.textContent = `${breadthAvailable.length} / ${state.sectors.length}`;
+      elements.approximateCount.textContent = String(state.sectors.filter(item => item.is_approximate === true).length);
     }
 
     function emptyMessage(meta) {
@@ -135,7 +137,7 @@
     function compareValues(left, right, key) {
       const leftValue = sortValue(left, key);
       const rightValue = sortValue(right, key);
-      if (key === "trend_score" || key === "relative_strength_score" || key === "rank") return Number(leftValue ?? -Infinity) - Number(rightValue ?? -Infinity);
+      if (["total_score", "trend_score", "breadth_score", "relative_strength_score", "rank"].includes(key)) return Number(leftValue ?? -Infinity) - Number(rightValue ?? -Infinity);
       return String(leftValue ?? "").localeCompare(String(rightValue ?? ""), "zh-CN", {numeric: true, sensitivity: "base"});
     }
 
@@ -155,7 +157,7 @@
     }
 
     function updateSortHeaders() {
-      const labels = {rank: "Rank", sector_name: "行业", trend_score: "技术趋势", relative_strength_score: "相对强度", level: "等级", trade_date: "最新交易日", updated_at: "更新时间", source: "数据来源"};
+      const labels = {rank: "Rank", sector_name: "行业", total_score: "总分", trend_score: "趋势", breadth_score: "Breadth", breadth_status: "数据状态", level: "等级", trade_date: "最新交易日", updated_at: "更新时间", source: "数据来源"};
       elements.sortButtons.forEach(button => {
         const active = button.dataset.sort === state.sortKey;
         button.className = `sort-button${active ? " active" : ""}`;
@@ -169,22 +171,30 @@
       clearChildren(elements.rows);
       elements.count.textContent = `当前显示 ${items.length} / 总计 ${state.sectors.length} 个行业`;
       if (!items.length) {
-        const row = doc.createElement("tr"); const cell = appendText(row, "td", emptyMessage(state.marketMeta), "empty-state"); cell.colSpan = 10; elements.rows.appendChild(row); return;
+        const row = doc.createElement("tr"); const cell = appendText(row, "td", emptyMessage(state.marketMeta), "empty-state"); cell.colSpan = 11; elements.rows.appendChild(row); return;
       }
       items.forEach(item => {
         const row = doc.createElement("tr");
         appendText(row, "td", String(item._rank));
         appendText(row, "td", item.sector_name || "—");
-        const scoreCell = doc.createElement("td"); appendText(scoreCell, "span", `${item.trend_score ?? "—"}/${item.trend_max_score || 70}`, `trend-score ${getScoreClass(item.trend_score)}`); row.appendChild(scoreCell);
-        const rsCell = doc.createElement("td");
-        const rs = appendText(rsCell, "span", item.relative_strength_score == null ? "—" : `${item.relative_strength_score}/${item.relative_strength_max_score || 15}`, item.relative_strength_score == null ? "pending-score" : "module-score");
-        if (item.relative_strength_score != null) rs.title = [5, 10, 20].map(period => `${period}日：${item[`excess_return_${period}d`] == null ? "—" : `${(Number(item[`excess_return_${period}d`]) * 100).toFixed(2)}%`}`).join(" · ");
-        row.appendChild(rsCell);
-        appendText(row, "td", item.capital_flow_score == null ? "—" : `${item.capital_flow_score}/${item.capital_flow_max_score || 15}`, item.capital_flow_score == null ? "pending-score" : "module-score");
-        const compositeCell = doc.createElement("td");
-        appendText(compositeCell, "span", item.composite_score == null ? "待补齐" : `${item.composite_score}/${item.composite_max_score || 100}`, item.composite_score == null ? "pending-score" : "module-score");
-        if (item.composite_score == null && Array.isArray(item.missing_components) && item.missing_components.includes("capital_flow")) appendText(compositeCell, "small", "缺少资金流数据", "missing-note");
-        row.appendChild(compositeCell);
+        const totalCell = doc.createElement("td"); appendText(totalCell, "span", item.total_score == null ? "—" : `${Number(item.total_score).toFixed(1)}/100`, item.total_score == null ? "pending-score" : `trend-score ${getScoreClass(item.total_score)}`); row.appendChild(totalCell);
+        appendText(row, "td", `${item.trend_score ?? "—"}/70`, "module-score");
+        appendText(row, "td", item.breadth_score == null ? "—" : `${Number(item.breadth_score).toFixed(1)}/30`, item.breadth_score == null ? "pending-score" : "module-score");
+        const statusCell = doc.createElement("td");
+        const status = appendText(statusCell, "span", BREADTH_STATUS_NAMES[item.breadth_status] || item.breadth_status || "未计算", `breadth-status ${item.breadth_status || "not_calculated"}`);
+        if (item.is_approximate) { status.textContent += " · 近似"; status.title = item.lookahead_warning || "使用当前成分快照计算历史结果"; }
+        row.appendChild(statusCell);
+        const metricsCell = doc.createElement("td");
+        if (item.breadth_metrics) {
+          const details = doc.createElement("details"); const summary = appendText(details, "summary", "查看详情");
+          summary.title = item.is_approximate ? (item.lookahead_warning || "近似结果") : "六项市场广度";
+          Object.entries(METRIC_NAMES).forEach(([key, label]) => {
+            const metric = item.breadth_metrics[key];
+            appendText(details, "small", `${label}：${metric?.ratio == null ? "—" : `${(Number(metric.ratio) * 100).toFixed(1)}%`}（${metric?.numerator ?? 0}/${metric?.denominator ?? 0}）`);
+          });
+          metricsCell.appendChild(details);
+        } else appendText(metricsCell, "span", "—", "pending-score");
+        row.appendChild(metricsCell);
         const levelCell = doc.createElement("td"); const level = displayLevel(item); appendText(levelCell, "span", LEVEL_LABELS[level] || level, "trend-level"); row.appendChild(levelCell);
         appendText(row, "td", item.trade_date || state.marketMeta.latest_trade_date || state.marketMeta.trade_date || "—");
         appendText(row, "td", formatDateTime(item.updated_at), "secondary-column");
@@ -210,21 +220,21 @@
       state.source = elements.sourceFilter.value;
       showError(elements.sectorError, "");
       clearChildren(elements.rows);
-      const row = doc.createElement("tr"); const cell = appendText(row, "td", "正在加载行业数据…", "empty-state"); cell.colSpan = 10; elements.rows.appendChild(row);
+      const row = doc.createElement("tr"); const cell = appendText(row, "td", "正在加载行业数据…", "empty-state"); cell.colSpan = 11; elements.rows.appendChild(row);
       elements.count.textContent = "加载中…";
       try { return await loadMarketPulse(); } catch (_) { return null; }
     }
 
     function changeSort(key) {
       if (state.sortKey === key) state.sortOrder = state.sortOrder === "asc" ? "desc" : "asc";
-      else { state.sortKey = key; state.sortOrder = key === "trend_score" ? "desc" : "asc"; }
+      else { state.sortKey = key; state.sortOrder = ["total_score", "trend_score", "breadth_score"].includes(key) ? "desc" : "asc"; }
       updateSortHeaders(); renderSectorRows();
     }
 
     async function resetFilters() {
       const sourceChanged = state.source !== "sw_l1";
       elements.search.value = ""; elements.levelFilter.value = ""; elements.sourceFilter.value = "sw_l1";
-      state.search = ""; state.level = ""; state.source = "sw_l1"; state.sortKey = "trend_score"; state.sortOrder = "desc";
+      state.search = ""; state.level = ""; state.source = "sw_l1"; state.sortKey = "total_score"; state.sortOrder = "desc";
       updateSortHeaders();
       if (sourceChanged) return changeSource();
       renderSectorRows(); return null;

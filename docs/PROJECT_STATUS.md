@@ -20,7 +20,7 @@ AuroraAI 是一个本地运行的 AI 股票研究平台。
 
 当前开发阶段：
 
-> Phase 5.6 - Incremental A-share History Sync Completed
+> Phase 5.7 - Sector Radar API and Dashboard Integration Completed
 
 ---
 
@@ -675,6 +675,39 @@ Real defect found and fixed in commit `ab11e8d`:
 
 ---
 
+## PR5.7
+
+Status: Completed
+
+Summary:
+
+- Existing Market Pulse list and detail APIs now expose same-trade-date `breadth_v1` results
+- Added nullable 100-point total score and 30-point Breadth score without fabricating zeroes
+- Added all six Breadth ratios with numerator and denominator
+- Added coverage, component scores, quality warnings, exclusions, calculation version, and snapshot metadata
+- Added `success`, `insufficient_data`, `not_calculated`, and `failed` display states
+- Preserved and surfaced `is_approximate` and look-ahead warnings
+- Added API sorting by `total_score` and `breadth_score`
+- Updated the existing Market Pulse dashboard into the sector radar view
+- Added total, trend, Breadth, data-status, and expandable six-metric columns
+- Added client sorting by total score, trend score, Breadth score, and sector name
+- Did not add history charts, scheduled jobs, automatic Breadth calculation, or market-wide synchronization
+
+API:
+
+```text
+GET /api/market-pulse/sectors?source=sw_l1&sort_by=total_score&order=desc
+GET /api/market-pulse/sectors/sw_l1/{sector_code}?trade_date=YYYY-MM-DD
+```
+
+Validation:
+
+- PR5.5 / PR5.7 focused tests: 21 passed
+- Full suite: 190 passed, 3 existing deprecation warnings
+- No local database or user-maintained radar document was committed
+
+---
+
 # Files Never Touch Automatically
 
 以下文件属于用户维护：
@@ -687,16 +720,16 @@ Real defect found and fixed in commit `ab11e8d`:
 
 # Current Branch
 
-feature/expectation-refresh-jobs
+feature/pr5.7-sector-radar-api
 
 ---
 
 # Next Task
 
-PR5.7
+PR5.8
 
-Market Pulse API and dashboard integration
+All-sector Breadth data initialization and calculation
 
 目标：
 
-Expose the versioned Breadth results through the existing Market Pulse API and dashboard.
+Initialize enough local A-share history to calculate versioned Breadth results for all 31 SW level-1 sectors without a full-market blind sync.

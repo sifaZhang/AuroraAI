@@ -12,7 +12,7 @@
 <main class="app-shell market-pulse-shell">
   <nav class="site-nav"><a href="/">最近分红</a><a href="/expectation-gap">预期差</a><a class="active" href="/market-pulse.html">Market Pulse</a><a href="/data-source-health">数据源状态</a></nav>
   <header class="topbar pulse-header">
-    <div><p class="eyebrow">AuroraAI</p><h1>Market Pulse</h1><p class="pulse-alias">板块脉搏</p><p class="subtitle">追踪行业趋势强度与数据源状态。</p></div>
+    <div><p class="eyebrow">AuroraAI</p><h1>Market Pulse</h1><p class="pulse-alias">板块雷达</p><p class="subtitle">用70分趋势与30分市场广度观察行业强弱。</p></div>
     <button id="refresh-sectors" type="button">刷新板块数据</button>
   </header>
 
@@ -22,8 +22,8 @@
     <div><span>最新交易日</span><strong id="last-trade-date">加载中…</strong></div>
     <div><span>当前状态</span><strong id="market-status">加载中…</strong></div>
     <div><span>最近更新时间</span><strong id="last-refresh">加载中…</strong></div>
-    <div><span>RS可用行业</span><strong id="rs-available">加载中…</strong></div>
-    <div><span>跑赢沪深300</span><strong id="rs-outperforming">加载中…</strong></div>
+    <div><span>Breadth可用行业</span><strong id="breadth-available">加载中…</strong></div>
+    <div><span>近似结果</span><strong id="approximate-count">加载中…</strong></div>
   </section>
 
   <section id="sector-table-card" class="dashboard-card sector-table-card">
@@ -40,16 +40,17 @@
         <thead><tr>
           <th><button class="sort-button" data-sort="rank" type="button">Rank</button></th>
           <th><button class="sort-button" data-sort="sector_name" type="button">行业</button></th>
-          <th><button class="sort-button active" data-sort="trend_score" type="button">技术趋势 <span class="sort-indicator">↓</span></button></th>
-          <th><button class="sort-button" data-sort="relative_strength_score" type="button">相对强度</button></th>
-          <th>资金流</th>
-          <th>综合评分</th>
+          <th><button class="sort-button active" data-sort="total_score" type="button">总分 <span class="sort-indicator">↓</span></button></th>
+          <th><button class="sort-button" data-sort="trend_score" type="button">趋势</button></th>
+          <th><button class="sort-button" data-sort="breadth_score" type="button">Breadth</button></th>
+          <th><button class="sort-button" data-sort="breadth_status" type="button">数据状态</button></th>
+          <th>六项广度</th>
           <th><button class="sort-button" data-sort="level" type="button">等级</button></th>
           <th><button class="sort-button" data-sort="trade_date" type="button">最新交易日</button></th>
           <th class="secondary-column"><button class="sort-button" data-sort="updated_at" type="button">更新时间</button></th>
           <th class="secondary-column"><button class="sort-button" data-sort="source" type="button">数据来源</button></th>
         </tr></thead>
-        <tbody id="sector-rows"><tr><td colspan="10" class="empty-state">正在加载行业数据…</td></tr></tbody>
+        <tbody id="sector-rows"><tr><td colspan="11" class="empty-state">正在加载行业数据…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -74,7 +75,7 @@
     </article>
   </section>
 
-  <aside class="future-note">更多市场广度指标将在后续版本加入。</aside>
+  <aside class="future-note">Breadth按当前申万一级成分快照计算；近似历史结果会明确显示警告，不代表历史精确成分关系。</aside>
 </main>
 <script src="market-pulse.js"></script>
 </body>

@@ -5,6 +5,10 @@ from backend.api.app import app
 from backend.expectation_gap.database import connect, migrate
 from backend.expectation_gap.refresh_jobs import JobConflictError
 from backend.sector_radar.health_repository import ensure_source
+from backend.sector_radar.breadth import (
+    BreadthComponentScore, BreadthMetricResult, MarketBreadthResult,
+)
+from backend.sector_radar.breadth_repository import upsert_breadth_result
 
 
 def seed(db_path):
@@ -26,6 +30,24 @@ def seed(db_path):
         )
     connection.execute("UPDATE sector_source_status SET status='healthy' WHERE source='sw_l1'")
     connection.execute("UPDATE sector_source_status SET status='unavailable',last_error_type='KeyError',last_error_message='data' WHERE source='sw_l2'")
+    metrics = {
+        name: BreadthMetricResult(5, 10, .5, 0, {})
+        for name in ("above_ma5", "above_ma10", "above_ma20", "advancing", "new_high_20", "volume_expansion")
+    }
+    components = {
+        "above_ma20": BreadthComponentScore("above_ma20", 4, 10),
+        "advancing": BreadthComponentScore("advancing", 3, 7),
+        "new_high_20": BreadthComponentScore("new_high_20", 2, 6),
+        "volume_expansion": BreadthComponentScore("volume_expansion", 5, 7),
+    }
+    upsert_breadth_result(connection, MarketBreadthResult(
+        classification_system="sw_level1", sector_code="801010", trade_date="2026-07-20",
+        membership_snapshot_date="2026-07-21", metrics=metrics, components=components,
+        total_members=10, valid_members=10, coverage_ratio=1, excluded_members={},
+        breadth_score=14, trend_score=60, total_score=74, status="success",
+        quality_warnings=("current_membership_snapshot_used_for_history",),
+        is_approximate=True, lookahead_warning="approximate membership",
+    ))
     connection.commit()
     connection.close()
 
@@ -49,6 +71,17 @@ def test_list_defaults_latest_sort_pagination_and_max_score(tmp_path, monkeypatc
     assert body["items"][0]["composite_score"] is None
     assert body["items"][0]["score_status"] == "partial"
     assert body["items"][0]["missing_components"] == ["capital_flow", "relative_strength"]
+    assert body["items"][0]["breadth_status"] == "not_calculated"
+
+    agriculture = client.get("/api/market-pulse/sectors?sort_by=total_score").json()["items"][0]
+    assert agriculture["sector_name"] == "农林牧渔"
+    assert agriculture["total_score"] == 74 and agriculture["breadth_score"] == 14
+    assert agriculture["breadth_metrics"]["above_ma20"] == {
+        "ratio": .5, "numerator": 5, "denominator": 10,
+    }
+    assert agriculture["breadth_status"] == "success"
+    assert agriculture["is_approximate"] is True
+    assert agriculture["lookahead_warning"] == "approximate membership"
 
     page_two = client.get("/api/market-pulse/sectors?page=2&page_size=1").json()
     assert page_two["items"][0]["sector_name"] == "农林牧渔"
@@ -69,6 +102,9 @@ def test_empty_unavailable_source_and_detail_endpoints(tmp_path, monkeypatch):
     detail = client.get("/api/market-pulse/sectors/sw_l1/801950")
     assert detail.status_code == 200 and detail.json()["trend_max_score"] == 70
     assert client.get("/api/market-pulse/sectors/sw_l1/missing").status_code == 404
+    breadth_detail = client.get("/api/market-pulse/sectors/sw_l1/801010?trade_date=2026-07-20").json()
+    assert breadth_detail["total_score"] == 74
+    assert breadth_detail["calculation_version"] == "breadth_v1"
 
 
 def test_refresh_post_validation_conflict_and_status_mapping(monkeypatch):
