@@ -675,6 +675,37 @@ Real defect found and fixed in commit `ab11e8d`:
 
 ---
 
+## PR5.7
+
+Status: Completed
+
+Summary:
+
+- Integrated versioned `sector_breadth_scores` into Market Pulse list and detail queries
+- Breadth joins require an exact `sector_code`, `trade_date`, and `calculation_version='breadth_v1'` match
+- A future or stale Breadth record is never attached to a different Trend trade date
+- Missing Breadth is represented as `breadth_status='not_calculated'` with nullable scores and metrics
+- API exposes total, Trend, Breadth, six diagnostic ratios and counts, coverage, exclusions, snapshot metadata, approximation warning, and calculation version
+- Market Pulse page upgraded to the Sector Radar view with total/Trend/Breadth scores and expandable diagnostics
+- Approximate current-snapshot calculations display a prominent warning
+- Client-side sorting supports total score, Trend score, Breadth score, and sector name
+- No scoring rules, history synchronization, refresh scheduling, or database schema were changed
+
+API contract:
+
+```text
+GET /api/market-pulse/sectors
+GET /api/market-pulse/sectors/{source}/{sector_code}
+```
+
+Current real database note:
+
+- The stored `801010` Breadth result is dated `2026-07-21`
+- If the latest `sector_scores` row has a different trade date, it intentionally shows as not calculated
+- This confirms that the API does not leak a future or mismatched Breadth result into another date
+
+---
+
 # Files Never Touch Automatically
 
 以下文件属于用户维护：
