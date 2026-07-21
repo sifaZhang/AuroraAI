@@ -633,6 +633,48 @@ Next recommended task: PR5.7 Market Pulse API and dashboard integration.
 
 ---
 
+## PR5.6B
+
+Status: Completed
+
+Scope: Controlled real-data validation for SW level-1 sector `801010` only.
+
+Validation result:
+
+- Membership snapshot date: `2026-07-22`
+- Current members: 104 rows / 104 normalized unique stocks
+- Local-history coverage before initialization: 20 / 104 (19.23%)
+- Synchronized stocks: 104 successful, 0 failed, 0 empty
+- History range requested: `2026-05-01` through `2026-07-21`
+- Source and adjustment: `sina_stock_zh_a_daily`, unadjusted (`none`)
+- Initial synchronization: 5,610 downloaded and accepted rows, 0 rejected rows
+- Target trade date: `2026-07-21`
+- Above MA5: 11 / 104 (10.5769%)
+- Above MA10: 23 / 104 (22.1154%)
+- Above MA20: 43 / 104 (41.3462%)
+- Advancing: 14 / 104 (13.4615%)
+- New 20-day high: 3 / 104 (2.8846%)
+- Volume expansion: 71 / 104 (68.2692%)
+- Core coverage: 104 / 104 (100%) for MA20, advancing, new-high-20, and volume expansion
+- Core component scores: MA20 2.5214 / 10, advancing 0 / 7, new-high-20 0 / 6, volume expansion 7 / 7
+- Breadth score: 9.5214 / 30
+- Trend score: 50 / 70
+- Total score: 59.5214 / 100
+- Status: `success`
+- Membership use: approximate (`is_approximate=true`)
+- Warning: current membership snapshot has no historical effective interval and may introduce future-data leakage
+- Repeated Breadth recalculation kept exactly one `breadth_v1` row with identical metrics and scores
+- Repeated incremental sync safely upserted 624 overlap rows; total daily-bar row count did not grow
+- All 104 sync statuses ended with `last_error=NULL` and zero consecutive failures
+- No industry membership refresh and no full-market history synchronization were run
+
+Real defect found and fixed in commit `ab11e8d`:
+
+- Concurrent first-time initialization of AKShare's `py_mini_racer` Sina decoder could abort Python on Windows
+- Only the first real Sina download is serialized; bounded parallel downloads remain enabled afterward
+
+---
+
 # Files Never Touch Automatically
 
 以下文件属于用户维护：
