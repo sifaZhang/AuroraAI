@@ -706,6 +706,87 @@ Current real database note:
 
 ---
 
+## PR5.8
+
+Status: Completed
+
+Target trade date: `2026-07-20`
+
+Controlled data initialization:
+
+- SW level-1 current membership snapshots: 31 industries, snapshot date `2026-07-22`
+- Raw membership rows: 5,199; globally normalized unique A-share stocks: 5,199
+- Existing complete local histories before the full run: 104
+- Initialized missing histories: 5,095 successful, 0 failed, 0 empty
+- Requested history range: `2026-05-01` through `2026-07-20`
+- Source: `sina_stock_zh_a_daily`; adjustment: `none`; workers: 2
+- Stored rows in the controlled range: 274,880
+- No stocks outside the 31 current SW level-1 snapshots were synchronized
+- No Eastmoney fallback, adjusted history, SW level-2, or SW level-3 data was used
+
+Breadth and API validation:
+
+- `breadth_v1`: 31 success, 0 insufficient_data, 0 failed
+- Market Pulse API: 31 success, 0 insufficient_data, 0 not_calculated
+- All API joins exactly matched sector code, `2026-07-20`, and `breadth_v1`
+- Total score equals Trend plus Breadth for all 31 industries
+- All 31 results are approximate because the current snapshot is dated after the target trade date
+- All 31 results retain the future-data leakage warning
+- List/detail contracts and total/Trend/Breadth/name sorting passed
+- Page mock validation passed, including expandable six-metric details and approximate warnings
+
+Score summary (`total / trend / breadth`):
+
+| Sector | Name | Score | Status |
+|---|---|---:|---|
+| 801780 | 银行 | 100.0000 / 70 / 30.0000 | success |
+| 801950 | 煤炭 | 100.0000 / 70 / 30.0000 | success |
+| 801960 | 石油石化 | 94.2080 / 70 / 24.2080 | success |
+| 801120 | 食品饮料 | 88.8722 / 70 / 18.8722 | success |
+| 801980 | 美容护理 | 78.5902 / 60 / 18.5902 | success |
+| 801160 | 公用事业 | 73.6928 / 45 / 28.6928 | success |
+| 801010 | 农林牧渔 | 72.9864 / 60 / 12.9864 | success |
+| 801790 | 非银金融 | 67.2548 / 45 / 22.2548 | success |
+| 801170 | 交通运输 | 66.5211 / 45 / 21.5211 | success |
+| 801040 | 钢铁 | 57.3061 / 35 / 22.3061 | success |
+| 801150 | 医药生物 | 51.3977 / 40 / 11.3977 | success |
+| 801110 | 家用电器 | 47.9413 / 40 / 7.9413 | success |
+| 801200 | 商贸零售 | 45.7691 / 35 / 10.7691 | success |
+| 801760 | 传媒 | 22.1575 / 10 / 12.1575 | success |
+| 801750 | 计算机 | 19.3413 / 10 / 9.3413 | success |
+| 801180 | 房地产 | 18.4407 / 10 / 8.4407 | success |
+| 801720 | 建筑装饰 | 18.2226 / 10 / 8.2226 | success |
+| 801710 | 建筑材料 | 18.0758 / 10 / 8.0758 | success |
+| 801970 | 环保 | 18.0699 / 10 / 8.0699 | success |
+| 801130 | 纺织服饰 | 18.0000 / 10 / 8.0000 | success |
+| 801230 | 综合 | 17.5455 / 10 / 7.5455 | success |
+| 801140 | 轻工制造 | 17.2308 / 10 / 7.2308 | success |
+| 801880 | 汽车 | 17.2271 / 10 / 7.2271 | success |
+| 801030 | 基础化工 | 17.1796 / 10 / 7.1796 | success |
+| 801210 | 社会服务 | 17.1796 / 10 / 7.1796 | success |
+| 801770 | 通信 | 17.0760 / 10 / 7.0760 | success |
+| 801050 | 有色金属 | 17.0000 / 10 / 7.0000 | success |
+| 801730 | 电力设备 | 17.0000 / 10 / 7.0000 | success |
+| 801890 | 机械设备 | 17.0000 / 10 / 7.0000 | success |
+| 801080 | 电子 | 7.0000 / 0 / 7.0000 | success |
+| 801740 | 国防军工 | 5.6360 / 0 / 5.6360 | success |
+
+Idempotence:
+
+- Repeated incremental sync did not increase the 274,880 controlled daily-bar rows
+- Three stocks without the target trade date safely upserted their latest existing row and cleared errors
+- All 5,199 sync statuses ended with `last_error=NULL` and zero consecutive failures
+- Repeated 31-industry calculation kept 31 unique target-date rows
+- Metric/score digest remained `fdf4debba82929817d49999c97c7986ea67226db0848b4b1044c3a56ba06f3f9`
+
+Defect fixed during validation:
+
+- Breadth CLI discovery previously required sector daily history even when a real membership snapshot and same-date Trend score existed
+- Available sectors now use the union of sector-history codes and current-membership sector codes
+- Scoring rules and quality gates were not changed
+
+---
+
 # Files Never Touch Automatically
 
 以下文件属于用户维护：

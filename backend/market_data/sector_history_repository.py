@@ -242,6 +242,20 @@ def list_sector_codes_with_history(connection: sqlite3.Connection,
     return [row[0] for row in rows]
 
 
+def list_current_membership_sector_codes(
+    connection: sqlite3.Connection,
+    classification_system: str = CLASSIFICATION_SYSTEM,
+) -> list[str]:
+    """Return sectors backed by a real current constituent snapshot."""
+
+    rows = connection.execute(
+        """SELECT DISTINCT sector_code FROM sector_memberships
+           WHERE classification_system=? AND is_current=1 ORDER BY sector_code""",
+        (_system(classification_system),),
+    ).fetchall()
+    return [row[0] for row in rows]
+
+
 def list_current_member_stocks(connection: sqlite3.Connection,
                                classification_system: str = CLASSIFICATION_SYSTEM) -> list[sqlite3.Row]:
     """Return the deduplicated current stock pool without refreshing memberships."""
