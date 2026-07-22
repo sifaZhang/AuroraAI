@@ -203,6 +203,24 @@ def test_service_and_command_dry_run_skip_recalculate_and_failure_isolation(tmp_
     connection.close()
 
 
+def test_current_membership_sector_is_available_without_sector_daily_history(tmp_path):
+    connection = connect(tmp_path / "membership-only.db")
+    migrate(connection)
+    seed_database(connection)
+    connection.execute("DELETE FROM sector_daily_bars")
+    connection.commit()
+
+    service = MarketBreadthService(connection)
+    assert service.available_sector_codes() == ["801010"]
+    summary, outcomes = run_calculation(
+        connection, codes=["801010"], trade_date="2026-07-17", latest=False,
+        recalculate=True, dry_run=True,
+    )
+    assert summary.success == 1
+    assert outcomes[0].result.trend_score == 70
+    connection.close()
+
+
 def test_database_stores_raw_counts_exclusions_quality_and_nullable_scores(tmp_path):
     connection = connect(tmp_path / "quality.db")
     migrate(connection)
