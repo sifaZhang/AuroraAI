@@ -7,8 +7,32 @@ import json
 from typing import Any
 
 SOURCES = {"sw_l1", "sw_l2", "eastmoney", "all"}
-SORT_FIELDS = {"trend_score", "relative_strength_score", "sector_name", "trade_date", "updated_at"}
+SORT_FIELDS = {
+    "total_score", "trend_score", "breadth_score", "relative_strength_score",
+    "sector_name", "trade_date", "updated_at",
+}
 ORDERS = {"asc", "desc"}
+BREADTH_VERSION = "breadth_v1"
+
+BREADTH_SELECT = """
+       b.total_score,b.breadth_score,b.status AS breadth_status,
+       b.above_ma5_ratio,b.above_ma5_numerator,b.above_ma5_valid_count,
+       b.above_ma10_ratio,b.above_ma10_numerator,b.above_ma10_valid_count,
+       b.above_ma20_ratio,b.above_ma20_numerator,b.above_ma20_valid_count,
+       b.advancing_ratio,b.advancing_numerator,b.advancing_valid_count,
+       b.new_high_20_ratio,b.new_high_20_numerator,b.new_high_20_valid_count,
+       b.volume_expansion_ratio,b.volume_expansion_numerator,b.volume_expansion_valid_count,
+       b.coverage_ratio,b.excluded_members,b.membership_snapshot_date,b.is_approximate,
+       b.lookahead_warning,b.calculation_version,b.quality_warnings
+"""
+
+BREADTH_JOIN = """
+    LEFT JOIN sector_breadth_scores b
+      ON b.classification_system=CASE s.source WHEN 'sw_l1' THEN 'sw_level1' END
+     AND b.sector_code=s.sector_code
+     AND b.trade_date=s.trade_date
+     AND b.calculation_version='breadth_v1'
+"""
 
 
 def _status(connection: sqlite3.Connection, source: str) -> dict[str, Any] | None:
@@ -43,34 +67,41 @@ def list_sector_scores(
     }
     clauses, params = [], []
     if source != "all":
-        clauses.append("source=?")
+        clauses.append("s.source=?")
         params.append(source)
     else:
-        clauses.append("source IN ('sw_l1','sw_l2','eastmoney')")
+        clauses.append("s.source IN ('sw_l1','sw_l2','eastmoney')")
     if trade_date:
-        clauses.append("trade_date=?")
+        clauses.append("s.trade_date=?")
         params.append(trade_date)
     else:
         dated = [(item, value) for item, value in latest_dates.items() if value]
         if dated:
-            clauses.append("(" + " OR ".join("(source=? AND trade_date=?)" for _ in dated) + ")")
+            clauses.append("(" + " OR ".join("(s.source=? AND s.trade_date=?)" for _ in dated) + ")")
             for item, value in dated:
                 params.extend((item, value))
         else:
             clauses.append("1=0")
     where = " AND ".join(clauses)
-    total = connection.execute(f"SELECT COUNT(*) FROM sector_scores WHERE {where}", params).fetchone()[0]
+    total = connection.execute(f"SELECT COUNT(*) FROM sector_scores s WHERE {where}", params).fetchone()[0]
+    sort_expression = {
+        "total_score": "b.total_score", "breadth_score": "b.breadth_score",
+        "trend_score": "COALESCE(b.trend_score,s.trend_score)",
+    }.get(sort_by, f"s.{sort_by}")
     rows = connection.execute(
-        f"""SELECT source,sector_level,sector_code,sector_name,trade_date,trend_score,trend_level,
+        f"""SELECT s.source,s.sector_level,s.sector_code,s.sector_name,s.trade_date,
+                   COALESCE(b.trend_score,s.trend_score) AS trend_score,s.trend_level,
                    close,ma5,ma10,ma20,volume_ratio,is_20d_high,
                    relative_strength_score,benchmark_code,benchmark_trade_date,
                    sector_return_5d,benchmark_return_5d,excess_return_5d,
                    sector_return_10d,benchmark_return_10d,excess_return_10d,
                    sector_return_20d,benchmark_return_20d,excess_return_20d,
                    relative_strength_updated_at,capital_flow_score,composite_score,
-                   score_status,missing_components,updated_at
-            FROM sector_scores WHERE {where}
-            ORDER BY ({sort_by} IS NULL) ASC, {sort_by} {order.upper()}, sector_code ASC LIMIT ? OFFSET ?""",
+                   score_status,missing_components,s.updated_at,
+                   {BREADTH_SELECT}
+            FROM sector_scores s {BREADTH_JOIN} WHERE {where}
+            ORDER BY ({sort_expression} IS NULL) ASC, {sort_expression} {order.upper()},
+                     s.sector_code ASC LIMIT ? OFFSET ?""",
         (*params, page_size, (page - 1) * page_size),
     ).fetchall()
     items = []
@@ -92,19 +123,22 @@ def get_sector_score(connection: sqlite3.Connection, source: str, sector_code: s
     params: list[Any] = [source, sector_code]
     date_clause = ""
     if trade_date:
-        date_clause = " AND trade_date=?"
+        date_clause = " AND s.trade_date=?"
         params.append(trade_date)
     row = connection.execute(
-        f"""SELECT source,sector_level,sector_code,sector_name,trade_date,trend_score,trend_level,
+        f"""SELECT s.source,s.sector_level,s.sector_code,s.sector_name,s.trade_date,
+                   COALESCE(b.trend_score,s.trend_score) AS trend_score,s.trend_level,
                    close,ma5,ma10,ma20,volume_ratio,is_20d_high,
                    relative_strength_score,benchmark_code,benchmark_trade_date,
                    sector_return_5d,benchmark_return_5d,excess_return_5d,
                    sector_return_10d,benchmark_return_10d,excess_return_10d,
                    sector_return_20d,benchmark_return_20d,excess_return_20d,
                    relative_strength_updated_at,capital_flow_score,composite_score,
-                   score_status,missing_components,updated_at
-            FROM sector_scores WHERE source=? AND sector_code=?{date_clause}
-            ORDER BY trade_date DESC LIMIT 1""",
+                   score_status,missing_components,s.updated_at,
+                   {BREADTH_SELECT}
+            FROM sector_scores s {BREADTH_JOIN}
+            WHERE s.source=? AND s.sector_code=?{date_clause}
+            ORDER BY s.trade_date DESC LIMIT 1""",
         params,
     ).fetchone()
     if not row:
@@ -128,4 +162,15 @@ def _public_item(item: dict[str, Any]) -> dict[str, Any]:
         item["missing_components"] = json.loads(raw_missing) if raw_missing else ["capital_flow", "relative_strength"]
     except (json.JSONDecodeError, TypeError):
         item["missing_components"] = ["capital_flow", "relative_strength"]
+    if item.get("breadth_status") is None:
+        item["breadth_status"] = "not_calculated"
+    for field, default in (("excluded_members", {}), ("quality_warnings", [])):
+        raw = item.get(field)
+        try:
+            item[field] = json.loads(raw) if raw else default
+        except (json.JSONDecodeError, TypeError):
+            item[field] = default
+    item["is_approximate"] = bool(item["is_approximate"]) if item.get("is_approximate") is not None else False
+    item["breadth_max_score"] = 30
+    item["total_max_score"] = 100
     return item

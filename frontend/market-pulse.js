@@ -9,6 +9,10 @@
   const JOB_STATUS_NAMES = {queued: "排队中", running: "刷新中", completed: "已完成", partial: "部分完成", failed: "失败"};
   const LEVEL_NAMES = {strong: "A", bullish: "B", neutral: "C", weak: "D", bearish: "E"};
   const LEVEL_LABELS = {A: "A / 强势", B: "B / 偏强", C: "C / 中性", D: "D / 偏弱", E: "E / 弱势"};
+  const BREADTH_METRICS = [
+    ["MA5", "above_ma5"], ["MA10", "above_ma10"], ["MA20", "above_ma20"],
+    ["上涨", "advancing"], ["20日新高", "new_high_20"], ["放量", "volume_expansion"],
+  ];
 
   class RequestError extends Error {
     constructor(message, status, data) { super(message); this.status = status; this.data = data; }
@@ -65,7 +69,7 @@
     const clearTimer = options.clearTimeout || clearTimeout;
     const now = options.now || (() => Date.now());
     const AbortControllerClass = options.AbortController || root?.AbortController;
-    const state = {sectors: [], marketMeta: null, sourceHealth: [], search: "", level: "", source: "sw_l1", sortKey: "trend_score", sortOrder: "desc", activeJobId: null, pollTimer: null, refreshStartedAt: null, pollErrors: 0};
+    const state = {sectors: [], marketMeta: null, sourceHealth: [], search: "", level: "", source: "sw_l1", sortKey: "total_score", sortOrder: "desc", activeJobId: null, pollTimer: null, refreshStartedAt: null, pollErrors: 0};
     const byId = id => doc.getElementById(id);
     const elements = {
       rows: byId("sector-rows"), statuses: byId("source-statuses"), button: byId("refresh-sectors"), pageError: byId("pulse-error"),
@@ -114,9 +118,9 @@
       elements.marketStatus.textContent = `${status === "healthy" ? "🟢 " : status === "degraded" ? "🟡 " : status === "unavailable" ? "🔴 " : "⚪ "}${STATUS_NAMES[status] || status}`;
       const latest = state.sectors.reduce((value, item) => !value || String(item.updated_at) > String(value) ? item.updated_at : value, null) || meta.source_status?.updated_at;
       elements.lastRefresh.textContent = formatDateTime(latest);
-      const rsAvailable = state.sectors.filter(item => item.relative_strength_score != null);
-      elements.rsAvailable.textContent = `${rsAvailable.length} / ${state.sectors.length}`;
-      elements.rsOutperforming.textContent = String(rsAvailable.filter(item => Number(item.relative_strength_score) > 0).length);
+      const calculated = state.sectors.filter(item => item.breadth_status !== "not_calculated");
+      elements.rsAvailable.textContent = `${calculated.length} / ${state.sectors.length}`;
+      elements.rsOutperforming.textContent = String(calculated.filter(item => item.breadth_status === "success").length);
     }
 
     function emptyMessage(meta) {
@@ -135,7 +139,7 @@
     function compareValues(left, right, key) {
       const leftValue = sortValue(left, key);
       const rightValue = sortValue(right, key);
-      if (key === "trend_score" || key === "relative_strength_score" || key === "rank") return Number(leftValue ?? -Infinity) - Number(rightValue ?? -Infinity);
+      if (["total_score", "trend_score", "breadth_score", "relative_strength_score", "rank"].includes(key)) return Number(leftValue ?? -Infinity) - Number(rightValue ?? -Infinity);
       return String(leftValue ?? "").localeCompare(String(rightValue ?? ""), "zh-CN", {numeric: true, sensitivity: "base"});
     }
 
@@ -155,7 +159,7 @@
     }
 
     function updateSortHeaders() {
-      const labels = {rank: "Rank", sector_name: "行业", trend_score: "技术趋势", relative_strength_score: "相对强度", level: "等级", trade_date: "最新交易日", updated_at: "更新时间", source: "数据来源"};
+      const labels = {rank: "Rank", sector_name: "行业", total_score: "总分", trend_score: "Trend", breadth_score: "Breadth", trade_date: "最新交易日", source: "数据来源"};
       elements.sortButtons.forEach(button => {
         const active = button.dataset.sort === state.sortKey;
         button.className = `sort-button${active ? " active" : ""}`;
@@ -169,25 +173,33 @@
       clearChildren(elements.rows);
       elements.count.textContent = `当前显示 ${items.length} / 总计 ${state.sectors.length} 个行业`;
       if (!items.length) {
-        const row = doc.createElement("tr"); const cell = appendText(row, "td", emptyMessage(state.marketMeta), "empty-state"); cell.colSpan = 10; elements.rows.appendChild(row); return;
+        const row = doc.createElement("tr"); const cell = appendText(row, "td", emptyMessage(state.marketMeta), "empty-state"); cell.colSpan = 9; elements.rows.appendChild(row); return;
       }
       items.forEach(item => {
         const row = doc.createElement("tr");
         appendText(row, "td", String(item._rank));
         appendText(row, "td", item.sector_name || "—");
-        const scoreCell = doc.createElement("td"); appendText(scoreCell, "span", `${item.trend_score ?? "—"}/${item.trend_max_score || 70}`, `trend-score ${getScoreClass(item.trend_score)}`); row.appendChild(scoreCell);
-        const rsCell = doc.createElement("td");
-        const rs = appendText(rsCell, "span", item.relative_strength_score == null ? "—" : `${item.relative_strength_score}/${item.relative_strength_max_score || 15}`, item.relative_strength_score == null ? "pending-score" : "module-score");
-        if (item.relative_strength_score != null) rs.title = [5, 10, 20].map(period => `${period}日：${item[`excess_return_${period}d`] == null ? "—" : `${(Number(item[`excess_return_${period}d`]) * 100).toFixed(2)}%`}`).join(" · ");
-        row.appendChild(rsCell);
-        appendText(row, "td", item.capital_flow_score == null ? "—" : `${item.capital_flow_score}/${item.capital_flow_max_score || 15}`, item.capital_flow_score == null ? "pending-score" : "module-score");
-        const compositeCell = doc.createElement("td");
-        appendText(compositeCell, "span", item.composite_score == null ? "待补齐" : `${item.composite_score}/${item.composite_max_score || 100}`, item.composite_score == null ? "pending-score" : "module-score");
-        if (item.composite_score == null && Array.isArray(item.missing_components) && item.missing_components.includes("capital_flow")) appendText(compositeCell, "small", "缺少资金流数据", "missing-note");
-        row.appendChild(compositeCell);
-        const levelCell = doc.createElement("td"); const level = displayLevel(item); appendText(levelCell, "span", LEVEL_LABELS[level] || level, "trend-level"); row.appendChild(levelCell);
+        const totalCell = doc.createElement("td"); appendText(totalCell, "span", item.total_score == null ? "—" : `${Number(item.total_score).toFixed(1)}/100`, item.total_score == null ? "pending-score" : `trend-score ${getScoreClass(item.total_score)}`); row.appendChild(totalCell);
+        appendText(row, "td", item.trend_score == null ? "—" : `${Number(item.trend_score).toFixed(1)}/70`, item.trend_score == null ? "pending-score" : "module-score");
+        appendText(row, "td", item.breadth_score == null ? "—" : `${Number(item.breadth_score).toFixed(1)}/30`, item.breadth_score == null ? "pending-score" : "module-score");
+        const statusCell = doc.createElement("td");
+        const statusNames = {success: "可用", insufficient_data: "数据不足", failed: "计算失败", not_calculated: "未计算"};
+        appendText(statusCell, "span", statusNames[item.breadth_status] || item.breadth_status || "未计算", `breadth-status ${item.breadth_status || "not_calculated"}`);
+        if (item.is_approximate) appendText(statusCell, "strong", "近似结果 ⚠", "approximate-warning");
+        row.appendChild(statusCell);
+        const detailCell = doc.createElement("td");
+        if (item.breadth_status === "not_calculated") appendText(detailCell, "span", "—", "pending-score");
+        else {
+          const button = appendText(detailCell, "button", "展开", "detail-toggle"); button.setAttribute("type", "button");
+          const panel = doc.createElement("div"); panel.className = "breadth-details"; panel.hidden = true;
+          BREADTH_METRICS.forEach(([label, key]) => appendText(panel, "div", `${label}：${item[`${key}_ratio`] == null ? "—" : `${(Number(item[`${key}_ratio`]) * 100).toFixed(1)}%`}（${item[`${key}_numerator`] ?? 0}/${item[`${key}_valid_count`] ?? 0}）`));
+          appendText(panel, "div", `覆盖率：${item.coverage_ratio == null ? "—" : `${(Number(item.coverage_ratio) * 100).toFixed(1)}%`}`);
+          if (item.lookahead_warning) appendText(panel, "div", item.lookahead_warning, "approximate-warning");
+          button.addEventListener("click", () => { panel.hidden = !panel.hidden; button.textContent = panel.hidden ? "展开" : "收起"; });
+          detailCell.appendChild(panel);
+        }
+        row.appendChild(detailCell);
         appendText(row, "td", item.trade_date || state.marketMeta.latest_trade_date || state.marketMeta.trade_date || "—");
-        appendText(row, "td", formatDateTime(item.updated_at), "secondary-column");
         appendText(row, "td", TABLE_SOURCE_NAMES[item.source] || item.source || "—", "secondary-column");
         elements.rows.appendChild(row);
       });
@@ -210,21 +222,21 @@
       state.source = elements.sourceFilter.value;
       showError(elements.sectorError, "");
       clearChildren(elements.rows);
-      const row = doc.createElement("tr"); const cell = appendText(row, "td", "正在加载行业数据…", "empty-state"); cell.colSpan = 10; elements.rows.appendChild(row);
+      const row = doc.createElement("tr"); const cell = appendText(row, "td", "正在加载行业数据…", "empty-state"); cell.colSpan = 9; elements.rows.appendChild(row);
       elements.count.textContent = "加载中…";
       try { return await loadMarketPulse(); } catch (_) { return null; }
     }
 
     function changeSort(key) {
       if (state.sortKey === key) state.sortOrder = state.sortOrder === "asc" ? "desc" : "asc";
-      else { state.sortKey = key; state.sortOrder = key === "trend_score" ? "desc" : "asc"; }
+      else { state.sortKey = key; state.sortOrder = ["total_score", "trend_score", "breadth_score"].includes(key) ? "desc" : "asc"; }
       updateSortHeaders(); renderSectorRows();
     }
 
     async function resetFilters() {
       const sourceChanged = state.source !== "sw_l1";
       elements.search.value = ""; elements.levelFilter.value = ""; elements.sourceFilter.value = "sw_l1";
-      state.search = ""; state.level = ""; state.source = "sw_l1"; state.sortKey = "trend_score"; state.sortOrder = "desc";
+      state.search = ""; state.level = ""; state.source = "sw_l1"; state.sortKey = "total_score"; state.sortOrder = "desc";
       updateSortHeaders();
       if (sourceChanged) return changeSource();
       renderSectorRows(); return null;
