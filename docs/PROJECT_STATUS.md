@@ -724,12 +724,52 @@ feature/pr5.7-sector-radar-api
 
 ---
 
-# Next Task
+## PR5.8
 
-PR5.8
+Status: Completed
 
-All-sector Breadth data initialization and calculation
+- Target trade date: 2026-07-20
+- Current-membership snapshot date: 2026-07-22
+- SW level-1 sectors: 31
+- Deduplicated current-member stock pool: 5199
+- Existing coverage before initialization: 104
+- Newly initialized: 5095; failures: 0; empty responses: 0
+- Stored daily bars from 2026-05-01 through 2026-07-20: 274880
+- Source: `sina_stock_zh_a_daily`; adjustment: `none`; workers: 2
+- `breadth_v1`: 31 successful results; all 31 historical results explicitly marked approximate
 
-目标：
+---
 
-Initialize enough local A-share history to calculate versioned Breadth results for all 31 SW level-1 sectors without a full-market blind sync.
+## PR5.9
+
+Status: Completed
+
+Summary:
+
+- Added `backend.collector.refresh_market_pulse_daily` as the complete daily incremental pipeline
+- Refresh order is fixed: SW level-1 history/current membership → current-member stock daily bars → same-day `breadth_v1`
+- Reuses the current 5199-stock membership pool and does not synchronize SW level-2, level-3, or unrelated stocks
+- Reuses the existing Sina, unadjusted, retryable and idempotent A-share daily sync
+- Uses the common latest successful SW level-1 trade date to prevent mixed-date scoring
+- Recalculates and upserts the target date, so interrupted or repeated runs are safe
+- Tracks score changes from stored history without duplicating derived data in another table
+- API now exposes previous date/score plus total, trend, and Breadth deltas
+- Market Pulse total-score cells now show red improvement, green weakening, or unchanged indicators
+- A first score without a previous baseline remains null instead of being treated as zero
+
+Command:
+
+```text
+python -m backend.collector.refresh_market_pulse_daily --workers 2
+```
+
+Validation:
+
+- PR5.9 and related Market Pulse focused tests: 45 passed
+- Frontend Node mock test passed
+- Existing user modification in `backend/collector/dividend_collector.py` was preserved
+- Real production database refresh was not run in the recovered workspace
+
+Next recommended task:
+
+Validate GoldMiner (`gm.api`) data capabilities, then begin the first-limit pullback V1 strategy.

@@ -104,7 +104,9 @@ def list_sector_scores(
     ).fetchall()
     items = []
     for row in rows:
-        items.append(_public_item(dict(row)))
+        item = _public_item(dict(row))
+        _attach_score_change(connection, item)
+        items.append(item)
     statuses = {item: _status(connection, item) for item in selected_sources}
     resolved_date = trade_date or (latest_dates.get(source) if source != "all" else None)
     return {
@@ -141,6 +143,7 @@ def get_sector_score(connection: sqlite3.Connection, source: str, sector_code: s
         return None
     item = _public_item(dict(row))
     _attach_breadth(connection, item)
+    _attach_score_change(connection, item)
     item["source_status"] = _status(connection, source)
     return item
 
@@ -161,6 +164,43 @@ def _public_item(item: dict[str, Any]) -> dict[str, Any]:
         item["missing_components"] = ["capital_flow", "relative_strength"]
     _normalize_breadth(item)
     return item
+
+
+def _attach_score_change(connection: sqlite3.Connection, item: dict[str, Any]) -> None:
+    """Attach change versus the sector's preceding stored trade date."""
+    if item["source"] != "sw_l1":
+        item.update({
+            "previous_trade_date": None, "previous_total_score": None,
+            "total_score_change": None, "trend_score_change": None,
+            "breadth_score_change": None,
+        })
+        return
+    row = connection.execute(
+        """SELECT trade_date,total_score,trend_score,breadth_score
+           FROM sector_breadth_scores
+           WHERE classification_system='sw_level1' AND sector_code=?
+             AND calculation_version='breadth_v1' AND trade_date<?
+           ORDER BY trade_date DESC LIMIT 1""",
+        (item["sector_code"], item["trade_date"]),
+    ).fetchone()
+    if not row:
+        item.update({
+            "previous_trade_date": None, "previous_total_score": None,
+            "total_score_change": None, "trend_score_change": None,
+            "breadth_score_change": None,
+        })
+        return
+    item["previous_trade_date"] = row["trade_date"]
+    item["previous_total_score"] = row["total_score"]
+    for public, current, previous in (
+        ("total_score_change", item.get("total_score"), row["total_score"]),
+        ("trend_score_change", item.get("trend_score"), row["trend_score"]),
+        ("breadth_score_change", item.get("breadth_score"), row["breadth_score"]),
+    ):
+        item[public] = (
+            round(float(current) - float(previous), 4)
+            if current is not None and previous is not None else None
+        )
 
 
 def _attach_breadth(connection: sqlite3.Connection, item: dict[str, Any]) -> None:

@@ -31,6 +31,8 @@
 .score-70 { background: #14532d; }.score-60 { background: #16a34a; }.score-50 { background: #65a30d; }.score-40 { background: #ca8a04; }.score-30 { background: #ea580c; }.score-low { background: #dc2626; }
 .trend-level { display: inline-block; padding: .2rem .48rem; border-radius: 999px; background: #eef2f7; color: #334155; font-weight: 700; }
 .module-score { white-space: nowrap; font-weight: 750; }.pending-score { color: var(--muted); font-weight: 650; }.missing-note { display: block; margin-top: 3px; color: #92400e; font-size: 11px; }
+.score-change { display: block; margin-top: 3px; font-size: 11px; font-variant-numeric: tabular-nums; }
+.score-change.up { color: #b42318; }.score-change.down { color: #067647; }.score-change.flat { color: var(--muted); }
 .breadth-status { display: inline-block; padding: .2rem .48rem; border-radius: 999px; white-space: nowrap; font-size: 12px; font-weight: 750; }
 .breadth-status.success { background: #dcfce7; color: #166534; }.breadth-status.insufficient_data { background: #fef3c7; color: #92400e; }.breadth-status.not_calculated { background: #f1f5f9; color: #475569; }.breadth-status.failed { background: #fee2e2; color: #991b1b; }
 .pulse-table details { min-width: 150px; }.pulse-table summary { color: var(--accent); cursor: pointer; font-weight: 700; }.pulse-table details small { display: block; margin-top: 4px; white-space: nowrap; color: var(--muted); }

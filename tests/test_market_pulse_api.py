@@ -41,6 +41,14 @@ def seed(db_path):
         "volume_expansion": BreadthComponentScore("volume_expansion", 5, 7),
     }
     upsert_breadth_result(connection, MarketBreadthResult(
+        classification_system="sw_level1", sector_code="801010", trade_date="2026-07-19",
+        membership_snapshot_date="2026-07-21", metrics=metrics, components=components,
+        total_members=10, valid_members=10, coverage_ratio=1, excluded_members={},
+        breadth_score=10, trend_score=50, total_score=60, status="success",
+        quality_warnings=("current_membership_snapshot_used_for_history",),
+        is_approximate=True, lookahead_warning="approximate membership",
+    ))
+    upsert_breadth_result(connection, MarketBreadthResult(
         classification_system="sw_level1", sector_code="801010", trade_date="2026-07-20",
         membership_snapshot_date="2026-07-21", metrics=metrics, components=components,
         total_members=10, valid_members=10, coverage_ratio=1, excluded_members={},
@@ -82,6 +90,11 @@ def test_list_defaults_latest_sort_pagination_and_max_score(tmp_path, monkeypatc
     assert agriculture["breadth_status"] == "success"
     assert agriculture["is_approximate"] is True
     assert agriculture["lookahead_warning"] == "approximate membership"
+    assert agriculture["previous_trade_date"] == "2026-07-19"
+    assert agriculture["previous_total_score"] == 60
+    assert agriculture["total_score_change"] == 14
+    assert agriculture["trend_score_change"] == 10
+    assert agriculture["breadth_score_change"] == 4
 
     page_two = client.get("/api/market-pulse/sectors?page=2&page_size=1").json()
     assert page_two["items"][0]["sector_name"] == "农林牧渔"
