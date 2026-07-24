@@ -507,6 +507,31 @@ cd F:\Stock\Projects\AuroraAI
 python -m backend.collector.refresh_weekly_hk_ratings
 ```
 
+### Market Pulse 每日增量刷新
+
+PR5.9 将行业历史、当前成分快照、成分股日K增量和当日 Breadth 计算串成一个可重复运行的任务：
+
+```bash
+python -m backend.collector.refresh_market_pulse_daily --workers 2
+```
+
+任务只同步申万一级31行业当前成分范围，不扩展到申万二级、三级或行业外股票。成分股日K继续使用
+`sina_stock_zh_a_daily`、不复权，并从各股票已有最后交易日附近增量补齐。目标日期取31行业成功记录中的共同最新交易日，
+避免不同日期的行业分数混排。
+
+成功运行后，Market Pulse API 会返回：
+
+```text
+previous_trade_date
+previous_total_score
+total_score_change
+trend_score_change
+breadth_score_change
+```
+
+页面总分下方用红色上箭头、绿色下箭头或横箭头显示相对上一条 `breadth_v1` 记录的变化。首次产生分数、
+没有历史基线时变化字段保持为空。
+
 建议每周日或周一的非交易时间运行一次。命令复用页面任务的 TTL/resume 机制，不使用 force；如果已有冲突任务，会安全退出。本项目不会自动修改 Windows 任务计划程序。
 
 ### 港股初始化（阶段D）

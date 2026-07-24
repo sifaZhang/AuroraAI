@@ -30,6 +30,7 @@
 .trend-score { display: inline-block; min-width: 52px; padding: .25rem .5rem; border-radius: 6px; color: #fff; text-align: center; font-weight: 800; }
 .score-70 { background: #14532d; }.score-60 { background: #16a34a; }.score-50 { background: #65a30d; }.score-40 { background: #ca8a04; }.score-30 { background: #ea580c; }.score-low { background: #dc2626; }
 .trend-level { display: inline-block; padding: .2rem .48rem; border-radius: 999px; background: #eef2f7; color: #334155; font-weight: 700; }
+.score-change { display: block; margin-top: 3px; font-size: 11px; font-weight: 750; }.score-change.up { color: #b91c1c; }.score-change.down { color: #15803d; }.score-change.flat { color: var(--muted); }
 .module-score { white-space: nowrap; font-weight: 750; }.pending-score { color: var(--muted); font-weight: 650; }.missing-note { display: block; margin-top: 3px; color: #92400e; font-size: 11px; }
 .breadth-status { display: block; white-space: nowrap; font-weight: 750; }
 .breadth-status.success { color: #166534; }.breadth-status.insufficient_data { color: #92400e; }.breadth-status.failed { color: #991b1b; }.breadth-status.not_calculated { color: var(--muted); }

@@ -179,7 +179,14 @@
         const row = doc.createElement("tr");
         appendText(row, "td", String(item._rank));
         appendText(row, "td", item.sector_name || "—");
-        const totalCell = doc.createElement("td"); appendText(totalCell, "span", item.total_score == null ? "—" : `${Number(item.total_score).toFixed(1)}/100`, item.total_score == null ? "pending-score" : `trend-score ${getScoreClass(item.total_score)}`); row.appendChild(totalCell);
+        const totalCell = doc.createElement("td"); appendText(totalCell, "span", item.total_score == null ? "—" : `${Number(item.total_score).toFixed(1)}/100`, item.total_score == null ? "pending-score" : `trend-score ${getScoreClass(item.total_score)}`);
+        if (item.total_score_change != null) {
+          const delta = Number(item.total_score_change);
+          const label = `${delta > 0 ? "↑" : delta < 0 ? "↓" : "→"} ${delta > 0 ? "+" : ""}${delta.toFixed(1)}`;
+          const change = appendText(totalCell, "small", label, `score-change ${delta > 0 ? "up" : delta < 0 ? "down" : "flat"}`);
+          change.title = `较 ${item.previous_trade_date || "上一交易日"} 的总分变化`;
+        }
+        row.appendChild(totalCell);
         appendText(row, "td", item.trend_score == null ? "—" : `${Number(item.trend_score).toFixed(1)}/70`, item.trend_score == null ? "pending-score" : "module-score");
         appendText(row, "td", item.breadth_score == null ? "—" : `${Number(item.breadth_score).toFixed(1)}/30`, item.breadth_score == null ? "pending-score" : "module-score");
         const statusCell = doc.createElement("td");

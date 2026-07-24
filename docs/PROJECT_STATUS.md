@@ -812,3 +812,13 @@ Market Pulse API and dashboard integration
 目标：
 
 Expose the versioned Breadth results through the existing Market Pulse API and dashboard.
+
+---
+
+# PR5.9
+
+Status: Completed
+
+- Added `python -m backend.collector.refresh_market_pulse_daily --workers 2` for the repeatable daily SW level-1 refresh pipeline.
+- The pipeline refreshes sector/membership data, fills only missing constituent daily bars, then recalculates same-date `breadth_v1`.
+- The API and dashboard show total, Trend and Breadth score changes versus the preceding stored trading date; no previous baseline is shown as zero.
