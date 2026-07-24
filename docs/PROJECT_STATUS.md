@@ -20,7 +20,7 @@ AuroraAI 是一个本地运行的 AI 股票研究平台。
 
 当前开发阶段：
 
-> Phase 5.7 - Sector Radar API and Dashboard Integration Completed
+> Phase 5.6 - Incremental A-share History Sync Completed
 
 ---
 
@@ -681,30 +681,109 @@ Status: Completed
 
 Summary:
 
-- Existing Market Pulse list and detail APIs now expose same-trade-date `breadth_v1` results
-- Added nullable 100-point total score and 30-point Breadth score without fabricating zeroes
-- Added all six Breadth ratios with numerator and denominator
-- Added coverage, component scores, quality warnings, exclusions, calculation version, and snapshot metadata
-- Added `success`, `insufficient_data`, `not_calculated`, and `failed` display states
-- Preserved and surfaced `is_approximate` and look-ahead warnings
-- Added API sorting by `total_score` and `breadth_score`
-- Updated the existing Market Pulse dashboard into the sector radar view
-- Added total, trend, Breadth, data-status, and expandable six-metric columns
-- Added client sorting by total score, trend score, Breadth score, and sector name
-- Did not add history charts, scheduled jobs, automatic Breadth calculation, or market-wide synchronization
+- Integrated versioned `sector_breadth_scores` into Market Pulse list and detail queries
+- Breadth joins require an exact `sector_code`, `trade_date`, and `calculation_version='breadth_v1'` match
+- A future or stale Breadth record is never attached to a different Trend trade date
+- Missing Breadth is represented as `breadth_status='not_calculated'` with nullable scores and metrics
+- API exposes total, Trend, Breadth, six diagnostic ratios and counts, coverage, exclusions, snapshot metadata, approximation warning, and calculation version
+- Market Pulse page upgraded to the Sector Radar view with total/Trend/Breadth scores and expandable diagnostics
+- Approximate current-snapshot calculations display a prominent warning
+- Client-side sorting supports total score, Trend score, Breadth score, and sector name
+- No scoring rules, history synchronization, refresh scheduling, or database schema were changed
 
-API:
+API contract:
 
 ```text
-GET /api/market-pulse/sectors?source=sw_l1&sort_by=total_score&order=desc
-GET /api/market-pulse/sectors/sw_l1/{sector_code}?trade_date=YYYY-MM-DD
+GET /api/market-pulse/sectors
+GET /api/market-pulse/sectors/{source}/{sector_code}
 ```
 
-Validation:
+Current real database note:
 
-- PR5.5 / PR5.7 focused tests: 21 passed
-- Full suite: 190 passed, 3 existing deprecation warnings
-- No local database or user-maintained radar document was committed
+- The stored `801010` Breadth result is dated `2026-07-21`
+- If the latest `sector_scores` row has a different trade date, it intentionally shows as not calculated
+- This confirms that the API does not leak a future or mismatched Breadth result into another date
+
+---
+
+## PR5.8
+
+Status: Completed
+
+Target trade date: `2026-07-20`
+
+Controlled data initialization:
+
+- SW level-1 current membership snapshots: 31 industries, snapshot date `2026-07-22`
+- Raw membership rows: 5,199; globally normalized unique A-share stocks: 5,199
+- Existing complete local histories before the full run: 104
+- Initialized missing histories: 5,095 successful, 0 failed, 0 empty
+- Requested history range: `2026-05-01` through `2026-07-20`
+- Source: `sina_stock_zh_a_daily`; adjustment: `none`; workers: 2
+- Stored rows in the controlled range: 274,880
+- No stocks outside the 31 current SW level-1 snapshots were synchronized
+- No Eastmoney fallback, adjusted history, SW level-2, or SW level-3 data was used
+
+Breadth and API validation:
+
+- `breadth_v1`: 31 success, 0 insufficient_data, 0 failed
+- Market Pulse API: 31 success, 0 insufficient_data, 0 not_calculated
+- All API joins exactly matched sector code, `2026-07-20`, and `breadth_v1`
+- Total score equals Trend plus Breadth for all 31 industries
+- All 31 results are approximate because the current snapshot is dated after the target trade date
+- All 31 results retain the future-data leakage warning
+- List/detail contracts and total/Trend/Breadth/name sorting passed
+- Page mock validation passed, including expandable six-metric details and approximate warnings
+
+Score summary (`total / trend / breadth`):
+
+| Sector | Name | Score | Status |
+|---|---|---:|---|
+| 801780 | 银行 | 100.0000 / 70 / 30.0000 | success |
+| 801950 | 煤炭 | 100.0000 / 70 / 30.0000 | success |
+| 801960 | 石油石化 | 94.2080 / 70 / 24.2080 | success |
+| 801120 | 食品饮料 | 88.8722 / 70 / 18.8722 | success |
+| 801980 | 美容护理 | 78.5902 / 60 / 18.5902 | success |
+| 801160 | 公用事业 | 73.6928 / 45 / 28.6928 | success |
+| 801010 | 农林牧渔 | 72.9864 / 60 / 12.9864 | success |
+| 801790 | 非银金融 | 67.2548 / 45 / 22.2548 | success |
+| 801170 | 交通运输 | 66.5211 / 45 / 21.5211 | success |
+| 801040 | 钢铁 | 57.3061 / 35 / 22.3061 | success |
+| 801150 | 医药生物 | 51.3977 / 40 / 11.3977 | success |
+| 801110 | 家用电器 | 47.9413 / 40 / 7.9413 | success |
+| 801200 | 商贸零售 | 45.7691 / 35 / 10.7691 | success |
+| 801760 | 传媒 | 22.1575 / 10 / 12.1575 | success |
+| 801750 | 计算机 | 19.3413 / 10 / 9.3413 | success |
+| 801180 | 房地产 | 18.4407 / 10 / 8.4407 | success |
+| 801720 | 建筑装饰 | 18.2226 / 10 / 8.2226 | success |
+| 801710 | 建筑材料 | 18.0758 / 10 / 8.0758 | success |
+| 801970 | 环保 | 18.0699 / 10 / 8.0699 | success |
+| 801130 | 纺织服饰 | 18.0000 / 10 / 8.0000 | success |
+| 801230 | 综合 | 17.5455 / 10 / 7.5455 | success |
+| 801140 | 轻工制造 | 17.2308 / 10 / 7.2308 | success |
+| 801880 | 汽车 | 17.2271 / 10 / 7.2271 | success |
+| 801030 | 基础化工 | 17.1796 / 10 / 7.1796 | success |
+| 801210 | 社会服务 | 17.1796 / 10 / 7.1796 | success |
+| 801770 | 通信 | 17.0760 / 10 / 7.0760 | success |
+| 801050 | 有色金属 | 17.0000 / 10 / 7.0000 | success |
+| 801730 | 电力设备 | 17.0000 / 10 / 7.0000 | success |
+| 801890 | 机械设备 | 17.0000 / 10 / 7.0000 | success |
+| 801080 | 电子 | 7.0000 / 0 / 7.0000 | success |
+| 801740 | 国防军工 | 5.6360 / 0 / 5.6360 | success |
+
+Idempotence:
+
+- Repeated incremental sync did not increase the 274,880 controlled daily-bar rows
+- Three stocks without the target trade date safely upserted their latest existing row and cleared errors
+- All 5,199 sync statuses ended with `last_error=NULL` and zero consecutive failures
+- Repeated 31-industry calculation kept 31 unique target-date rows
+- Metric/score digest remained `fdf4debba82929817d49999c97c7986ea67226db0848b4b1044c3a56ba06f3f9`
+
+Defect fixed during validation:
+
+- Breadth CLI discovery previously required sector daily history even when a real membership snapshot and same-date Trend score existed
+- Available sectors now use the union of sector-history codes and current-membership sector codes
+- Scoring rules and quality gates were not changed
 
 ---
 
@@ -720,56 +799,26 @@ Validation:
 
 # Current Branch
 
-feature/pr5.7-sector-radar-api
+feature/expectation-refresh-jobs
 
 ---
 
-## PR5.8
+# Next Task
 
-Status: Completed
+PR5.7
 
-- Target trade date: 2026-07-20
-- Current-membership snapshot date: 2026-07-22
-- SW level-1 sectors: 31
-- Deduplicated current-member stock pool: 5199
-- Existing coverage before initialization: 104
-- Newly initialized: 5095; failures: 0; empty responses: 0
-- Stored daily bars from 2026-05-01 through 2026-07-20: 274880
-- Source: `sina_stock_zh_a_daily`; adjustment: `none`; workers: 2
-- `breadth_v1`: 31 successful results; all 31 historical results explicitly marked approximate
+Market Pulse API and dashboard integration
+
+目标：
+
+Expose the versioned Breadth results through the existing Market Pulse API and dashboard.
 
 ---
 
-## PR5.9
+# PR5.9
 
 Status: Completed
 
-Summary:
-
-- Added `backend.collector.refresh_market_pulse_daily` as the complete daily incremental pipeline
-- Refresh order is fixed: SW level-1 history/current membership → current-member stock daily bars → same-day `breadth_v1`
-- Reuses the current 5199-stock membership pool and does not synchronize SW level-2, level-3, or unrelated stocks
-- Reuses the existing Sina, unadjusted, retryable and idempotent A-share daily sync
-- Uses the common latest successful SW level-1 trade date to prevent mixed-date scoring
-- Recalculates and upserts the target date, so interrupted or repeated runs are safe
-- Tracks score changes from stored history without duplicating derived data in another table
-- API now exposes previous date/score plus total, trend, and Breadth deltas
-- Market Pulse total-score cells now show red improvement, green weakening, or unchanged indicators
-- A first score without a previous baseline remains null instead of being treated as zero
-
-Command:
-
-```text
-python -m backend.collector.refresh_market_pulse_daily --workers 2
-```
-
-Validation:
-
-- PR5.9 and related Market Pulse focused tests: 45 passed
-- Frontend Node mock test passed
-- Existing user modification in `backend/collector/dividend_collector.py` was preserved
-- Real production database refresh was not run in the recovered workspace
-
-Next recommended task:
-
-Validate GoldMiner (`gm.api`) data capabilities, then begin the first-limit pullback V1 strategy.
+- Added `python -m backend.collector.refresh_market_pulse_daily --workers 2` for the repeatable daily SW level-1 refresh pipeline.
+- The pipeline refreshes sector/membership data, fills only missing constituent daily bars, then recalculates same-date `breadth_v1`.
+- The API and dashboard show total, Trend and Breadth score changes versus the preceding stored trading date; no previous baseline is shown as zero.

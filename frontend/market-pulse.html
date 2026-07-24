@@ -3,31 +3,29 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>AuroraAI Market Pulse</title>
+  <title>AuroraAI 板块雷达</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="expectation-gap.css">
   <link rel="stylesheet" href="market-pulse.css">
 </head>
 <body>
 <main class="app-shell market-pulse-shell">
-  <nav class="site-nav"><a href="/">最近分红</a><a href="/expectation-gap">预期差</a><a class="active" href="/market-pulse.html">Market Pulse</a><a href="/data-source-health">数据源状态</a></nav>
+  <nav class="site-nav"><a href="/">最近分红</a><a href="/expectation-gap">预期差</a><a class="active" href="/market-pulse.html">板块雷达</a><a href="/data-source-health">数据源状态</a></nav>
   <header class="topbar pulse-header">
-    <div><p class="eyebrow">AuroraAI</p><h1>Market Pulse</h1><p class="pulse-alias">板块雷达</p><p class="subtitle">用70分趋势与30分市场广度观察行业强弱。</p></div>
+    <div><p class="eyebrow">AuroraAI Market Pulse</p><h1>板块雷达</h1><p class="subtitle">行业趋势与市场宽度综合评分</p></div>
     <button id="refresh-sectors" type="button">刷新板块数据</button>
   </header>
-
   <div id="pulse-error" class="api-error" role="alert" hidden></div>
   <section id="market-summary" class="market-summary" aria-label="市场摘要">
     <div><span>数据源</span><strong id="current-source">申万一级行业</strong></div>
     <div><span>最新交易日</span><strong id="last-trade-date">加载中…</strong></div>
     <div><span>当前状态</span><strong id="market-status">加载中…</strong></div>
     <div><span>最近更新时间</span><strong id="last-refresh">加载中…</strong></div>
-    <div><span>Breadth可用行业</span><strong id="breadth-available">加载中…</strong></div>
-    <div><span>近似结果</span><strong id="approximate-count">加载中…</strong></div>
+    <div><span>Breadth已计算</span><strong id="rs-available">加载中…</strong></div>
+    <div><span>Breadth成功</span><strong id="rs-outperforming">加载中…</strong></div>
   </section>
-
   <section id="sector-table-card" class="dashboard-card sector-table-card">
-    <div class="section-heading"><h2>行业趋势排名</h2><span id="sector-count">加载中…</span></div>
+    <div class="section-heading"><h2>行业综合排名</h2><span id="sector-count">加载中…</span></div>
     <div class="sector-filters" aria-label="行业快速筛选">
       <label><span>搜索行业</span><input id="sector-search" type="search" placeholder="输入行业名称"></label>
       <label><span>等级</span><select id="level-filter"><option value="">全部</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></label>
@@ -40,42 +38,26 @@
         <thead><tr>
           <th><button class="sort-button" data-sort="rank" type="button">Rank</button></th>
           <th><button class="sort-button" data-sort="sector_name" type="button">行业</button></th>
-          <th><button class="sort-button active" data-sort="total_score" type="button">总分 <span class="sort-indicator">↓</span></button></th>
-          <th><button class="sort-button" data-sort="trend_score" type="button">趋势</button></th>
+          <th><button class="sort-button active" data-sort="total_score" type="button">总分</button></th>
+          <th><button class="sort-button" data-sort="trend_score" type="button">Trend</button></th>
           <th><button class="sort-button" data-sort="breadth_score" type="button">Breadth</button></th>
-          <th><button class="sort-button" data-sort="breadth_status" type="button">数据状态</button></th>
-          <th>六项广度</th>
-          <th><button class="sort-button" data-sort="level" type="button">等级</button></th>
+          <th>状态</th><th>指标详情</th>
           <th><button class="sort-button" data-sort="trade_date" type="button">最新交易日</button></th>
-          <th class="secondary-column"><button class="sort-button" data-sort="updated_at" type="button">更新时间</button></th>
           <th class="secondary-column"><button class="sort-button" data-sort="source" type="button">数据来源</button></th>
         </tr></thead>
-        <tbody id="sector-rows"><tr><td colspan="11" class="empty-state">正在加载行业数据…</td></tr></tbody>
+        <tbody id="sector-rows"><tr><td colspan="9" class="empty-state">正在加载行业数据…</td></tr></tbody>
       </table>
     </div>
   </section>
-
   <section class="dashboard-lower">
-    <article id="source-health-card" class="dashboard-card source-health-card">
-      <h2>数据源健康</h2><div id="health-error" class="card-error" role="alert" hidden></div>
-      <div id="source-statuses" class="source-statuses"><div class="loading-card">正在加载数据源状态…</div></div>
-    </article>
-    <article id="refresh-job-card" class="dashboard-card refresh-job-card">
-      <h2>刷新任务</h2>
-      <dl class="job-details">
-        <div><dt>状态</dt><dd id="job-status">尚未刷新</dd></div>
-        <div><dt>进度</dt><dd id="job-counts">—</dd></div>
-        <div><dt>当前步骤</dt><dd id="job-step">—</dd></div>
-        <div><dt>开始时间</dt><dd id="job-started">—</dd></div>
-        <div><dt>完成时间</dt><dd id="job-finished">—</dd></div>
-        <div><dt>耗时</dt><dd id="job-duration">—</dd></div>
-      </dl>
-      <progress id="job-progress" max="100" value="0"></progress>
-      <div id="job-error" class="card-error" role="alert" hidden></div>
-    </article>
+    <article id="source-health-card" class="dashboard-card source-health-card"><h2>数据源健康</h2><div id="health-error" class="card-error" role="alert" hidden></div><div id="source-statuses" class="source-statuses"><div class="loading-card">正在加载数据源状态…</div></div></article>
+    <article id="refresh-job-card" class="dashboard-card refresh-job-card"><h2>刷新任务</h2><dl class="job-details">
+      <div><dt>状态</dt><dd id="job-status">尚未刷新</dd></div><div><dt>进度</dt><dd id="job-counts">—</dd></div>
+      <div><dt>当前步骤</dt><dd id="job-step">—</dd></div><div><dt>开始时间</dt><dd id="job-started">—</dd></div>
+      <div><dt>完成时间</dt><dd id="job-finished">—</dd></div><div><dt>耗时</dt><dd id="job-duration">—</dd></div>
+    </dl><progress id="job-progress" max="100" value="0"></progress><div id="job-error" class="card-error" role="alert" hidden></div></article>
   </section>
-
-  <aside class="future-note">Breadth按当前申万一级成分快照计算；近似历史结果会明确显示警告，不代表历史精确成分关系。</aside>
+  <aside class="future-note">当前展示行业最新评分及相对上一交易日变化；Breadth按当前申万一级成分快照计算，近似历史结果会明确显示警告。</aside>
 </main>
 <script src="market-pulse.js"></script>
 </body>

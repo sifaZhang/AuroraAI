@@ -12,7 +12,8 @@ import pandas as pd
 from backend.market_data.a_share_daily_repository import get_daily_bars_for_stocks_through_date
 from backend.market_data.sector_history_repository import (
     CLASSIFICATION_SYSTEM, latest_sector_trade_date, list_current_members,
-    list_sector_codes_with_history, get_sector_bars_through_date,
+    list_sector_codes_with_history, list_current_membership_sector_codes,
+    get_sector_bars_through_date,
 )
 from backend.sector_radar.breadth import CALCULATION_VERSION, MarketBreadthCalculator, MarketBreadthResult
 from backend.sector_radar.breadth_repository import (
@@ -37,7 +38,8 @@ class MarketBreadthService:
         self.calculator = calculator or MarketBreadthCalculator()
 
     def available_sector_codes(self) -> list[str]:
-        return list_sector_codes_with_history(self.connection)
+        return sorted(set(list_sector_codes_with_history(self.connection)) |
+                      set(list_current_membership_sector_codes(self.connection)))
 
     def calculate_sector(self, sector_code: str, *, trade_date: str | date | None = None,
                          recalculate: bool = False, dry_run: bool = False) -> CalculationOutcome:
