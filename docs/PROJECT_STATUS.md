@@ -20,7 +20,7 @@ AuroraAI 是一个本地运行的 AI 股票研究平台。
 
 当前开发阶段：
 
-> Phase 6.0 - First-limit Pullback Data Capability Audit Completed
+> Phase 6.1 - First-limit Pullback Data Contract and Trading Rules Completed
 
 ---
 
@@ -889,3 +889,21 @@ Validation:
 - `reports/pr6_0_gm_final.json` passed standard JSON parsing.
 
 Next task: PR6.1 data contract and trading rules.
+
+---
+
+# PR6.1
+
+Status: Completed
+
+Summary:
+
+- Added canonical A-share security identifiers with strict GM/Sina/internal format conversion.
+- Added date-aware centralised rules for main board, ChiNext, STAR, BSE, ST, suspension and no-limit states.
+- Added authoritative-source-first limit-price resolution using Decimal half-up tick rounding and explicit conflict flags.
+- Added independent SQLite metadata tables for security master, historical security status and trading calendar; existing daily bars and Market Pulse tables are unchanged.
+- Added strict local calendar queries with no weekday fallback.
+- Added source, adjustment and multi-flag quality contracts for PR6.2/PR6.3.
+- Added fixed-fixture regression coverage; no market data was downloaded and no strategy signal was generated.
+
+Next task: PR6.2 controlled GM metadata/calendar and long-history data synchronization using these contracts.
