@@ -19,6 +19,7 @@ A_SHARE_DAILY_BARS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "
 SECTOR_HISTORY_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "009_sector_history.sql"
 SECTOR_BREADTH_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "010_sector_breadth_scores.sql"
 FIRST_LIMIT_STRATEGY_CONTRACT_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "011_first_limit_strategy_contract.sql"
+FIRST_LIMIT_STRATEGY_SYNC_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "012_first_limit_data_sync.sql"
 
 
 def database_path() -> Path:
@@ -54,6 +55,10 @@ def migrate(connection: sqlite3.Connection) -> None:
     connection.executescript(SECTOR_HISTORY_MIGRATION_PATH.read_text(encoding="utf-8"))
     connection.executescript(SECTOR_BREADTH_MIGRATION_PATH.read_text(encoding="utf-8"))
     connection.executescript(FIRST_LIMIT_STRATEGY_CONTRACT_MIGRATION_PATH.read_text(encoding="utf-8"))
+    connection.executescript(FIRST_LIMIT_STRATEGY_SYNC_MIGRATION_PATH.read_text(encoding="utf-8"))
+    security_columns = {row[1] for row in connection.execute("PRAGMA table_info(a_share_security_master)")}
+    if "is_active" not in security_columns:
+        connection.execute("ALTER TABLE a_share_security_master ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1))")
     existing = {row[1] for row in connection.execute("PRAGMA table_info(stock_expectations)")}
     additions = {
         "price_source": "TEXT",

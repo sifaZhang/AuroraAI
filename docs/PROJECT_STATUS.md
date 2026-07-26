@@ -20,7 +20,7 @@ AuroraAI 是一个本地运行的 AI 股票研究平台。
 
 当前开发阶段：
 
-> Phase 6.1 - First-limit Pullback Data Contract and Trading Rules Completed
+> Phase 6.2 - First-limit Pullback Controlled Data Sync Completed
 
 ---
 
@@ -907,3 +907,19 @@ Summary:
 - Added fixed-fixture regression coverage; no market data was downloaded and no strategy signal was generated.
 
 Next task: PR6.2 controlled GM metadata/calendar and long-history data synchronization using these contracts.
+
+---
+
+# PR6.2
+
+Status: Completed
+
+Summary:
+
+- Added controlled GM sync commands for calendar, verified-security metadata, per-day status/authoritative limits, daily-bar gaps, explicit minute windows, and audit summaries.
+- Added independent daily strategy metadata, unadjusted minute cache, and resumable run/item records without duplicating or changing Market Pulse OHLCV tables.
+- Daily writes recheck the planned missing dates immediately before upsert; provider rows outside the requested gap and existing valid rows are not overwritten.
+- Dry-run is local analysis only: it does not require a token, make a network call, migrate, or write SQLite.
+- Minute cache requires explicit codes and dates and defaults to at most five codes and five days unless `--allow-large-run` is supplied.
+- Historical ST is deliberately left null when GM does not provide it; current names/statuses are never backfilled into history.
+- Mock/fixture coverage passed. Real GM small-sample validation was not run because `GM_TOKEN` is not configured in this environment.
