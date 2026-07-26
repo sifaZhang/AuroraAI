@@ -20,7 +20,7 @@ AuroraAI 是一个本地运行的 AI 股票研究平台。
 
 当前开发阶段：
 
-> Phase 6.2 - First-limit Pullback Controlled Data Sync Completed
+> Phase 6.3 - First-limit event detection implemented; verification in progress
 
 ---
 
@@ -923,3 +923,13 @@ Summary:
 - Minute cache requires explicit codes and dates and defaults to at most five codes and five days unless `--allow-large-run` is supplied.
 - Historical ST is deliberately left null when GM does not provide it; current names/statuses are never backfilled into history.
 - Mock/fixture coverage passed. Real GM small-sample validation was not run because `GM_TOKEN` is not configured in this environment.
+
+---
+
+# PR6.3
+
+Status: Implemented, pending final full-suite verification and controlled local-data validation.
+
+- Adds local-only, versioned first-limit event detection with strict trading-calendar history.
+- Uses PR6.1 rule resolution and PR6.2 metadata; no GM/network call or implicit data sync.
+- Distinguishes detected, not-first-limit, excluded, and indeterminate outcomes; missing history is never treated as no limit-up.
