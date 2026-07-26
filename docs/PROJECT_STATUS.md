@@ -1,6 +1,6 @@
 # AuroraAI Project Status
 
-Last Updated: 2026-07-22
+Last Updated: 2026-07-26
 
 ---
 
@@ -20,7 +20,7 @@ AuroraAI 是一个本地运行的 AI 股票研究平台。
 
 当前开发阶段：
 
-> Phase 5.6 - Incremental A-share History Sync Completed
+> Phase 6.0 - First-limit Pullback Data Capability Audit Completed
 
 ---
 
@@ -52,7 +52,7 @@ Deployment（未来）
 
 Development Branch
 
-feature/expectation-refresh-jobs
+main
 
 规则：
 
@@ -805,13 +805,14 @@ feature/expectation-refresh-jobs
 
 # Next Task
 
-PR5.7
+PR6.1
 
-Market Pulse API and dashboard integration
+First-limit Pullback Data Contract and Trading Rules
 
 目标：
 
-Expose the versioned Breadth results through the existing Market Pulse API and dashboard.
+Define authoritative trading-calendar, security-status, price-limit,
+adjustment, quality-flag, and data-source contracts before strategy development.
 
 ---
 
@@ -822,3 +823,69 @@ Status: Completed
 - Added `python -m backend.collector.refresh_market_pulse_daily --workers 2` for the repeatable daily SW level-1 refresh pipeline.
 - The pipeline refreshes sector/membership data, fills only missing constituent daily bars, then recalculates same-date `breadth_v1`.
 - The API and dashboard show total, Trend and Breadth score changes versus the preceding stored trading date; no previous baseline is shown as zero.
+
+---
+
+# PR6.0
+
+Status: Completed
+
+Scope:
+
+- Added a read-only audit of the existing AuroraAI SQLite data required by the first-limit pullback strategy.
+- Added an authenticated, read-only `gm.api` capability probe with separate long-history daily and recent-minute windows.
+- Verified Shanghai main board, Shenzhen main board, ChiNext, STAR Market, and suspended/special samples.
+- Added bounded request-size checks using 1, 10, 50, and 200 local A-share symbols.
+- Generated machine-readable JSON evidence and a human-readable audit decision.
+- No production database schema or stored market data was modified.
+
+Local data findings:
+
+- Current stock pool: 5,199 stocks.
+- Existing `a_share_daily_bars` range: `2026-05-06` through `2026-07-21`.
+- Existing daily bars lack `pre_close`, `upper_limit`, and `lower_limit`.
+- Current SW level-1 memberships are current snapshots only and are unsafe for strict historical backtests.
+
+GM capability findings:
+
+- Unadjusted daily bars, historical security status, and SHSE/SZSE trading calendars are available from `2020-01-01`.
+- Daily bars provide OHLC, volume, amount, and `pre_close`.
+- Historical security status provides `upper_limit`, `lower_limit`, `board`, `listed_date`, and `is_suspended`.
+- One-minute bars are available for the most recent 180 calendar days; the probe uses a conservative 175-day window.
+- Empty minute history is represented as `no_data` and must not be treated as a network failure or a valid trading signal.
+- Main-board 10%, ChiNext/STAR 20%, and suspended/special approximately 5% price-limit behavior was observed.
+
+Bounded request validation:
+
+| Symbols | Rows | Time | Result |
+|---:|---:|---:|---|
+| 1 | 1,589 | 0.221 s | success |
+| 10 | 15,890 | 2.315 s | success |
+| 50 | 79,450 | 9.948 s | success |
+| 200 | - | 9.279 s | rejected: result too large |
+
+Production decision:
+
+- Use 20--25 symbols per long-history security-status batch.
+- Commit each batch immediately; split failed result-size batches in half.
+- Retry temporary/network errors at 1, 2, and 4 seconds, at most three attempts.
+- Do not retry permission, parameter, or result-size errors unchanged.
+- Cache one-minute data only for first-limit event windows (`T0` through rejection/exit), allowing the local event dataset to accumulate beyond the provider's 180-day query window.
+- Treat GM historical `upper_limit`/`lower_limit` as authoritative; calculated values are fallback diagnostics only.
+- Keep ex-rights and IPO no-limit dates as explicit PR6.1 contract fixtures and reject them from strategy signals until classified.
+
+Evidence:
+
+- `docs/pr6_0_data_capability_audit.md`
+- `reports/pr6_0_gm_capabilities.json`
+- `reports/pr6_0_gm_final.json`
+- `tools/verify_gm_data_capabilities.py`
+- `backend/collector/audit_first_limit_data.py`
+
+Validation:
+
+- Three focused PR6.0 tests passed.
+- Full project suite: 196 passed, 3 existing deprecation warnings.
+- `reports/pr6_0_gm_final.json` passed standard JSON parsing.
+
+Next task: PR6.1 data contract and trading rules.
