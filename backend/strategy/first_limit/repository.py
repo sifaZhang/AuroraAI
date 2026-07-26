@@ -40,6 +40,7 @@ class SecurityMaster:
     security_name: str | None = None
     listed_date: date | None = None
     delisted_date: date | None = None
+    is_active: bool = True
     quality_flags: frozenset[QualityFlag] = frozenset()
 
 
@@ -56,14 +57,14 @@ def upsert_security_master(connection: sqlite3.Connection, item: SecurityMaster,
     now = _timestamp(updated_at)
     with connection:
         connection.execute(
-            """INSERT INTO a_share_security_master(symbol,stock_code,exchange,board_type,security_name,listed_date,delisted_date,source,quality_flags,updated_at)
-               VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(symbol) DO UPDATE SET
+            """INSERT INTO a_share_security_master(symbol,stock_code,exchange,board_type,security_name,listed_date,delisted_date,source,quality_flags,updated_at,is_active)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(symbol) DO UPDATE SET
                board_type=excluded.board_type,security_name=COALESCE(excluded.security_name,a_share_security_master.security_name),
                listed_date=COALESCE(excluded.listed_date,a_share_security_master.listed_date),delisted_date=COALESCE(excluded.delisted_date,a_share_security_master.delisted_date),
-               source=excluded.source,quality_flags=excluded.quality_flags,updated_at=excluded.updated_at""",
+               source=excluded.source,quality_flags=excluded.quality_flags,updated_at=excluded.updated_at,is_active=excluded.is_active""",
             (item.symbol.canonical, item.symbol.code, item.symbol.exchange, item.board_type.value, item.security_name,
              _date(item.listed_date) if item.listed_date else None, _date(item.delisted_date) if item.delisted_date else None,
-             item.source.value, _flags(item.quality_flags), now),
+             item.source.value, _flags(item.quality_flags), now, int(item.is_active)),
         )
 
 
