@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse,json
 from datetime import date
 from decimal import Decimal
-from backend.expectation_gap.database import connect,migrate
+from backend.expectation_gap.database import connect,connect_readonly,migrate
 from .detector import Bar,Metadata,classify
 from .repository import get_security_status_as_of
 from .rules import normalize_symbol
@@ -22,7 +22,8 @@ def main(argv=None):
   if a.resume and not a.run_id: raise ValueError('--resume requires --run-id')
   if a.dry_run and (a.resume or a.run_id): raise ValueError('dry-run cannot resume or create a run')
   codes=sorted(normalize_symbol(x).canonical for x in a.codes.split(',')) if a.codes else None
-  con=connect(); migrate(con)
+  con=connect_readonly() if a.dry_run else connect()
+  if not a.dry_run: migrate(con)
   days=[r[0] for r in con.execute("SELECT trade_date FROM a_share_trading_calendar WHERE market='CN' AND is_open=1 AND trade_date BETWEEN ? AND ?",(str(start),str(end)))]
   if not days: raise LookupError('no covered open trade dates')
   if not codes:

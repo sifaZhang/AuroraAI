@@ -928,7 +928,7 @@ Summary:
 
 # PR6.3
 
-Status: Implemented, pending final full-suite verification and controlled local-data validation.
+Status: Implemented and locally validated with a controlled four-symbol SQLite sample.
 
 - Adds local-only, versioned first-limit event detection with strict trading-calendar history.
 - Uses PR6.1 rule resolution and PR6.2 metadata; no GM/network call or implicit data sync.

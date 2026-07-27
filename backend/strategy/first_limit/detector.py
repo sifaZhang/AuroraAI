@@ -30,7 +30,7 @@ def classify(symbol, target: Bar, metadata: Metadata|None, status: SecurityStatu
     rule=resolve_price_limit_rule(symbol,target.trade_date,status); limits=resolve_limit_prices(metadata.pre_close,rule,source_upper_limit=metadata.source_upper_limit,source_lower_limit=metadata.source_lower_limit)
     flags.update(x.value for x in limits.quality_flags|metadata.quality_flags|detect_price_anomalies(adjustment=target.adjustment,pre_close=metadata.pre_close,previous_close=None))
     if status is None: reasons.add(Reason.MISSING_STATUS)
-    elif status.is_st is True or status.delisted_date is not None: reasons.add(Reason.INELIGIBLE_SECURITY)
+    elif status.is_st is True or (status.listed_date is not None and target.trade_date < status.listed_date) or (status.delisted_date is not None and target.trade_date >= status.delisted_date): reasons.add(Reason.INELIGIBLE_SECURITY)
     if not limits.reliable or limits.upper_limit is None: reasons.add(Reason.UNRELIABLE_LIMIT)
     if QualityFlag.SUSPENDED.value in flags: reasons.add(Reason.SUSPENDED)
     if QualityFlag.DATA_SOURCE_CONFLICT.value in flags: reasons.add(Reason.DATA_CONFLICT)

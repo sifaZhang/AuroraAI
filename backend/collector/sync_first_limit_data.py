@@ -146,7 +146,12 @@ def _board(raw: Any, symbol, day: date) -> tuple[BoardType, set[QualityFlag]]:
 
 
 def _is_target_stock(record: Mapping[str, Any]) -> bool:
-    sec_type = str(_field(record, "sec_type", "security_type", "instrument_type") or "").strip().lower()
+    raw = _field(record, "sec_type", "security_type", "instrument_type")
+    # GM SDK 3.0.185 serializes its documented stock security type as integer 1.
+    # Keep unknown numeric/enumeration values conservative: only the explicit stock value passes.
+    if isinstance(raw, int) and not isinstance(raw, bool):
+        return raw == 1
+    sec_type = str(raw or "").strip().lower()
     return sec_type in {"stock", "a_stock", "common_stock", "股票"}
 
 
@@ -194,10 +199,18 @@ def _instrument_to_master(record: Mapping[str, Any], requested) -> SecurityMaste
     flags.update(board_flags)
     listed = _field(record, "listed_date")
     delisted = _field(record, "delisted_date")
+    try:
+        listed_day = _parse_date(listed) if listed else None
+        delisted_day = _parse_date(delisted) if delisted else None
+    except (TypeError, ValueError):
+        return None
+    # GM returns a future terminal date (currently 2038-01-01) for active instruments.
+    # Preserve it for historical as-of checks; only a date reached by today is inactive.
+    active_day = date.today()
+    is_active = (listed_day is None or listed_day <= active_day) and (delisted_day is None or active_day < delisted_day)
     return SecurityMaster(symbol, board, DataSource.GM, security_name=_field(record, "sec_name", "security_name", "name"),
-                          listed_date=_parse_date(listed) if listed else None,
-                          delisted_date=_parse_date(delisted) if delisted else None,
-                          is_active=not bool(delisted), quality_flags=frozenset(flags))
+                          listed_date=listed_day, delisted_date=delisted_day,
+                          is_active=is_active, quality_flags=frozenset(flags))
 
 
 def sync_securities(connection, api: Any, symbols: Iterable, *, workers=DEFAULT_WORKERS, dry_run=False, run_id: str | None = None) -> SyncResult:
