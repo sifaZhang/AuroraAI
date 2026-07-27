@@ -163,18 +163,26 @@ def completed_item_keys(connection: sqlite3.Connection, run_id: str) -> set[str]
 
 def record_item(connection: sqlite3.Connection, run_id: str, item_key: str, status: str, *,
                 planned_start: date | str | None = None, planned_end: date | str | None = None,
-                row_count: int = 0, retry_count: int = 0, error: str | None = None) -> None:
+                row_count: int = 0, retry_count: int = 0, error: str | None = None,
+                result: Mapping[str, object] | None = None, commit: bool = True) -> None:
     now = _timestamp()
-    with connection:
+    def write() -> None:
         connection.execute(
-            """INSERT INTO first_limit_sync_items(run_id,item_key,status,planned_start,planned_end,row_count,retry_count,last_error,updated_at)
-               VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(run_id,item_key) DO UPDATE SET status=excluded.status,
+            """INSERT INTO first_limit_sync_items(run_id,item_key,status,planned_start,planned_end,row_count,retry_count,last_error,result_json,updated_at)
+               VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(run_id,item_key) DO UPDATE SET status=excluded.status,
                planned_start=COALESCE(excluded.planned_start,first_limit_sync_items.planned_start),
                planned_end=COALESCE(excluded.planned_end,first_limit_sync_items.planned_end),row_count=excluded.row_count,
-               retry_count=excluded.retry_count,last_error=excluded.last_error,updated_at=excluded.updated_at""",
+               retry_count=excluded.retry_count,last_error=excluded.last_error,
+               result_json=COALESCE(excluded.result_json,first_limit_sync_items.result_json),updated_at=excluded.updated_at""",
             (run_id, item_key, status, _date(planned_start) if planned_start else None, _date(planned_end) if planned_end else None,
-             row_count, retry_count, (error or "")[:4000] or None, now),
+             row_count, retry_count, (error or "")[:4000] or None,
+             json.dumps(result, ensure_ascii=False, sort_keys=True, default=str) if result is not None else None, now),
         )
+    if commit:
+        with connection:
+            write()
+    else:
+        write()
 
 
 def finish_run(connection: sqlite3.Connection, run_id: str, *, status: str, planned_count: int,

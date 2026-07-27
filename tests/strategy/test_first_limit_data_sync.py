@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from backend.collector.sync_first_limit_data import (MAX_MINUTE_CODES, SyncResult, _pool,
-    plan_daily_gaps, sync_calendar, sync_daily, sync_minutes, sync_securities, sync_statuses)
+    _instrument_to_master, _is_target_stock, plan_daily_gaps, sync_calendar, sync_daily, sync_minutes, sync_securities, sync_statuses)
 from backend.expectation_gap.database import connect, migrate
 from backend.market_data.a_share_daily_repository import DailyBar, upsert_daily_bars
 from backend.strategy.first_limit.contracts import DataSource, QualityFlag
@@ -60,6 +60,26 @@ def database(tmp_path):
 
 def symbols():
     return [normalize_symbol("600000.SH"), normalize_symbol("000001.SZ")]
+
+
+@pytest.mark.parametrize(("record", "expected"), [
+    ({"sec_type": 1, "symbol": "SHSE.600000"}, True),  # GM SDK 3.0.185 stock enum
+    ({"sec_type": "stock"}, True), ({"security_type": "A_STOCK"}, True),
+    ({"sec_type": "fund", "symbol": "SHSE.510300"}, False),
+    ({"sec_type": "index"}, False), ({"sec_type": "bond"}, False),
+    ({"sec_type": 2}, False), ({}, False),
+])
+def test_target_stock_type_accepts_explicit_stock_representations_only(record, expected):
+    assert _is_target_stock(record) is expected
+
+
+@pytest.mark.parametrize(("listed", "delisted", "active"), [
+    ("2000-01-01", "2038-01-01", True), ("2000-01-01", None, True),
+    ("2000-01-01", "2001-01-01", False), ("2999-01-01", None, False),
+])
+def test_instrument_active_state_uses_dates_not_delisted_field_presence(listed, delisted, active):
+    record = {"symbol": "SHSE.600000", "sec_type": 1, "board": "MAIN_BOARD", "listed_date": listed, "delisted_date": delisted}
+    assert _instrument_to_master(record, normalize_symbol("600000.SH")).is_active is active
 
 
 def calendar(connection):

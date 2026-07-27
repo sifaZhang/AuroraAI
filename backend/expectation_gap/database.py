@@ -20,6 +20,9 @@ SECTOR_HISTORY_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "009_
 SECTOR_BREADTH_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "010_sector_breadth_scores.sql"
 FIRST_LIMIT_STRATEGY_CONTRACT_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "011_first_limit_strategy_contract.sql"
 FIRST_LIMIT_STRATEGY_SYNC_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "012_first_limit_data_sync.sql"
+FIRST_LIMIT_EVENTS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "013_first_limit_events.sql"
+FIRST_LIMIT_DETECTION_RUNS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "014_first_limit_detection_runs.sql"
+FIRST_LIMIT_DETECTION_ITEM_RESULTS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "015_first_limit_detection_item_results.sql"
 
 
 def database_path() -> Path:
@@ -40,6 +43,16 @@ def connect(path: Path | None = None) -> sqlite3.Connection:
     return connection
 
 
+def connect_readonly(path: Path | None = None) -> sqlite3.Connection:
+    """Open the configured SQLite database without creating or mutating it."""
+    resolved = path or database_path()
+    if not resolved.exists():
+        raise FileNotFoundError(f"SQLite database does not exist: {resolved}")
+    connection = sqlite3.connect(f"file:{resolved.as_posix()}?mode=ro", uri=True)
+    connection.row_factory = sqlite3.Row
+    return connection
+
+
 def migrate(connection: sqlite3.Connection) -> None:
     connection.executescript(MIGRATION_PATH.read_text(encoding="utf-8"))
     connection.executescript(QUALITY_MIGRATION_PATH.read_text(encoding="utf-8"))
@@ -56,6 +69,13 @@ def migrate(connection: sqlite3.Connection) -> None:
     connection.executescript(SECTOR_BREADTH_MIGRATION_PATH.read_text(encoding="utf-8"))
     connection.executescript(FIRST_LIMIT_STRATEGY_CONTRACT_MIGRATION_PATH.read_text(encoding="utf-8"))
     connection.executescript(FIRST_LIMIT_STRATEGY_SYNC_MIGRATION_PATH.read_text(encoding="utf-8"))
+    connection.executescript(FIRST_LIMIT_EVENTS_MIGRATION_PATH.read_text(encoding="utf-8"))
+    run_sql = connection.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='first_limit_sync_runs'").fetchone()[0]
+    if "'detect'" not in run_sql:
+        connection.executescript(FIRST_LIMIT_DETECTION_RUNS_MIGRATION_PATH.read_text(encoding="utf-8"))
+    sync_item_columns = {row[1] for row in connection.execute("PRAGMA table_info(first_limit_sync_items)")}
+    if "result_json" not in sync_item_columns:
+        connection.executescript(FIRST_LIMIT_DETECTION_ITEM_RESULTS_MIGRATION_PATH.read_text(encoding="utf-8"))
     security_columns = {row[1] for row in connection.execute("PRAGMA table_info(a_share_security_master)")}
     if "is_active" not in security_columns:
         connection.execute("ALTER TABLE a_share_security_master ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1))")
