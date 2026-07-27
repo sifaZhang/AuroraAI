@@ -49,6 +49,8 @@ def run_detection(connection, items: Iterable[tuple[str,object]], parameters: Ma
         except Exception as exc:
             record_item(connection,run_id,key,'failed',planned_start=day,planned_end=day,error=f'{type(exc).__name__}: {exc}')
             counts['failed']+=1; failures.append(str(exc))
+    if resume and not force and counts['skipped']==len(values):
+        return {'run_id':run_id,'status':get_resumable_run(connection,run_id,'detect',parameters)['status'],**counts}
     status='failed' if counts['failed']==len(values) else ('partial' if counts['failed'] or counts['indeterminate'] else 'success')
     finish_run(connection,run_id,status=status,planned_count=len(values),success_count=counts['success'],skipped_count=counts['skipped'],failure_count=counts['failed'],inserted_rows=counts['success'],last_error=failures[-1] if failures else None)
     return {'run_id':run_id,'status':status,**counts}

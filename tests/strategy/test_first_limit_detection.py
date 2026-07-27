@@ -42,6 +42,8 @@ def test_shared_detect_run_resume_force_and_failure_isolation(tmp_path):
     item=('600000.SH',day,'v1',d,10,11,10,11,10,11,None); params={'start_date':str(day),'end_date':str(day),'symbols':['600000.SH'],'detection_version':'v1'}
     result=run_detection(con,[('600000.SH',day)],params,lambda *_:item); assert result['status']=='success'
     again=run_detection(con,[('600000.SH',day)],params,lambda *_:item,run_id=result['run_id'],resume=True); assert again['skipped']==1
+    totals=con.execute('SELECT success_count,skipped_count FROM first_limit_sync_runs WHERE run_id=?',(result['run_id'],)).fetchone()
+    assert (totals['success_count'],totals['skipped_count'])==(1,0)
     forced=run_detection(con,[('600000.SH',day)],params,lambda *_:item,run_id=result['run_id'],resume=True,force=True); assert forced['success']==1
     bad=run_detection(con,[('000001.SZ',day)],params,lambda *_:(_ for _ in ()).throw(RuntimeError('bad')),run_id=result['run_id'],resume=True,force=True); assert bad['status']=='failed'
 
