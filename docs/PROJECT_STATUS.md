@@ -1,6 +1,6 @@
 # AuroraAI Project Status
 
-Last Updated: 2026-07-26
+Last Updated: 2026-07-28
 
 ---
 
@@ -20,7 +20,7 @@ AuroraAI 是一个本地运行的 AI 股票研究平台。
 
 当前开发阶段：
 
-> Phase 6.3 - First-limit event detection implemented; verification in progress
+> Phase 6.4 - First-limit quality scoring (20 points) in progress
 
 ---
 
