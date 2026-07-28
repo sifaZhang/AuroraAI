@@ -24,6 +24,7 @@ FIRST_LIMIT_EVENTS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "
 FIRST_LIMIT_DETECTION_RUNS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "014_first_limit_detection_runs.sql"
 FIRST_LIMIT_DETECTION_ITEM_RESULTS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "015_first_limit_detection_item_results.sql"
 FIRST_LIMIT_QUALITY_SCORES_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "016_first_limit_quality_scores.sql"
+FIRST_LIMIT_PULLBACK_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "017_first_limit_pullback.sql"
 
 
 def database_path() -> Path:
@@ -79,6 +80,8 @@ def migrate(connection: sqlite3.Connection) -> None:
         connection.executescript(FIRST_LIMIT_DETECTION_ITEM_RESULTS_MIGRATION_PATH.read_text(encoding="utf-8"))
     if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='first_limit_quality_scores'").fetchone() is None:
         connection.executescript(FIRST_LIMIT_QUALITY_SCORES_MIGRATION_PATH.read_text(encoding="utf-8"))
+    if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='first_limit_pullback_observations'").fetchone() is None:
+        connection.executescript(FIRST_LIMIT_PULLBACK_MIGRATION_PATH.read_text(encoding="utf-8"))
     security_columns = {row[1] for row in connection.execute("PRAGMA table_info(a_share_security_master)")}
     if "is_active" not in security_columns:
         connection.execute("ALTER TABLE a_share_security_master ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1))")

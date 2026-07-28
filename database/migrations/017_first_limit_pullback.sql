@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS first_limit_pullback_observations (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,event_id INTEGER NOT NULL REFERENCES first_limit_events(id) ON DELETE RESTRICT,
+ symbol TEXT NOT NULL,first_limit_date TEXT NOT NULL,observation_date TEXT NOT NULL,trading_day_offset INTEGER NOT NULL CHECK(trading_day_offset BETWEEN 2 AND 5),detection_version TEXT NOT NULL,scoring_version TEXT NOT NULL,pullback_version TEXT NOT NULL,
+ observation_status TEXT NOT NULL CHECK(observation_status IN ('pass','fail','missing','indeterminate','approximate','not_configured','error')),
+ classification TEXT NOT NULL CHECK(classification IN ('A1','A2','B','DEEP_WATCH','ELIMINATED','INDETERMINATE','NOT_CONFIGURED')),
+ pool_status TEXT NOT NULL CHECK(pool_status IN ('candidate','watch','eliminated','indeterminate')),
+ is_eliminated INTEGER NOT NULL CHECK(is_eliminated IN (0,1)),eliminated_at TEXT,elimination_reasons_json TEXT NOT NULL DEFAULT '[]',
+ earned_score NUMERIC NOT NULL DEFAULT 0,theoretical_max_score NUMERIC NOT NULL DEFAULT 30,determinable_max_score NUMERIC NOT NULL DEFAULT 0,coverage_ratio NUMERIC NOT NULL DEFAULT 0,is_complete INTEGER NOT NULL CHECK(is_complete IN (0,1)),is_approximate INTEGER NOT NULL CHECK(is_approximate IN (0,1)),reasons_json TEXT NOT NULL DEFAULT '[]',created_at TEXT NOT NULL,updated_at TEXT NOT NULL,
+ UNIQUE(event_id,observation_date,pullback_version));
+CREATE TABLE IF NOT EXISTS first_limit_pullback_components (
+ observation_id INTEGER NOT NULL REFERENCES first_limit_pullback_observations(id) ON DELETE CASCADE,component_key TEXT NOT NULL,component_status TEXT NOT NULL,earned_score NUMERIC,max_score NUMERIC NOT NULL,raw_value_json TEXT NOT NULL DEFAULT '{}',reasons_json TEXT NOT NULL DEFAULT '[]',source_table TEXT,source_date TEXT,is_approximate INTEGER NOT NULL CHECK(is_approximate IN (0,1)),PRIMARY KEY(observation_id,component_key));
+CREATE TABLE IF NOT EXISTS first_limit_pullback_runs (run_id TEXT PRIMARY KEY,parameters_json TEXT NOT NULL,status TEXT NOT NULL,planned_count INTEGER NOT NULL DEFAULT 0,success_count INTEGER NOT NULL DEFAULT 0,skipped_count INTEGER NOT NULL DEFAULT 0,failure_count INTEGER NOT NULL DEFAULT 0,is_dry_run INTEGER NOT NULL CHECK(is_dry_run IN (0,1)),last_error TEXT,started_at TEXT NOT NULL,finished_at TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS first_limit_pullback_run_items (run_id TEXT NOT NULL REFERENCES first_limit_pullback_runs(run_id) ON DELETE CASCADE,item_key TEXT NOT NULL,status TEXT NOT NULL,observation_id INTEGER REFERENCES first_limit_pullback_observations(id) ON DELETE SET NULL,result_json TEXT,last_error TEXT,updated_at TEXT NOT NULL,PRIMARY KEY(run_id,item_key));
