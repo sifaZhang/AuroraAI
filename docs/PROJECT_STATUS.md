@@ -933,3 +933,7 @@ Status: Implemented and locally validated with a controlled four-symbol SQLite s
 - Adds local-only, versioned first-limit event detection with strict trading-calendar history.
 - Uses PR6.1 rule resolution and PR6.2 metadata; no GM/network call or implicit data sync.
 - Distinguishes detected, not-first-limit, excluded, and indeterminate outcomes; missing history is never treated as no limit-up.
+# PR6.6 首板回调上下文评分
+
+- 已建立 `first_limit_context_v1` 的日线 90 分数据契约与版本化运行账本；分钟确认仍为 `not_available`，未产生 100 分总分或自动候选等级。
+- 历史行业归属、雷达、市场指数和市场涨跌停集合尚未具备可信历史输入时，结果保持不确定，不能使用当前快照替代。
