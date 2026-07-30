@@ -33,6 +33,9 @@ const IDS = [
   "close-candidate-modal", "candidate-detail-error", "candidate-detail-content",
   "tab-candidates", "tab-comparison", "tab-runs", "panel-candidates",
   "panel-comparison", "panel-runs",
+  "pipeline-progress", "pipeline-status", "pipeline-percent",
+  "pipeline-progress-bar", "pipeline-current-step", "pipeline-step-list",
+  "pipeline-coverage-note", "pipeline-retry",
 ];
 
 function documentMock() {
@@ -155,6 +158,17 @@ function defaultFetch(calls, overrides = {}) {
     }
     if (url.startsWith("/api/first-limit/candidates/")) return response(detailPayload());
     if (url.startsWith("/api/first-limit/candidates")) return response(candidatePage());
+    if (url.startsWith("/api/first-limit/pipeline-jobs/latest")) return response({
+      error: {code: "first_limit_pipeline_job_not_found", message: "not found"},
+    }, false, 404);
+    if (url === "/api/first-limit/pipeline-jobs/1/steps") return response({
+      job_id: 1, items: [{step_code: "calendar", status: "success"}],
+    });
+    if (url === "/api/first-limit/pipeline-jobs/1") return response({
+      id: 1, trade_date: "2026-07-30", stage: "tail_preview",
+      status: "success", coverage_complete: true, progress_percent: 100,
+      current_step: "coverage_validation", message: "complete",
+    });
     if (url.includes("/preview-comparison")) return response(comparisonPage());
     if (url.endsWith("/items") || url.includes("/items?")) return response({
       items: [{item_id: 4, run_id: "run-1", first_limit_event_id: 4,
@@ -287,7 +301,7 @@ async function testRunButtonsBodiesLongRequestAndReuse() {
   const postPromise = new Promise(resolve => { resolvePost = resolve; });
   const fetch = defaultFetch(calls, {
     handler: async (url, init) => {
-      if (url === "/api/first-limit/runs" && init.method === "POST") return postPromise;
+      if (url === "/api/first-limit/pipeline-jobs" && init.method === "POST") return postPromise;
       return null;
     },
   });
@@ -299,7 +313,7 @@ async function testRunButtonsBodiesLongRequestAndReuse() {
   assert.strictEqual(doc.elements["run-close"].disabled, true);
   assert.strictEqual(doc.elements["candidate-rows"].children.length, 1);
   assert.strictEqual(await page.runStage("close_confirmed"), false);
-  const post = calls.find(([url, init]) => url === "/api/first-limit/runs" && init.method === "POST");
+  const post = calls.find(([url, init]) => url === "/api/first-limit/pipeline-jobs" && init.method === "POST");
   assert.deepStrictEqual(JSON.parse(post[1].body), {
     trade_date: "2026-07-30", stage: "tail_preview",
   });
@@ -307,11 +321,11 @@ async function testRunButtonsBodiesLongRequestAndReuse() {
   assert(!post[1].body.includes("resume"));
   assert(!post[1].body.includes("dry_run"));
   assert(!("signal" in post[1]));
-  resolvePost(response({run_id: "run-1", status: "success", reused: true, poll_url: "/api/first-limit/runs/run-1"}));
+  resolvePost(response({job_id: 1, status: "pending", reused: true, poll_url: "/api/first-limit/pipeline-jobs/1"}));
   assert.strictEqual(await running, true);
   assert.strictEqual(doc.elements["run-preview"].disabled, false);
   assert(doc.elements["run-message"].textContent.includes("已复用"));
-  assert(calls.filter(([url, init]) => url === "/api/first-limit/runs" && init.method === "POST").length === 1);
+  assert(calls.filter(([url, init]) => url === "/api/first-limit/pipeline-jobs" && init.method === "POST").length === 1);
 }
 
 async function testPostFailureRestoresButtonsAndKeepsContractError() {

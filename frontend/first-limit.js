@@ -128,6 +128,9 @@
       "candidate-modal-title", "close-candidate-modal", "candidate-detail-error",
       "candidate-detail-content", "tab-candidates", "tab-comparison", "tab-runs",
       "panel-candidates", "panel-comparison", "panel-runs",
+      "pipeline-progress", "pipeline-status", "pipeline-percent",
+      "pipeline-progress-bar", "pipeline-current-step", "pipeline-step-list",
+      "pipeline-coverage-note", "pipeline-retry",
     ].forEach(id => { elements[id] = byId(id); });
 
     const saved = key => {
@@ -149,7 +152,8 @@
       candidateOffset: 0, comparisonOffset: 0, runOffset: 0, itemOffset: 0,
       candidatePage: null, comparisonPage: null, runPage: null,
       runDetail: null, runItems: null, selectedCandidate: null,
-      selectedRunId: null, isRunning: false,
+      selectedRunId: null, pipelineJobId: Number(saved("pipeline_job_id")) || null,
+      isRunning: false, pollGeneration: 0,
       requestIds: {candidates: 0, comparison: 0, runs: 0, detail: 0, items: 0},
     };
 
@@ -580,14 +584,88 @@
       state.isRunning = value;
       elements["run-preview"].disabled = value;
       elements["run-close"].disabled = value;
-      elements["refresh-results"].disabled = value;
       if (value) {
         const active = stage === "tail_preview" ? elements["run-preview"] : elements["run-close"];
         active.textContent = "运行中…";
-        elements["run-message"].textContent = "请求正在执行，请勿关闭页面；已有结果会继续保留。";
+        elements["run-message"].textContent = "后台任务已启动，可刷新或离开页面；已有结果会继续保留。";
       } else {
         elements["run-preview"].textContent = "生成尾盘预警";
         elements["run-close"].textContent = "执行收盘确认";
+      }
+    }
+
+    const PIPELINE_STEP_NAMES = {
+      calendar: "检查交易日历", universe: "确定全市场范围",
+      security_master: "补齐证券主数据", daily_status: "同步每日状态",
+      daily_bars: "同步日线与涨跌停", limit_detection: "检测首板",
+      quality_scoring: "计算首板质量", pullback_observation: "更新回调观察",
+      market_context: "更新行业及市场上下文", minute_bars: "补齐候选分钟线",
+      candidate_generation: "生成候选", coverage_validation: "验证数据覆盖",
+    };
+    const PIPELINE_TERMINAL = new Set(["success", "partial", "failed", "cancelled"]);
+
+    function renderPipeline(job, steps = []) {
+      if (!elements["pipeline-progress"]) return;
+      elements["pipeline-progress"].hidden = false;
+      const label = RUN_STATUS_NAMES[job.status] || {
+        pending: "等待执行", interrupted: "等待续跑", cancelled: "已取消",
+      }[job.status] || job.status;
+      elements["pipeline-status"].textContent = `一键任务 #${job.id || job.job_id} · ${label}`;
+      const percent = job.progress_percent;
+      elements["pipeline-percent"].textContent =
+        percent == null ? "进度估算中" : `${Math.round(percent)}%`;
+      if (percent != null) elements["pipeline-progress-bar"].value = percent;
+      elements["pipeline-current-step"].textContent =
+        job.current_step ? (PIPELINE_STEP_NAMES[job.current_step] || job.current_step)
+          : (job.message || "等待执行");
+      clear(elements["pipeline-step-list"]);
+      steps.forEach(step => {
+        const node = text(
+          elements["pipeline-step-list"], "span",
+          `${PIPELINE_STEP_NAMES[step.step_code] || step.step_code}：${RUN_STATUS_NAMES[step.status] || step.status}`,
+          step.status,
+        );
+        node.title = step.error_message || "";
+      });
+      elements["pipeline-coverage-note"].textContent =
+        job.status === "success" && job.coverage_complete ? "全市场必需数据覆盖完整。"
+          : job.status === "partial" ? "已有结果可查看，但覆盖不完整；0 条结果不代表全市场无候选。"
+          : job.status === "failed" ? `任务失败：${job.error_message || job.error_code || "请查看失败明细"}`
+          : "任务尚未完成，当前结果不代表完整筛选。";
+      elements["pipeline-retry"].hidden =
+        !["failed", "partial", "interrupted"].includes(job.status);
+    }
+
+    async function pollPipeline(jobId, generation = ++state.pollGeneration) {
+      try {
+        const [job, stepPage] = await Promise.all([
+          api.get(`/api/first-limit/pipeline-jobs/${jobId}`),
+          api.get(`/api/first-limit/pipeline-jobs/${jobId}/steps`),
+        ]);
+        if (generation !== state.pollGeneration) return false;
+        renderPipeline(job, stepPage.items || []);
+        state.pipelineJobId = jobId;
+        persist("pipeline_job_id", String(jobId));
+        const terminal = PIPELINE_TERMINAL.has(job.status);
+        setRunning(!terminal, job.stage);
+        if (terminal) {
+          await loadAll();
+          elements["run-message"].textContent =
+            job.status === "success" && job.coverage_complete
+              ? "完整筛选完成，结果已自动刷新。"
+              : job.status === "partial"
+                ? "部分结果已刷新，请先查看覆盖警告。"
+                : "后台任务失败，旧结果已保留。";
+          return true;
+        }
+        const schedule = options.setTimeout || root?.setTimeout;
+        if (schedule) schedule(() => pollPipeline(jobId, generation), 1500);
+        return true;
+      } catch (error) {
+        if (generation !== state.pollGeneration) return false;
+        showError(elements["page-error"], error);
+        setRunning(false);
+        return false;
       }
     }
 
@@ -596,23 +674,23 @@
       showError(elements["page-error"], null);
       setRunning(true, stage);
       try {
-        const result = await api.post("/api/first-limit/runs", {
+        const result = await api.post("/api/first-limit/pipeline-jobs", {
           trade_date: state.tradeDate, stage,
         });
         state.stage = stage; elements.stage.value = stage;
         persist("stage", stage);
-        state.candidateOffset = 0; state.comparisonOffset = 0;
-        await loadAll();
+        state.pipelineJobId = result.job_id;
+        persist("pipeline_job_id", String(result.job_id));
+        await pollPipeline(result.job_id);
         elements["run-message"].textContent = result.reused
-          ? `已复用相同参数的运行：${result.run_id}`
-          : `运行完成：${result.run_id}（${RUN_STATUS_NAMES[result.status] || result.status}）`;
+          ? `已复用正在运行或已完成的一键任务：#${result.job_id}`
+          : `一键任务已创建：#${result.job_id}`;
         return true;
       } catch (error) {
         showError(elements["page-error"], error);
         elements["run-message"].textContent = "运行请求失败，旧结果已保留。";
-        return false;
-      } finally {
         setRunning(false, stage);
+        return false;
       }
     }
 
@@ -679,6 +757,18 @@
       elements["refresh-results"].addEventListener("click", loadAll);
       elements["run-preview"].addEventListener("click", () => runStage("tail_preview"));
       elements["run-close"].addEventListener("click", () => runStage("close_confirmed"));
+      elements["pipeline-retry"]?.addEventListener("click", async () => {
+        if (!state.pipelineJobId || state.isRunning) return;
+        showError(elements["page-error"], null);
+        setRunning(true, state.stage);
+        try {
+          await api.post(`/api/first-limit/pipeline-jobs/${state.pipelineJobId}/retry`, {});
+          await pollPipeline(state.pipelineJobId);
+        } catch (error) {
+          showError(elements["page-error"], error);
+          setRunning(false, state.stage);
+        }
+      });
       elements["candidate-prev"].addEventListener("click", () => {
         state.candidateOffset = Math.max(0, state.candidateOffset - state.pageSize); loadCandidates();
       });
@@ -729,12 +819,25 @@
       bind(); selectTab(state.activeTab);
       elements["run-message"].textContent = "正在从 API 恢复最近可用结果；不会自动运行。";
       await loadAll();
+      if (state.pipelineJobId) await pollPipeline(state.pipelineJobId);
+      else {
+        try {
+          const latest = await api.get(appendQuery("/api/first-limit/pipeline-jobs/latest", {
+            trade_date: state.tradeDate,
+          }));
+          await pollPipeline(latest.id);
+        } catch (error) {
+          if (!(error instanceof RequestError && error.status === 404)) {
+            showError(elements["page-error"], error);
+          }
+        }
+      }
       elements["run-message"].textContent = "查询完成。";
     }
 
     return {
       state, init, loadAll, loadCandidates, loadComparison, loadRuns,
-      openCandidate, openRun, runStage, selectTab, candidateUrl,
+      openCandidate, openRun, runStage, pollPipeline, renderPipeline, selectTab, candidateUrl,
       comparisonUrl, runUrl, renderCandidateDetail, formatValue,
     };
   }

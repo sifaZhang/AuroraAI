@@ -18,6 +18,14 @@
 .run-actions button:nth-child(2) { background: #1d4f91; border-color: #1d4f91; }
 .run-actions button:disabled { opacity: .55; cursor: wait; }
 .run-actions span { color: var(--muted); font-size: 13px; }
+.control-help { color: var(--muted); font-size: 13px; margin: 12px 0 0; }
+.pipeline-progress { border-top: 1px solid var(--line); margin-top: 18px; padding-top: 16px; }
+.pipeline-progress-head { display: flex; justify-content: space-between; gap: 12px; }
+.pipeline-progress progress { width: 100%; height: 12px; margin: 10px 0; }
+.pipeline-step-list { display: grid; gap: 6px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pipeline-step-list span { background: var(--surface-soft); border-radius: 6px; padding: 6px 8px; font-size: 12px; }
+.pipeline-step-list .success, .pipeline-step-list .skipped { color: var(--success); }
+.pipeline-step-list .failed { color: var(--danger); }
 .secondary-button { min-height: 39px; padding: 7px 14px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); color: var(--accent-strong); font: inherit; font-weight: 700; cursor: pointer; }
 .secondary-button:hover { border-color: var(--accent); background: #f0fdfa; }
 .secondary-button:disabled { opacity: .55; cursor: wait; }

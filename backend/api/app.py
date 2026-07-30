@@ -64,6 +64,8 @@ def recover_refresh_jobs_after_restart():
     connection = connect(); migrate(connection)
     try:
         recover_interrupted_jobs(connection)
+        from backend.strategy.first_limit.pipeline_service import recover_jobs
+        recover_jobs(connection)
     finally:
         connection.close()
 

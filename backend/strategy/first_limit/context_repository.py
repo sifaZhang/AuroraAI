@@ -15,7 +15,7 @@ def observations(con,start,end,detection_version,scoring_version,pullback_versio
 def closes(con,symbol,day):
  return con.execute("SELECT close FROM a_share_daily_bars WHERE stock_code=? AND adjustment='none' AND trade_date<=? ORDER BY trade_date DESC LIMIT 20",(symbol.split('.')[0],str(day))).fetchall()[::-1]
 def create_run(con,params):
- rid=uuid.uuid4().hex;t=now();con.execute("INSERT INTO first_limit_context_runs(run_id,parameters_json,status,started_at,created_at,updated_at) VALUES(?,?,'running',?,?,?)",(rid,dump(params),t,t,t));return rid
+ rid=uuid.uuid4().hex;t=now();con.execute("INSERT INTO first_limit_context_runs(run_id,parameters_json,status,is_dry_run,started_at,created_at,updated_at) VALUES(?,?,'running',0,?,?,?)",(rid,dump(params),t,t,t));return rid
 def resume_run(con,rid,params):
  row=con.execute('SELECT * FROM first_limit_context_runs WHERE run_id=?',(rid,)).fetchone()
  if row is None:raise LookupError('context run not found: '+rid)
@@ -23,7 +23,7 @@ def resume_run(con,rid,params):
  return row
 def done(con,rid):return {r[0] for r in con.execute("SELECT item_key FROM first_limit_context_run_items WHERE run_id=? AND status='success'",(rid,))}
 def save(con,row,version,summary,components):
- t=now(); vals=(row['event_id'],row['id'],row['symbol'],row['first_limit_date'],row['observation_date'],row['detection_version'],row['scoring_version'],row['pullback_version'],version,summary['score_status'],row['first_limit_score'],row['earned_score'],None,None,None,summary['daily_base_score'],summary['daily_base_determinable_max_score'],summary['daily_base_coverage_ratio'],int(summary['is_complete']),int(summary['is_approximate']),summary['minute_confirm_status'],summary['final_candidate_level'],dump(summary['reasons']),t,t)
+ t=now(); vals=(row['event_id'],row['id'],row['symbol'],row['first_limit_date'],row['observation_date'],row['detection_version'],row['scoring_version'],row['pullback_version'],version,summary['score_status'],row['first_limit_score'],row['earned_score'],None,None,None,None if summary['daily_base_score'] is None else str(summary['daily_base_score']),str(summary['daily_base_determinable_max_score']),str(summary['daily_base_coverage_ratio']),int(summary['is_complete']),int(summary['is_approximate']),summary['minute_confirm_status'],summary['final_candidate_level'],dump(summary['reasons']),t,t)
  con.execute("""INSERT INTO first_limit_context_scores(event_id,observation_id,symbol,first_limit_date,observation_date,detection_version,scoring_version,pullback_version,context_scoring_version,score_status,first_limit_score,pullback_score,industry_score,market_score,stock_trend_score,daily_base_score,daily_base_determinable_max_score,daily_base_coverage_ratio,is_complete,is_approximate,minute_confirm_status,final_candidate_level,reasons_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(observation_id,context_scoring_version) DO UPDATE SET score_status=excluded.score_status,first_limit_score=excluded.first_limit_score,pullback_score=excluded.pullback_score,daily_base_score=excluded.daily_base_score,daily_base_determinable_max_score=excluded.daily_base_determinable_max_score,daily_base_coverage_ratio=excluded.daily_base_coverage_ratio,is_complete=excluded.is_complete,is_approximate=excluded.is_approximate,reasons_json=excluded.reasons_json,updated_at=excluded.updated_at""",vals)
  sid=con.execute('SELECT id FROM first_limit_context_scores WHERE observation_id=? AND context_scoring_version=?',(row['id'],version)).fetchone()[0]
  for c in components:

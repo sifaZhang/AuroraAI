@@ -12,6 +12,8 @@ def test_first_limit_page_and_assets_are_served_with_navigation():
     assert "首板回调" in page.text
     assert 'id="run-preview"' in page.text
     assert 'id="run-close"' in page.text
+    assert 'id="pipeline-progress"' in page.text
+    assert "运行默认覆盖全市场；股票代码仅筛选已生成结果" in page.text
     assert 'src="first-limit.js"' in page.text
     assert "force" not in page.text.lower()
     assert "dry-run" not in page.text.lower()
@@ -20,6 +22,7 @@ def test_first_limit_page_and_assets_are_served_with_navigation():
     assert script.status_code == 200
     assert "javascript" in script.headers["content-type"]
     assert "run_daily_candidates" not in script.text
+    assert "/api/first-limit/pipeline-jobs" in script.text
 
     stylesheet = client.get("/first-limit.css")
     assert stylesheet.status_code == 200

@@ -29,6 +29,7 @@ FIRST_LIMIT_CONTEXT_SCORING_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrat
 FIRST_LIMIT_DAILY_BACKTEST_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "019_first_limit_daily_backtest.sql"
 FIRST_LIMIT_MINUTE_REVIEW_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "020_first_limit_minute_review.sql"
 FIRST_LIMIT_DAILY_CANDIDATES_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "021_first_limit_daily_candidates.sql"
+FIRST_LIMIT_PIPELINE_JOBS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "022_first_limit_pipeline_jobs.sql"
 
 
 def database_path() -> Path:
@@ -94,6 +95,21 @@ def migrate(connection: sqlite3.Connection) -> None:
         connection.executescript(FIRST_LIMIT_MINUTE_REVIEW_MIGRATION_PATH.read_text(encoding="utf-8"))
     if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='daily_candidate_runs'").fetchone() is None:
         connection.executescript(FIRST_LIMIT_DAILY_CANDIDATES_MIGRATION_PATH.read_text(encoding="utf-8"))
+    daily_candidate_run_columns = {
+        row[1] for row in connection.execute("PRAGMA table_info(daily_candidate_runs)")
+    }
+    if "detection_complete" not in daily_candidate_run_columns:
+        connection.execute(
+            """ALTER TABLE daily_candidate_runs
+               ADD COLUMN detection_complete INTEGER NOT NULL DEFAULT 0
+               CHECK(detection_complete IN (0,1))"""
+        )
+    if connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='first_limit_pipeline_jobs'"
+    ).fetchone() is None:
+        connection.executescript(
+            FIRST_LIMIT_PIPELINE_JOBS_MIGRATION_PATH.read_text(encoding="utf-8")
+        )
     security_columns = {row[1] for row in connection.execute("PRAGMA table_info(a_share_security_master)")}
     if "is_active" not in security_columns:
         connection.execute("ALTER TABLE a_share_security_master ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1))")

@@ -414,3 +414,25 @@ def test_openapi_has_first_limit_methods_and_explicit_nullable_fields():
     assert "/api/first-limit/preview-comparison" in schema["paths"]
     candidate = schema["components"]["schemas"]["Candidate"]
     assert "grade" in candidate["properties"]
+
+
+def test_migrate_repairs_legacy_candidate_run_missing_detection_complete(tmp_path):
+    path = tmp_path / "legacy-candidate-run.db"
+    connection = connect(path)
+    migrate(connection)
+    connection.execute(
+        "ALTER TABLE daily_candidate_runs DROP COLUMN detection_complete"
+    )
+    connection.commit()
+    assert "detection_complete" not in {
+        row[1] for row in connection.execute("PRAGMA table_info(daily_candidate_runs)")
+    }
+    migrate(connection)
+    columns = {
+        row[1]: row for row in connection.execute(
+            "PRAGMA table_info(daily_candidate_runs)"
+        )
+    }
+    assert columns["detection_complete"][3] == 1
+    assert columns["detection_complete"][4] == "0"
+    assert connection.execute("PRAGMA foreign_key_check").fetchall() == []

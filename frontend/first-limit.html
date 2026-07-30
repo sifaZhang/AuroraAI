@@ -52,6 +52,18 @@
       <button id="run-close" type="button">执行收盘确认</button>
       <span id="run-message" aria-live="polite">请选择交易日后查询或运行。</span>
     </div>
+    <p class="control-help">运行默认覆盖全市场；股票代码仅筛选已生成结果。</p>
+    <section id="pipeline-progress" class="pipeline-progress" aria-live="polite" hidden>
+      <div class="pipeline-progress-head">
+        <strong id="pipeline-status">等待任务</strong>
+        <span id="pipeline-percent">—</span>
+      </div>
+      <progress id="pipeline-progress-bar" max="100"></progress>
+      <p id="pipeline-current-step">—</p>
+      <div id="pipeline-step-list" class="pipeline-step-list"></div>
+      <p id="pipeline-coverage-note" class="state-note"></p>
+      <button id="pipeline-retry" type="button" class="secondary-button" hidden>重试未完成步骤</button>
+    </section>
   </section>
 
   <div id="page-error" class="api-error" role="alert" hidden></div>
