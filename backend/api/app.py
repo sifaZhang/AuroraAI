@@ -1,7 +1,9 @@
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.expectation_gap.database import PROJECT_ROOT, connect, migrate
@@ -10,12 +12,51 @@ from backend.expectation_gap.refresh_jobs import (
     JobConflictError, get_job, latest_job, recover_interrupted_jobs, start_background_job,
 )
 from backend.api.data_source_health import router as data_source_health_router
+from backend.api.first_limit import router as first_limit_router
 from backend.api.market_pulse import router as market_pulse_router
+from backend.strategy.first_limit.api_service import FirstLimitAPIError
 
 app = FastAPI(title="AuroraAI")
 app.include_router(data_source_health_router)
 app.include_router(market_pulse_router)
+app.include_router(first_limit_router)
 FRONTEND = PROJECT_ROOT / "frontend"
+
+
+@app.exception_handler(FirstLimitAPIError)
+async def first_limit_error(_request: Request, exc: FirstLimitAPIError):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {
+                "code": exc.code, "message": exc.message, "details": exc.details,
+            }
+        },
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_error(request: Request, exc: RequestValidationError):
+    if request.url.path.startswith("/api/first-limit"):
+        errors = [
+            {
+                "type": item.get("type"),
+                "loc": list(item.get("loc", ())),
+                "msg": item.get("msg"),
+            }
+            for item in exc.errors()
+        ]
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": {
+                    "code": "first_limit_invalid_request",
+                    "message": "request validation failed",
+                    "details": {"errors": errors},
+                }
+            },
+        )
+    return await request_validation_exception_handler(request, exc)
 
 
 @app.on_event("startup")

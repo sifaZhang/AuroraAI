@@ -420,6 +420,7 @@ def run_daily_candidates(
     minute_provider=None,
     failure_hook=None,
     run_failure_hook=None,
+    claimed=False,
 ):
     params, parameter_hash = normalize_parameters(
         trade_date=trade_date, stage=stage, as_of=as_of,
@@ -433,6 +434,8 @@ def run_daily_candidates(
         raise ValueError("force requires resume")
     if force_symbols and not force:
         raise ValueError("force_symbols requires force")
+    if claimed and (not resume or not run_id or force or force_symbols):
+        raise ValueError("claimed execution requires a non-force resume with run_id")
     detection_complete = _detection_complete(connection, params)
     detection_result = None
     if not detection_complete and detect_missing_events:
@@ -485,6 +488,11 @@ def run_daily_candidates(
             repo.initialize_items(connection, selected_run, events)
 
     if resume:
+        if claimed:
+            with connection:
+                repo.initialize_claimed_run(
+                    connection, selected_run, events, detection_complete
+                )
         frozen_event_ids = repo.scoped_event_ids(connection, selected_run)
         events = [event for event in events if event["id"] in frozen_event_ids]
         if forced_scope and not forced_scope.issubset(

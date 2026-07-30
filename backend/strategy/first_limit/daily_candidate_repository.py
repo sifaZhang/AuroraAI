@@ -151,6 +151,45 @@ def create_run(
     )
 
 
+def claim_run(connection, run_id, params, parameter_hash):
+    """Atomically claim the formal run identity without a second API ledger."""
+    stamp = now()
+    cursor = connection.execute(
+        """INSERT OR IGNORE INTO daily_candidate_runs(
+             run_id,trade_date,stage,as_of,data_cutoff,strategy_version,detection_version,
+             pullback_version,context_version,parameters_json,parameter_hash,status,
+             detection_complete,planned_count,started_at,created_at,updated_at)
+           VALUES(?,?,?,?,?,?,?,?,?,?,?,'running',0,0,?,?,?)""",
+        (
+            run_id, params["trade_date"], params["stage"], params["as_of"],
+            params["data_cutoff"], params["strategy_version"],
+            params["versions"]["detection"], params["versions"]["pullback"],
+            params["versions"]["context"], dump(params), parameter_hash,
+            stamp, stamp, stamp,
+        ),
+    )
+    row = find_run_by_hash(
+        connection, params["trade_date"], params["stage"], parameter_hash
+    )
+    if row is None:
+        raise RuntimeError("unable to claim daily candidate run identity")
+    return row, cursor.rowcount == 1
+
+
+def initialize_claimed_run(
+    connection, run_id, events, detection_complete
+):
+    """Freeze source items after an API claimant has obtained execution rights."""
+    stamp = now()
+    connection.execute(
+        """UPDATE daily_candidate_runs
+           SET detection_complete=?,planned_count=?,updated_at=?
+           WHERE run_id=?""",
+        (int(bool(detection_complete)), len(events), stamp, run_id),
+    )
+    initialize_items(connection, run_id, events)
+
+
 def initialize_items(connection, run_id, events):
     stamp = now()
     connection.executemany(
