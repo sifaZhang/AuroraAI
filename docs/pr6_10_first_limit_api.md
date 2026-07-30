@@ -22,7 +22,7 @@
 
 列表查询均在 SQLite 中完成分页，`limit` 默认 100、最大 500。候选默认稳定排序为等级 S/A/B/空、分数降序、symbol、event id。自定义排序仅接受 `grade_rank`、`base_score`、`symbol`、`first_limit_event_id`、`created_at`；客户端值不会直接拼接为 SQL 标识符。
 
-`grade`、`lifecycle` 和 `status` 支持重复查询参数或逗号分隔。symbol 使用项目统一规则规范化为 `000001.SZ` 形式。
+`grade`、`lifecycle` 和 `status` 支持重复查询参数或逗号分隔。候选查询额外接受 `grade=none`，用于数据库端筛选正式 `grade=null` 快照；它只是一项向后兼容的展示筛选，不是新等级。symbol 使用项目统一规则规范化为 `000001.SZ` 形式。
 
 ## 查询示例
 

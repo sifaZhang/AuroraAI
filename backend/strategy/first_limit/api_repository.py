@@ -45,7 +45,18 @@ def candidate_page(
 ):
     where = ["s.run_id=?"]
     args: list[object] = [run_id]
-    _in_filter(where, args, "s.candidate_grade", grades)
+    selected_grades = tuple(grades)
+    stored_grades = tuple(value for value in selected_grades if value != "none")
+    grade_clauses = []
+    if stored_grades:
+        grade_clauses.append(
+            f"s.candidate_grade IN ({','.join('?' for _ in stored_grades)})"
+        )
+        args.extend(stored_grades)
+    if "none" in selected_grades:
+        grade_clauses.append("s.candidate_grade IS NULL")
+    if grade_clauses:
+        where.append(f"({' OR '.join(grade_clauses)})")
     _in_filter(where, args, "s.lifecycle_status", lifecycles)
     if symbol:
         where.append("s.symbol=?")

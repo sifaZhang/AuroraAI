@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AuroraAI 首板回调</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="expectation-gap.css">
+  <link rel="stylesheet" href="first-limit.css">
+</head>
+<body>
+<main class="app-shell first-limit-shell">
+  <nav class="site-nav">
+    <a href="/">最近分红</a><a href="/expectation-gap">预期差</a>
+    <a href="/market-pulse.html">板块雷达</a><a class="active" href="/first-limit">首板回调</a>
+    <a href="/data-source-health">数据源状态</a>
+  </nav>
+
+  <header class="topbar first-limit-header">
+    <div>
+      <p class="eyebrow">AuroraAI Research</p>
+      <h1>首板回调</h1>
+      <p class="subtitle">每日候选、规则证据与尾盘—收盘变化审计</p>
+    </div>
+    <div class="run-meta">
+      <span id="page-data-time">数据时间：—</span>
+      <span id="page-updated-time">最近更新：—</span>
+    </div>
+  </header>
+
+  <aside class="strategy-warning" role="note">
+    <strong>尾盘预警不是最终确认；以收盘确认结果为准。</strong>
+    本页面是研究与候选确认工具，不构成交易或收益承诺。
+  </aside>
+
+  <section class="dashboard-card run-controls" aria-labelledby="run-control-title">
+    <div class="section-heading">
+      <div><h2 id="run-control-title">运行与查询</h2><p>打开页面只查询已保存结果，不会自动执行策略。</p></div>
+      <span id="latest-run-state" class="status-chip neutral">尚未查询</span>
+    </div>
+    <div class="control-grid">
+      <label><span>交易日</span><input id="trade-date" type="date"></label>
+      <label><span>查看阶段</span><select id="stage">
+        <option value="tail_preview">尾盘预警</option>
+        <option value="close_confirmed">收盘确认</option>
+      </select></label>
+      <label><span>股票代码（仅筛选展示）</span><input id="symbol-filter" type="search" placeholder="000001.SZ"></label>
+      <button id="refresh-results" type="button" class="secondary-button">刷新结果</button>
+    </div>
+    <div class="run-actions">
+      <button id="run-preview" type="button">生成尾盘预警</button>
+      <button id="run-close" type="button">执行收盘确认</button>
+      <span id="run-message" aria-live="polite">请选择交易日后查询或运行。</span>
+    </div>
+  </section>
+
+  <div id="page-error" class="api-error" role="alert" hidden></div>
+
+  <section class="dashboard-card overview-card" aria-labelledby="overview-title">
+    <div class="section-heading">
+      <h2 id="overview-title">当日概览</h2>
+      <button id="toggle-versions" class="text-button" type="button" aria-expanded="false">显示版本参数</button>
+    </div>
+    <div id="overview-grid" class="overview-grid">
+      <div class="loading-card">正在查询正式运行账本…</div>
+    </div>
+    <dl id="version-details" class="version-details" hidden></dl>
+    <div id="overview-note" class="state-note" aria-live="polite"></div>
+  </section>
+
+  <section class="dashboard-card tab-card">
+    <div class="tab-list" role="tablist" aria-label="首板回调数据视图">
+      <button id="tab-candidates" type="button" role="tab" aria-selected="true" aria-controls="panel-candidates">候选列表</button>
+      <button id="tab-comparison" type="button" role="tab" aria-selected="false" aria-controls="panel-comparison">尾盘→收盘变化</button>
+      <button id="tab-runs" type="button" role="tab" aria-selected="false" aria-controls="panel-runs">运行记录</button>
+    </div>
+
+    <div id="panel-candidates" role="tabpanel" aria-labelledby="tab-candidates">
+      <div class="filter-grid">
+        <label><span>等级</span><select id="grade-filter">
+          <option value="">全部等级</option><option value="S">S</option>
+          <option value="A">A</option><option value="B">B</option>
+          <option value="none">无等级</option>
+        </select></label>
+        <label><span>生命周期</span><select id="lifecycle-filter">
+          <option value="active">关注中（默认）</option><option value="">全部</option>
+          <option value="watching">观察中</option><option value="eligible">尾盘合格</option>
+          <option value="pending_close_confirmation">等待收盘确认</option>
+          <option value="confirmed">已确认</option><option value="eliminated">已淘汰</option>
+          <option value="expired">已过期</option><option value="indeterminate">无法确定</option>
+        </select></label>
+        <label><span>排序</span><select id="candidate-sort">
+          <option value="grade_rank">等级</option><option value="base_score">分数</option>
+          <option value="symbol">股票代码</option><option value="first_limit_event_id">事件 ID</option>
+          <option value="created_at">评价时间</option>
+        </select></label>
+        <label><span>顺序</span><select id="candidate-order"><option value="asc">升序</option><option value="desc">降序</option></select></label>
+        <label><span>每页</span><select id="candidate-page-size"><option>20</option><option selected>50</option><option>100</option></select></label>
+      </div>
+      <div class="table-region first-limit-table-wrap">
+        <table class="first-limit-table">
+          <thead><tr><th>等级</th><th>股票</th><th>观察日</th><th>生命周期</th><th>阶段</th><th>首板日期</th><th>核心结论</th><th>变化</th><th>评价时间</th><th>操作</th></tr></thead>
+          <tbody id="candidate-rows"><tr><td colspan="10" class="empty-state">正在加载候选…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="pager"><button id="candidate-prev" type="button">上一页</button><span id="candidate-page-label">第 1 页</span><button id="candidate-next" type="button">下一页</button></div>
+    </div>
+
+    <div id="panel-comparison" role="tabpanel" aria-labelledby="tab-comparison" hidden>
+      <div class="filter-grid comparison-filters">
+        <label><span>变化类型</span><select id="change-filter">
+          <option value="">全部变化</option><option value="unchanged">不变</option>
+          <option value="upgraded">升级</option><option value="downgraded">降级</option>
+          <option value="newly_qualified">收盘新增</option><option value="eliminated">收盘淘汰</option>
+          <option value="preview_missing">缺少尾盘快照</option>
+        </select></label>
+        <label><span>收盘等级</span><select id="comparison-grade"><option value="">全部</option><option>S</option><option>A</option><option>B</option></select></label>
+      </div>
+      <div class="table-region first-limit-table-wrap">
+        <table class="first-limit-table comparison-table">
+          <thead><tr><th>股票</th><th>尾盘等级</th><th>尾盘状态</th><th>收盘等级</th><th>收盘状态</th><th>变化</th><th>原因</th><th>操作</th></tr></thead>
+          <tbody id="comparison-rows"><tr><td colspan="8" class="empty-state">正在加载变化数据…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="pager"><button id="comparison-prev" type="button">上一页</button><span id="comparison-page-label">第 1 页</span><button id="comparison-next" type="button">下一页</button></div>
+    </div>
+
+    <div id="panel-runs" role="tabpanel" aria-labelledby="tab-runs" hidden>
+      <div class="table-region first-limit-table-wrap">
+        <table class="first-limit-table run-table">
+          <thead><tr><th>Run ID</th><th>交易日</th><th>阶段</th><th>状态</th><th>成功</th><th>失败</th><th>未决</th><th>开始</th><th>完成</th><th>操作</th></tr></thead>
+          <tbody id="run-rows"><tr><td colspan="10" class="empty-state">正在加载运行记录…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="pager"><button id="run-prev" type="button">上一页</button><span id="run-page-label">第 1 页</span><button id="run-next" type="button">下一页</button></div>
+      <section id="run-detail-panel" class="run-detail-panel" hidden>
+        <div class="section-heading"><h3>运行明细</h3><span id="selected-run-label"></span></div>
+        <div id="run-detail-summary" class="state-note"></div>
+        <div class="item-filter-row"><label><span>Item 状态</span><select id="item-status-filter"><option value="">全部</option><option value="failed">失败</option><option value="pending">未决</option><option value="indeterminate">无法确定</option><option value="success">成功</option><option value="skipped">跳过</option></select></label></div>
+        <div class="table-region first-limit-table-wrap"><table class="first-limit-table item-table">
+          <thead><tr><th>股票</th><th>Event ID</th><th>状态</th><th>Candidate ID</th><th>错误码</th><th>说明</th></tr></thead>
+          <tbody id="item-rows"></tbody>
+        </table></div>
+        <div class="pager"><button id="item-prev" type="button">上一页</button><span id="item-page-label">第 1 页</span><button id="item-next" type="button">下一页</button></div>
+      </section>
+    </div>
+  </section>
+</main>
+
+<div id="candidate-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="candidate-modal-title" hidden>
+  <section class="candidate-modal">
+    <header><div><p class="eyebrow">Candidate Evidence</p><h2 id="candidate-modal-title">候选详情</h2></div><button id="close-candidate-modal" type="button" aria-label="关闭候选详情">关闭</button></header>
+    <div id="candidate-detail-error" class="api-error" role="alert" hidden></div>
+    <div id="candidate-detail-content" class="candidate-detail-content" aria-live="polite"></div>
+  </section>
+</div>
+
+<script src="first-limit.js"></script>
+</body>
+</html>

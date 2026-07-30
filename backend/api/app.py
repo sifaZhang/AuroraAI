@@ -148,4 +148,9 @@ def data_source_health_page():
     return FileResponse(FRONTEND / "data-source-health.html")
 
 
+@app.get("/first-limit")
+def first_limit_page():
+    return FileResponse(FRONTEND / "first-limit.html")
+
+
 app.mount("/", StaticFiles(directory=FRONTEND, html=True), name="frontend")

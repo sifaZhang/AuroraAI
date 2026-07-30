@@ -180,6 +180,15 @@ def test_candidate_filters_stable_pagination_detail_and_errors(tmp_path, monkeyp
     assert eliminated["total"] == 1
     assert eliminated["items"][0]["grade"] is None
     assert eliminated["items"][0]["lifecycle"] == "eliminated"
+    ungraded = client.get(
+        "/api/first-limit/candidates",
+        params=[
+            ("trade_date", DAY), ("stage", "close_confirmed"),
+            ("grade", "none"),
+        ],
+    ).json()
+    assert ungraded["total"] == 1
+    assert ungraded["items"][0]["candidate_id"] == eliminated["items"][0]["candidate_id"]
     second_page = client.get(
         "/api/first-limit/candidates",
         params={

@@ -22,6 +22,7 @@ from .run_daily_candidates import (
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 GRADES = {"S", "A", "B"}
+CANDIDATE_GRADE_FILTERS = {*GRADES, "none"}
 LIFECYCLES = {
     "watching", "eligible", "pending_close_confirmation", "confirmed",
     "eliminated", "expired", "indeterminate",
@@ -146,7 +147,7 @@ def list_candidates(
     limit=100,
     offset=0,
 ):
-    grades = _validate(grades, GRADES, "grade")
+    grades = _validate(grades, CANDIDATE_GRADE_FILTERS, "grade")
     lifecycles = _validate(lifecycles, LIFECYCLES, "lifecycle")
     if stage not in {"tail_preview", "close_confirmed"}:
         raise FirstLimitAPIError(
