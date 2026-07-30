@@ -28,6 +28,7 @@ FIRST_LIMIT_PULLBACK_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" /
 FIRST_LIMIT_CONTEXT_SCORING_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "018_first_limit_context_scoring.sql"
 FIRST_LIMIT_DAILY_BACKTEST_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "019_first_limit_daily_backtest.sql"
 FIRST_LIMIT_MINUTE_REVIEW_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "020_first_limit_minute_review.sql"
+FIRST_LIMIT_DAILY_CANDIDATES_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "021_first_limit_daily_candidates.sql"
 
 
 def database_path() -> Path:
@@ -91,6 +92,8 @@ def migrate(connection: sqlite3.Connection) -> None:
         connection.executescript(FIRST_LIMIT_DAILY_BACKTEST_MIGRATION_PATH.read_text(encoding="utf-8"))
     if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='minute_review_runs'").fetchone() is None:
         connection.executescript(FIRST_LIMIT_MINUTE_REVIEW_MIGRATION_PATH.read_text(encoding="utf-8"))
+    if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='daily_candidate_runs'").fetchone() is None:
+        connection.executescript(FIRST_LIMIT_DAILY_CANDIDATES_MIGRATION_PATH.read_text(encoding="utf-8"))
     security_columns = {row[1] for row in connection.execute("PRAGMA table_info(a_share_security_master)")}
     if "is_active" not in security_columns:
         connection.execute("ALTER TABLE a_share_security_master ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1))")
