@@ -274,8 +274,8 @@ def test_post_normalizes_defaults_reuses_and_does_not_expose_force(
     first = client.post("/api/first-limit/runs", json=payload)
     assert first.status_code == 200, first.text
     assert first.json()["reused"] is False
-    assert calls[0]["as_of"] == f"{DAY}T14:55:00+08:00"
-    assert calls[0]["data_cutoff"] == f"{DAY}T14:55:00+08:00"
+    assert calls[0]["as_of"] == f"{DAY}T14:30:00+08:00"
+    assert calls[0]["data_cutoff"] == f"{DAY}T14:30:00+08:00"
     assert calls[0]["symbols"] == ["000001.SZ", "000002.SZ"]
     replay = client.post(
         "/api/first-limit/runs",

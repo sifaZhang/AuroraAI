@@ -51,7 +51,7 @@ def normalize_parameters(
     day = date.fromisoformat(str(trade_date))
     if stage not in {"tail_preview", "close_confirmed"}:
         raise ValueError("stage must be tail_preview or close_confirmed")
-    default_time = time(14, 55) if stage == "tail_preview" else time(15, 0)
+    default_time = time(14, 30) if stage == "tail_preview" else time(15, 0)
     evaluated_at = (
         _timestamp(as_of, "as_of")
         if as_of
@@ -64,8 +64,8 @@ def normalize_parameters(
         raise ValueError("data_cutoff must not precede as_of")
     if stage == "tail_preview":
         clock = evaluated_at.timetz().replace(tzinfo=None)
-        if not time(14, 40) <= clock <= time(14, 55):
-            raise ValueError("tail_preview as_of must be between 14:40 and 14:55")
+        if not time(14, 30) <= clock <= time(14, 55):
+            raise ValueError("tail_preview as_of must be between 14:30 and 14:55")
     elif evaluated_at.timetz().replace(tzinfo=None) < time(15, 0):
         raise ValueError("close_confirmed as_of must be at or after 15:00")
     if strategy_version != VERSION:

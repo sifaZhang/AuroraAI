@@ -12,7 +12,9 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from backend.collector import sync_first_limit_data as sync
-from backend.expectation_gap.database import connect, migrate
+from backend.expectation_gap.database import (
+    acquire_write_job, connect, migrate, release_write_job,
+)
 
 from . import pipeline_repository as repo
 from .detect_first_limits import detect_first_limits
@@ -138,7 +140,7 @@ def normalize_parameters(
         raise PipelineError(
             "first_limit_pipeline_future_date", "future trade_date is not allowed"
         )
-    default_clock = "14:55:00+08:00" if stage == "tail_preview" else "15:00:00+08:00"
+    default_clock = "14:30:00+08:00" if stage == "tail_preview" else "15:00:00+08:00"
     evaluated_at = as_of or f"{day}T{default_clock}"
     cutoff = data_cutoff or evaluated_at
     try:
@@ -327,16 +329,28 @@ class DefaultExecutor:
         if code == "security_master":
             provider = self._provider()
             api = getattr(provider, "api", provider)
-            return sync.sync_securities(con, api, symbols).__dict__
+            missing = sync.plan_security_gaps(con, symbols)
+            return sync.sync_securities(con, api, missing).__dict__
         if code == "daily_status":
             provider = self._provider()
             api = getattr(provider, "api", provider)
-            return sync.sync_statuses(con, api, symbols, start, target).__dict__
+            gaps = sync.plan_status_gaps(con, symbols, start, target)
+            return sync.sync_statuses(
+                con, api, symbols, start, target, plans=gaps,
+                progress=lambda current, total: repo.progress(
+                    con, context.job_id, code, current, total
+                ),
+            ).__dict__
         if code == "daily_bars":
             provider = self._provider()
             api = getattr(provider, "api", provider)
             gaps = sync.plan_daily_gaps(con, symbols, start, target)
-            return sync.sync_daily(con, api, gaps).__dict__
+            return sync.sync_daily(
+                con, api, gaps,
+                progress=lambda current, total: repo.progress(
+                    con, context.job_id, code, current, total
+                ),
+            ).__dict__
         if code == "limit_detection":
             result = detect_first_limits(
                 con, start=d0_start, end=target,
@@ -579,10 +593,33 @@ def validate_coverage(context):
 
 def create_job(connection, **values):
     parameters, digest = normalize_parameters(**values)
-    with connection:
-        row, created = repo.create_or_reuse(
-            connection, parameters, digest, STEP_CODES
+    if not acquire_write_job(blocking=False):
+        raise PipelineError(
+            "first_limit_pipeline_database_busy",
+            "another data write job is running; wait for it to finish",
+            status_code=409,
         )
+    try:
+        with connection:
+            row, created = repo.create_or_reuse(
+                connection, parameters, digest, STEP_CODES
+            )
+            # Repeated requests share a natural-key job. A cancelled job is
+            # terminal and cannot be claimed until it is prepared for retry.
+            # A new click on "generate" explicitly resumes it while retaining
+            # the outputs of steps that already completed successfully.
+            if not created and row["status"] == "cancelled":
+                row, _changed = repo.prepare_retry(connection, row["id"])
+    except sqlite3.OperationalError as exc:
+        if "locked" in str(exc).lower() or "busy" in str(exc).lower():
+            raise PipelineError(
+                "first_limit_pipeline_database_busy",
+                "database is busy; retry after the current data job finishes",
+                status_code=409,
+            ) from exc
+        raise
+    finally:
+        release_write_job()
     return {
         "job_id": row["id"], "status": row["status"],
         "reused": not created,
@@ -591,6 +628,14 @@ def create_job(connection, **values):
 
 
 def execute_job(connection, job_id, executor=None):
+    acquire_write_job(blocking=True)
+    try:
+        return _execute_job(connection, job_id, executor)
+    finally:
+        release_write_job()
+
+
+def _execute_job(connection, job_id, executor=None):
     with connection:
         if not repo.claim(connection, job_id):
             row = repo.job(connection, job_id)
@@ -604,6 +649,8 @@ def execute_job(connection, job_id, executor=None):
     context = PipelineContext(connection, job_id, parameters, provider)
     try:
         for step in repo.steps(connection, job_id):
+            if repo.job(connection, job_id)["status"] == "cancelled":
+                return dict(repo.job(connection, job_id))
             if step["status"] in {"success", "skipped"}:
                 continue
             code = step["step_code"]
@@ -621,6 +668,8 @@ def execute_job(connection, job_id, executor=None):
                 heartbeat.start()
             try:
                 output = execution.run_step(code, context)
+                if repo.job(connection, job_id)["status"] == "cancelled":
+                    return dict(repo.job(connection, job_id))
                 failures = output.get("failures") or ()
                 if failures:
                     with connection:
@@ -709,12 +758,14 @@ def execute_job(connection, job_id, executor=None):
 
 
 def _background(job_id):
+    acquire_write_job(blocking=True)
     connection = connect()
-    migrate(connection)
     try:
+        migrate(connection)
         execute_job(connection, job_id)
     finally:
         connection.close()
+        release_write_job()
         with _THREAD_GUARD:
             ACTIVE_THREADS.pop(job_id, None)
 
@@ -754,6 +805,15 @@ def retry_job(connection, job_id):
         "job_id": job_id, "status": repo.job(connection, job_id)["status"],
         "reused": not changed,
         "poll_url": f"/api/first-limit/pipeline-jobs/{job_id}",
+    }
+
+
+def cancel_job(connection, job_id):
+    with connection:
+        row, cancelled = repo.cancel(connection, job_id)
+    return {
+        "job_id": row["id"], "status": row["status"], "cancelled": cancelled,
+        "poll_url": f"/api/first-limit/pipeline-jobs/{row['id']}",
     }
 
 

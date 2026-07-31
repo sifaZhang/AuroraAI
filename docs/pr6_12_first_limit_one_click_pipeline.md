@@ -76,7 +76,7 @@
 
 ### 4.1 目标时点
 
-- `tail_preview`：默认 `14:55 Asia/Shanghai`，允许范围继续沿用 PR6.10 的 14:40～14:55；
+- `tail_preview`：默认 `14:30 Asia/Shanghai`，允许范围为 14:30～14:55；
 - `close_confirmed`：默认 `15:00 Asia/Shanghai`；
 - `as_of` 和 `data_cutoff` 必须带时区并属于目标交易日；
 - 所有数据查询与下载都必须受 `data_cutoff` 限制；

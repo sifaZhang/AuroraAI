@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import json
 import sqlite3
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -30,6 +31,21 @@ FIRST_LIMIT_DAILY_BACKTEST_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrati
 FIRST_LIMIT_MINUTE_REVIEW_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "020_first_limit_minute_review.sql"
 FIRST_LIMIT_DAILY_CANDIDATES_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "021_first_limit_daily_candidates.sql"
 FIRST_LIMIT_PIPELINE_JOBS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "022_first_limit_pipeline_jobs.sql"
+MIGRATION_LOCK = threading.RLock()
+WRITE_JOB_LOCK = threading.RLock()
+SQLITE_TIMEOUT_SECONDS = 30
+
+
+class DatabaseWriteBusyError(RuntimeError):
+    """Raised when another background job owns the database write lane."""
+
+
+def acquire_write_job(*, blocking: bool) -> bool:
+    return WRITE_JOB_LOCK.acquire(blocking=blocking)
+
+
+def release_write_job() -> None:
+    WRITE_JOB_LOCK.release()
 
 
 def database_path() -> Path:
@@ -44,9 +60,16 @@ def database_path() -> Path:
 def connect(path: Path | None = None) -> sqlite3.Connection:
     resolved = path or database_path()
     resolved.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(resolved)
+    # FastAPI may enter and finalize a synchronous generator dependency on
+    # different worker threads. Each request still owns its own connection,
+    # but SQLite must allow that connection to follow the request between
+    # those worker threads.
+    connection = sqlite3.connect(
+        resolved, timeout=SQLITE_TIMEOUT_SECONDS, check_same_thread=False
+    )
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
+    connection.execute(f"PRAGMA busy_timeout = {SQLITE_TIMEOUT_SECONDS * 1000}")
     return connection
 
 
@@ -55,12 +78,15 @@ def connect_readonly(path: Path | None = None) -> sqlite3.Connection:
     resolved = path or database_path()
     if not resolved.exists():
         raise FileNotFoundError(f"SQLite database does not exist: {resolved}")
-    connection = sqlite3.connect(f"file:{resolved.as_posix()}?mode=ro", uri=True)
+    connection = sqlite3.connect(
+        f"file:{resolved.as_posix()}?mode=ro", uri=True,
+        check_same_thread=False,
+    )
     connection.row_factory = sqlite3.Row
     return connection
 
 
-def migrate(connection: sqlite3.Connection) -> None:
+def _migrate_unlocked(connection: sqlite3.Connection) -> None:
     connection.executescript(MIGRATION_PATH.read_text(encoding="utf-8"))
     connection.executescript(QUALITY_MIGRATION_PATH.read_text(encoding="utf-8"))
     connection.executescript(REFRESH_JOBS_MIGRATION_PATH.read_text(encoding="utf-8"))
@@ -143,6 +169,18 @@ def migrate(connection: sqlite3.Connection) -> None:
         if column not in quality_columns:
             connection.execute(f"ALTER TABLE stock_expectation_quality ADD COLUMN {column} TEXT NOT NULL DEFAULT '{{}}'")
     connection.commit()
+
+
+def migrate(connection: sqlite3.Connection) -> None:
+    """Apply schema migrations once at a time within the API process.
+
+    Page load requests and background jobs can arrive concurrently.  Several
+    legacy migrations include DDL, which takes SQLite's exclusive write lock;
+    serialising them prevents otherwise harmless concurrent requests from
+    failing with ``database is locked``.
+    """
+    with MIGRATION_LOCK:
+        _migrate_unlocked(connection)
 
 
 def _migrate_sector_source_status(connection: sqlite3.Connection) -> None:

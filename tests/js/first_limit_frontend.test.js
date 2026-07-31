@@ -237,12 +237,12 @@ async function testServerFiltersRenderingAndInjectionSafety() {
   assert.strictEqual(rows.length, 4);
   assert.strictEqual(rows[0].children[0].children[0].textContent, "S");
   assert.strictEqual(rows[1].children[0].children[0].textContent, "—");
-  assert.strictEqual(rows[1].children[3].children[0].textContent, "无法确定");
-  assert.strictEqual(rows[2].children[3].children[0].textContent, "等待收盘确认");
+  assert.strictEqual(rows[1].children[5].children[0].textContent, "无法确定");
+  assert.strictEqual(rows[2].children[5].children[0].textContent, "等待收盘确认");
   assert.strictEqual(rows[3].children[0].children[0].textContent, "B");
-  assert.strictEqual(rows[3].children[3].children[0].textContent, "尾盘合格");
-  assert.strictEqual(rows[1].children[6].textContent, "<img src=x onerror=alert(1)>");
-  assert.strictEqual(rows[1].children[6].children.length, 0);
+  assert.strictEqual(rows[3].children[5].children[0].textContent, "尾盘合格");
+  assert.strictEqual(rows[1].children[8].textContent, "<img src=x onerror=alert(1)>");
+  assert.strictEqual(rows[1].children[8].children.length, 0);
   assert.strictEqual(doc.elements["overview-note"].className, "state-note warning");
   assert.strictEqual(request > 0, true);
 }

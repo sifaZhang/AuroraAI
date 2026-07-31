@@ -104,6 +104,7 @@
         method: "POST", headers: {"Content-Type": "application/json"},
         body: JSON.stringify(body),
       }),
+      del: url => request(url, {method: "DELETE"}),
     };
   }
 
@@ -130,7 +131,7 @@
       "panel-candidates", "panel-comparison", "panel-runs",
       "pipeline-progress", "pipeline-status", "pipeline-percent",
       "pipeline-progress-bar", "pipeline-current-step", "pipeline-step-list",
-      "pipeline-coverage-note", "pipeline-retry",
+      "pipeline-coverage-note", "pipeline-retry", "pipeline-cancel",
     ].forEach(id => { elements[id] = byId(id); });
 
     const saved = key => {
@@ -220,16 +221,23 @@
     function renderCandidates(page) {
       const target = elements["candidate-rows"];
       if (!page.run_id) {
-        emptyRow(target, 10, "该交易日尚未生成此阶段结果。");
+        emptyRow(target, 12, "该交易日尚未生成此阶段结果。");
       } else if (!page.total) {
         const filtered = state.grade || state.lifecycle || elements["symbol-filter"].value.trim();
-        emptyRow(target, 10, filtered ? "当前筛选条件没有结果。" : "运行已完成，但没有符合当前阶段条件的候选。");
+        emptyRow(target, 12, filtered ? "当前筛选条件没有结果。" : "运行已完成，但没有符合当前阶段条件的候选。");
       } else {
         clear(target);
         page.items.forEach(item => {
           const row = doc.createElement("tr");
           const grade = doc.createElement("td"); grade.appendChild(gradeBadge(item.grade)); row.appendChild(grade);
-          cell(row, item.symbol);
+          cell(row, item.base_score == null ? "—" : Number(item.base_score).toFixed(1));
+          cell(
+            row,
+            item.security_name
+              ? `${item.security_name}（${item.symbol}）`
+              : item.symbol,
+          );
+          cell(row, String(item.first_limit_event_id));
           cell(row, item.observation_day == null ? "—" : `D${item.observation_day}`);
           const lifecycle = doc.createElement("td"); lifecycle.appendChild(statusChip(item.lifecycle, LIFECYCLE_NAMES)); row.appendChild(lifecycle);
           cell(row, STAGE_NAMES[item.stage] || item.stage);
@@ -346,7 +354,7 @@
       } catch (error) {
         if (error?.name === "AbortError" || requestId !== state.requestIds.candidates) return false;
         showError(elements["page-error"], error);
-        emptyRow(elements["candidate-rows"], 10, "候选加载失败，旧查询已被替换或本地服务不可用。", "empty-state error-state");
+        emptyRow(elements["candidate-rows"], 12, "候选加载失败，旧查询已被替换或本地服务不可用。", "empty-state error-state");
         return false;
       }
     }
@@ -526,6 +534,7 @@
       const meta = doc.createElement("div"); meta.className = "candidate-meta";
       [
         ["Candidate ID", candidate.candidate_id], ["Event ID", candidate.first_limit_event_id],
+        ["候选总分", candidate.base_score],
         ["交易日", candidate.trade_date], ["阶段", STAGE_NAMES[candidate.stage]],
         ["等级", candidate.grade], ["生命周期", LIFECYCLE_NAMES[candidate.lifecycle]],
         ["观察日", candidate.observation_day == null ? null : `D${candidate.observation_day}`],
@@ -634,6 +643,7 @@
           : "任务尚未完成，当前结果不代表完整筛选。";
       elements["pipeline-retry"].hidden =
         !["failed", "partial", "interrupted"].includes(job.status);
+      elements["pipeline-cancel"].hidden = !["pending", "running"].includes(job.status);
     }
 
     async function pollPipeline(jobId, generation = ++state.pollGeneration) {
@@ -643,6 +653,7 @@
           api.get(`/api/first-limit/pipeline-jobs/${jobId}/steps`),
         ]);
         if (generation !== state.pollGeneration) return false;
+        showError(elements["page-error"], null);
         renderPipeline(job, stepPage.items || []);
         state.pipelineJobId = jobId;
         persist("pipeline_job_id", String(jobId));
@@ -768,6 +779,13 @@
           showError(elements["page-error"], error);
           setRunning(false, state.stage);
         }
+      });
+      elements["pipeline-cancel"]?.addEventListener("click", async () => {
+        if (!state.pipelineJobId || !confirm("停止当前一键任务？已完成的数据会保留。")) return;
+        try {
+          await api.del(`/api/first-limit/pipeline-jobs/${state.pipelineJobId}`);
+          await pollPipeline(state.pipelineJobId);
+        } catch (error) { showError(elements["page-error"], error); }
       });
       elements["candidate-prev"].addEventListener("click", () => {
         state.candidateOffset = Math.max(0, state.candidateOffset - state.pageSize); loadCandidates();

@@ -321,7 +321,7 @@ def preview_comparison(
 
 
 def _default_moment(day, stage):
-    clock = time(14, 55) if stage == "tail_preview" else time(15, 0)
+    clock = time(14, 30) if stage == "tail_preview" else time(15, 0)
     return datetime.combine(day, clock, SHANGHAI)
 
 

@@ -75,6 +75,7 @@ def candidate_page(
     rows = connection.execute(
         f"""SELECT
               s.id candidate_id,s.run_id,s.first_limit_event_id,s.symbol,
+              m.security_name,
               s.trade_date,s.stage,r.as_of,s.observation_day,
               s.lifecycle_status lifecycle,s.candidate_grade grade,
               NULL base_grade,s.score base_score,s.change_type,
@@ -89,6 +90,7 @@ def candidate_page(
             FROM daily_candidate_snapshots s
             JOIN daily_candidate_runs r ON r.run_id=s.run_id
             JOIN first_limit_events e ON e.id=s.first_limit_event_id
+            LEFT JOIN a_share_security_master m ON m.symbol=s.symbol
             WHERE {predicate}
             ORDER BY {sort_column} {direction},
                      s.score DESC NULLS LAST,s.symbol ASC,s.first_limit_event_id ASC
@@ -102,6 +104,7 @@ def candidate(connection, candidate_id):
     return connection.execute(
         """SELECT
              s.id candidate_id,s.run_id,s.first_limit_event_id,s.symbol,
+             m.security_name,
              s.trade_date,s.stage,r.as_of,s.observation_day,
              s.lifecycle_status lifecycle,s.candidate_grade grade,
              NULL base_grade,s.score base_score,s.change_type,
@@ -114,6 +117,7 @@ def candidate(connection, candidate_id):
            FROM daily_candidate_snapshots s
            JOIN daily_candidate_runs r ON r.run_id=s.run_id
            JOIN first_limit_events e ON e.id=s.first_limit_event_id
+           LEFT JOIN a_share_security_master m ON m.symbol=s.symbol
            WHERE s.id=?""",
         (candidate_id,),
     ).fetchone()

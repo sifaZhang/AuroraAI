@@ -118,7 +118,7 @@ first-limit.html
 
 | 按钮 | stage | 默认时点 |
 |---|---|---|
-| 生成尾盘预警 | `tail_preview` | 中国市场当日 14:55 |
+| 生成尾盘预警 | `tail_preview` | 中国市场当日 14:30 |
 | 执行收盘确认 | `close_confirmed` | 中国市场当日 15:00 |
 
 前端不得用浏览器本地时区拼接无时区时间。构造请求时必须显式使用中国市场 `+08:00`，并符合 PR6.10 的时间约束。
@@ -720,7 +720,7 @@ uvicorn backend.api.app:app --reload
 {"trade_date": "YYYY-MM-DD", "stage": "close_confirmed"}
 ```
 
-页面不发送 `as_of` 或 `data_cutoff`，由 PR6.10 统一使用北京时间 14:55 和 15:00 默认值。也不发送 symbol、`force`、`resume`、`dry_run`、数据库路径或凭据。页面 symbol 输入只影响 GET 查询。
+页面不发送 `as_of` 或 `data_cutoff`，由服务端统一使用北京时间 14:30 和 15:00 默认值。也不发送 symbol、`force`、`resume`、`dry_run`、数据库路径或凭据。页面 symbol 输入只影响 GET 查询。
 
 PR6.10 当前为同步 V1。POST 期间两个运行按钮及刷新按钮禁用，保留旧候选和统计，显示“请求正在执行，请勿关闭页面”，且不设置短超时或虚假进度。完成后重新查询所有正式 API；`reused=true` 明确显示为复用，不声称新建运行。`poll_url` 仅保留为未来异步兼容字段。
 

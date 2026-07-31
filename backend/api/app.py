@@ -1,4 +1,5 @@
 from pathlib import Path
+import sqlite3
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.exception_handlers import request_validation_exception_handler
@@ -6,7 +7,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend.expectation_gap.database import PROJECT_ROOT, connect, migrate
+from backend.expectation_gap.database import (
+    PROJECT_ROOT, DatabaseWriteBusyError, connect, migrate,
+)
 from backend.expectation_gap.query import list_expectation_gaps
 from backend.expectation_gap.refresh_jobs import (
     JobConflictError, get_job, latest_job, recover_interrupted_jobs, start_background_job,
@@ -102,6 +105,14 @@ def _start_refresh_job(job_type: str):
         return start_background_job(job_type)
     except JobConflictError as exc:
         raise HTTPException(409, str(exc)) from exc
+    except DatabaseWriteBusyError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    except sqlite3.OperationalError as exc:
+        if "locked" in str(exc).lower() or "busy" in str(exc).lower():
+            raise HTTPException(
+                409, "数据库正被其他写入操作占用，请等待当前数据任务完成后再试"
+            ) from exc
+        raise
 
 
 @app.post("/api/refresh-jobs/a-share", status_code=202)

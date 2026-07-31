@@ -8,7 +8,7 @@ from datetime import date, datetime
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, ConfigDict
 
-from backend.expectation_gap.database import connect, migrate
+from backend.expectation_gap.database import connect
 from backend.strategy.first_limit import api_service as service
 from backend.strategy.first_limit import pipeline_repository as pipeline_repo
 from backend.strategy.first_limit import pipeline_service
@@ -43,7 +43,6 @@ def _pipeline_error(exc):
 def database() -> Iterator[sqlite3.Connection]:
     connection = connect()
     try:
-        migrate(connection)
         yield connection
     except sqlite3.Error as exc:
         raise service.FirstLimitAPIError(
@@ -185,6 +184,18 @@ def retry_pipeline_job(
 ):
     try:
         return pipeline_service.retry_job(connection, job_id)
+    except LookupError as exc:
+        raise service.FirstLimitAPIError(
+            404, "first_limit_pipeline_job_not_found", "pipeline job not found"
+        ) from exc
+
+
+@router.delete("/pipeline-jobs/{job_id}")
+def cancel_pipeline_job(
+    job_id: int, connection: sqlite3.Connection = Depends(database)
+):
+    try:
+        return pipeline_service.cancel_job(connection, job_id)
     except LookupError as exc:
         raise service.FirstLimitAPIError(
             404, "first_limit_pipeline_job_not_found", "pipeline job not found"

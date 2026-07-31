@@ -47,6 +47,8 @@ def write_csv(path: Path, row: str):
 
 def test_a_share_imports_csv_then_refreshes_price_and_keeps_empty_fields(tmp_path):
     connection = db(tmp_path); stock_id = add_stock(connection, "SH.600519", "A", price=100, fair=166, analyst=150)
+    connection.execute("UPDATE stocks SET symbol='600519.SH' WHERE id=?", (stock_id,))
+    connection.commit()
     csv_path = tmp_path / "a.csv"; write_csv(csv_path, "SH.600519,贵州茅台,,5,180,8,2026-07-20,manual,test")
     job_id = pending_job(connection, "refresh_a_share")
     frame = pd.DataFrame([{"stock_code": "600519", "current_price": 120}])

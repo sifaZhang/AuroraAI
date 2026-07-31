@@ -4,7 +4,9 @@ import pandas as pd
 import pytest
 
 from backend.collector.sync_first_limit_data import (MAX_MINUTE_CODES, SyncResult, _pool,
-    _instrument_to_master, _is_target_stock, plan_daily_gaps, sync_calendar, sync_daily, sync_minutes, sync_securities, sync_statuses)
+    _instrument_to_master, _is_target_stock, plan_daily_gaps, plan_security_gaps,
+    plan_status_gaps, sync_calendar, sync_daily, sync_minutes, sync_securities,
+    sync_statuses)
 from backend.expectation_gap.database import connect, migrate
 from backend.market_data.a_share_daily_repository import DailyBar, upsert_daily_bars
 from backend.strategy.first_limit.contracts import DataSource, QualityFlag
@@ -40,6 +42,7 @@ class FakeGM:
 
     def history(self, **kwargs):
         self.calls.append((kwargs["frequency"], kwargs["symbol"]))
+        assert "eob" in kwargs["fields"].split(",")
         if self.failure == kwargs["symbol"]:
             raise ConnectionError("offline")
         if kwargs["frequency"] == "60s":
@@ -119,16 +122,53 @@ def test_security_sync_normalizes_gm_symbols_and_filters_non_stock(tmp_path):
     connection.close()
 
 
-def test_status_sync_preserves_missing_historical_st_and_writes_authoritative_limits(tmp_path):
+def test_security_and_status_gap_plans_skip_persisted_coverage(tmp_path):
+    connection, api = database(tmp_path), FakeGM()
+    calendar(connection)
+    sync_securities(connection, api, symbols(), workers=1)
+    assert plan_security_gaps(connection, symbols()) == []
+    sync_statuses(
+        connection, api, [symbols()[0]],
+        date(2026, 2, 13), date(2026, 2, 23),
+    )
+    gaps = plan_status_gaps(
+        connection, symbols(), date(2026, 2, 13), date(2026, 2, 23)
+    )
+    assert symbols()[0] in gaps[(date(2026, 2, 13), date(2026, 2, 13))]
+    assert symbols()[0] not in gaps[(date(2026, 2, 13), date(2026, 2, 23))]
+    assert symbols()[1] in gaps[(date(2026, 2, 13), date(2026, 2, 23))]
+    connection.close()
+
+
+def test_status_sync_infers_historical_non_st_and_writes_authoritative_limits(tmp_path):
     connection, api = database(tmp_path), FakeGM()
     result = sync_statuses(connection, api, [symbols()[0]], date(2026, 2, 13), date(2026, 2, 23))
     assert result.success == 1 and result.rows == 1
     status = connection.execute("SELECT is_st,is_suspended FROM a_share_security_status_history").fetchone()
-    assert tuple(status) == (None, 0)
+    assert tuple(status) == (0, 0)
     metadata = connection.execute("SELECT pre_close,source_upper_limit,source_lower_limit FROM first_limit_daily_metadata").fetchone()
     assert tuple(metadata) == (10.05, 11.06, 9.05)
     flags = connection.execute("SELECT quality_flags FROM first_limit_daily_metadata").fetchone()[0]
     assert QualityFlag.MISSING_PRE_CLOSE.value not in flags
+    connection.close()
+
+
+def test_status_sync_infers_historical_st_from_asof_security_name(tmp_path):
+    connection = database(tmp_path)
+
+    class HistoricalST(FakeGM):
+        def get_history_instruments(self, **kwargs):
+            rows = super().get_history_instruments(**kwargs)
+            rows[0]["sec_name"] = "*ST样本"
+            return rows
+
+    sync_statuses(
+        connection, HistoricalST(), [symbols()[0]],
+        date(2026, 2, 23), date(2026, 2, 23),
+    )
+    assert connection.execute(
+        "SELECT is_st FROM a_share_security_status_history"
+    ).fetchone()[0] == 1
     connection.close()
 
 
@@ -149,6 +189,37 @@ def test_daily_sync_uses_workers_but_writes_once_and_does_not_overwrite_existing
     assert result.success == 1 and result.rows == 1
     assert connection.execute("SELECT close,source FROM a_share_daily_bars WHERE stock_code='600000' AND trade_date='2026-02-13'").fetchone()[0] == 1
     assert connection.execute("SELECT COUNT(*) FROM a_share_daily_bars").fetchone()[0] == 2
+    connection.close()
+
+
+def test_daily_sync_batches_symbols_and_preserves_symbol_identity(tmp_path):
+    connection = database(tmp_path); calendar(connection)
+
+    class BatchGM(FakeGM):
+        def history(self, **kwargs):
+            requested = kwargs["symbol"].split(",")
+            self.calls.append((kwargs["frequency"], tuple(requested)))
+            return pd.DataFrame({
+                "symbol": requested,
+                "eob": ["2026-02-23"] * len(requested),
+                "open": [10] * len(requested), "high": [11] * len(requested),
+                "low": [9] * len(requested), "close": [10.1] * len(requested),
+                "volume": [100] * len(requested), "amount": [1000] * len(requested),
+            })
+
+    api = BatchGM()
+    plans = {
+        symbol: ((date(2026, 2, 23), date(2026, 2, 23)),)
+        for symbol in symbols()
+    }
+    result = sync_daily(connection, api, plans, workers=1)
+    assert result.success == 2 and result.rows == 2
+    assert len(api.calls) == 1
+    assert {
+        tuple(row) for row in connection.execute(
+            "SELECT stock_code,trade_date FROM a_share_daily_bars"
+        )
+    } == {("600000", "2026-02-23"), ("000001", "2026-02-23")}
     connection.close()
 
 

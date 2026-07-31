@@ -3,18 +3,26 @@ from __future__ import annotations
 import sqlite3
 import threading
 from collections import Counter
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Callable, Iterable
 
-from backend.collector.dividend_collector import fetch_latest_prices_akshare_by_codes
+from backend.collector.dividend_collector import (
+    fetch_latest_prices_akshare_by_codes, normalize_stock_code,
+)
+from backend.collector import sync_first_limit_data as gm_sync
 from backend.collector.import_manual_a_share_valuations import import_file
 from backend.collector.init_hk_expectations import is_due
-from backend.expectation_gap.database import PROJECT_ROOT, connect, migrate
+from backend.expectation_gap.database import (
+    PROJECT_ROOT, DatabaseWriteBusyError, acquire_write_job, connect, migrate,
+    release_write_job,
+)
 from backend.expectation_gap.futu_client import CollectionResult, FutuResearchClient, utc_now
 from backend.expectation_gap.quality import refresh_quality
 from backend.expectation_gap.repository import patch_analyst, patch_morningstar, patch_price
 from backend.collector.dividend_collector import get_akshare
 from backend.sector_radar.service import refresh_source, sources_for
+from backend.strategy.first_limit.rules import normalize_symbol
 
 JOB_TYPES = {"refresh_a_share", "refresh_hk_prices", "refresh_hk_ratings", "refresh_market_pulse"}
 ACTIVE_STATUSES = {"pending", "running"}
@@ -45,8 +53,10 @@ def recover_interrupted_jobs(connection) -> int:
 def create_job(connection, job_type: str, *, source: str | None = None) -> int:
     if job_type not in JOB_TYPES:
         raise ValueError("不支持的刷新任务类型")
-    connection.execute("BEGIN IMMEDIATE")
+    if not acquire_write_job(blocking=False):
+        raise DatabaseWriteBusyError("另一个数据写入任务正在运行，请等待其完成后再刷新")
     try:
+        connection.execute("BEGIN IMMEDIATE")
         active = connection.execute("SELECT id,job_type FROM refresh_jobs WHERE status IN ('pending','running') ORDER BY id DESC LIMIT 1").fetchone()
         if active:
             raise JobConflictError(f"已有刷新任务运行中（任务 {active['id']}，类型 {active['job_type']}）", active["id"])
@@ -54,9 +64,16 @@ def create_job(connection, job_type: str, *, source: str | None = None) -> int:
                                     (job_type, source, utc_now())).lastrowid
         connection.commit()
         return job_id
+    except sqlite3.OperationalError as exc:
+        connection.rollback()
+        if "locked" in str(exc).lower() or "busy" in str(exc).lower():
+            raise DatabaseWriteBusyError("数据库正被其他写入操作占用，请稍后重试") from exc
+        raise
     except Exception:
         connection.rollback()
         raise
+    finally:
+        release_write_job()
 
 
 def get_job(connection, job_id: int):
@@ -97,8 +114,40 @@ def _validate_manual_csv(path: Path) -> list[str]:
         temporary.close()
 
 
+def fetch_latest_prices_gm_by_codes(stock_codes: Iterable[str]) -> dict[str, dict]:
+    """Return latest GM daily closes keyed by normalized six-digit code."""
+    api = gm_sync._load_api("GM_TOKEN")
+    start = datetime.now() - timedelta(days=14)
+    end = datetime.now()
+    prices: dict[str, dict] = {}
+    for raw_symbol in stock_codes:
+        security = normalize_symbol(raw_symbol)
+        frame = api.history(
+            symbol=security.gm_symbol, frequency="1d",
+            start_time=f"{start.date().isoformat()}T09:30:00+08:00",
+            end_time=f"{end.date().isoformat()}T15:00:00+08:00",
+            fields="eob,close", adjust=0, df=True,
+        )
+        rows = gm_sync._records(frame)
+        if not rows:
+            continue
+        latest = rows[-1]
+        value = gm_sync._field(latest, "close")
+        try:
+            price = float(value)
+        except (TypeError, ValueError):
+            continue
+        if price > 0:
+            prices[security.code] = {
+                "current_price": price,
+                "price_time": str(gm_sync._field(latest, "eob", "bob", "trade_date", "date") or ""),
+            }
+    return prices
+
+
 def refresh_a_share_job(connection, job_id: int, *, csv_path: Path | None = None,
-                        price_fetcher: Callable = fetch_latest_prices_akshare_by_codes) -> None:
+                        price_fetcher: Callable = fetch_latest_prices_akshare_by_codes,
+                        gm_price_fetcher: Callable = fetch_latest_prices_gm_by_codes) -> None:
     path = csv_path or PROJECT_ROOT / "data" / "manual_a_share_valuations.csv"
     errors = _validate_manual_csv(path)
     if errors:
@@ -109,19 +158,36 @@ def refresh_a_share_job(connection, job_id: int, *, csv_path: Path | None = None
     stocks = connection.execute("SELECT id,futu_code,symbol FROM stocks WHERE market='A' AND is_active=1 ORDER BY futu_code").fetchall()
     total = len(stocks)
     _update(connection, job_id, total=total, message=f"已导入{imported}条手工估值，正在刷新A股股价")
-    frame = price_fetcher([row["symbol"] for row in stocks], retries=2) if stocks else None
-    prices = {str(row["stock_code"]).zfill(6): row["current_price"] for _, row in frame.iterrows()} if frame is not None else {}
+    symbols = [row["symbol"] for row in stocks]
+    source = "eastmoney"
+    try:
+        frame = price_fetcher(symbols, retries=2) if stocks else None
+        prices = {
+            normalize_stock_code(row["stock_code"]): {
+                "current_price": row["current_price"], "price_time": None,
+            }
+            for _, row in frame.iterrows()
+        } if frame is not None else {}
+    except RuntimeError:
+        gm_symbols = [str(row["futu_code"]).replace(".", "") for row in stocks]
+        prices = gm_price_fetcher(gm_symbols) if stocks else {}
+        source = "gm_api_history"
     counts = Counter()
     for stock in stocks:
-        value = prices.get(stock["symbol"])
-        result = CollectionResult("success", {"last_price": value, "price_time": utc_now()}) if value else CollectionResult("no_data")
+        value = prices.get(normalize_stock_code(stock["symbol"]))
+        result = CollectionResult("success", {"last_price": value["current_price"], "price_time": value.get("price_time") or utc_now()}) if value is not None else CollectionResult("no_data")
         with connection:
-            patch_price(connection, stock["id"], result, "eastmoney")
+            patch_price(connection, stock["id"], result, source)
         counts["processed"] += 1; counts["success" if result.status == "success" else "no_data"] += 1
         _progress(connection, job_id, counts, total, stock["futu_code"], "正在刷新A股股价")
     with connection:
         refresh_quality(connection)
-    _finish(connection, job_id, counts, total)
+    _finish(
+        connection, job_id, counts, total,
+        errors=("A-share price refresh returned no matched prices",)
+        if total and not counts["success"] else (),
+        partial_when_no_data=True,
+    )
 
 
 def refresh_hk_prices_job(connection, job_id: int, *, codes: list[str] | None = None,
@@ -234,8 +300,11 @@ def _hk_stocks(connection, codes: list[str] | None):
     return connection.execute(f"SELECT id,futu_code FROM stocks WHERE market='HK' AND is_active=1 AND futu_code IN ({placeholders}) ORDER BY futu_code", codes).fetchall()
 
 
-def _finish(connection, job_id: int, counts: Counter, total: int, errors: Iterable[str] = ()) -> None:
-    status = "partial" if counts["failure"] else "success"
+def _finish(connection, job_id: int, counts: Counter, total: int, errors: Iterable[str] = (),
+            partial_when_no_data: bool = False) -> None:
+    status = "partial" if counts["failure"] or (
+        partial_when_no_data and counts["no_data"]
+    ) else "success"
     _update(connection, job_id, status=status, processed=counts["processed"], total=total,
             success_count=counts["success"], no_data_count=counts["no_data"], failure_count=counts["failure"],
             skipped_count=counts["skipped"], progress_pct=100, current_code=None,
@@ -250,15 +319,19 @@ RUNNERS = {"refresh_a_share": refresh_a_share_job, "refresh_hk_prices": refresh_
 def run_job(job_id: int, *, runner_kwargs: dict | None = None) -> None:
     connection = connect(); migrate(connection)
     try:
-        with _worker_lock:
-            row = connection.execute("SELECT job_type,source,status FROM refresh_jobs WHERE id=?", (job_id,)).fetchone()
-            if row is None or row["status"] not in ACTIVE_STATUSES:
-                return
-            _update(connection, job_id, status="running", started_at=utc_now(), message=JOB_LABELS[row["job_type"]])
-            kwargs = dict(runner_kwargs or {})
-            if row["job_type"] == "refresh_market_pulse":
-                kwargs.setdefault("source", row["source"] or "sw_l1")
-            RUNNERS[row["job_type"]](connection, job_id, **kwargs)
+        acquire_write_job(blocking=True)
+        try:
+            with _worker_lock:
+                row = connection.execute("SELECT job_type,source,status FROM refresh_jobs WHERE id=?", (job_id,)).fetchone()
+                if row is None or row["status"] not in ACTIVE_STATUSES:
+                    return
+                _update(connection, job_id, status="running", started_at=utc_now(), message=JOB_LABELS[row["job_type"]])
+                kwargs = dict(runner_kwargs or {})
+                if row["job_type"] == "refresh_market_pulse":
+                    kwargs.setdefault("source", row["source"] or "sw_l1")
+                RUNNERS[row["job_type"]](connection, job_id, **kwargs)
+        finally:
+            release_write_job()
     except Exception as exc:
         _update(connection, job_id, status="failed", message="刷新失败", error_summary=str(exc), finished_at=utc_now())
     finally:
@@ -266,11 +339,15 @@ def run_job(job_id: int, *, runner_kwargs: dict | None = None) -> None:
 
 
 def start_background_job(job_type: str, *, source: str | None = None) -> dict:
-    connection = connect(); migrate(connection)
+    if not acquire_write_job(blocking=False):
+        raise DatabaseWriteBusyError("另一个数据写入任务正在运行，请等待其完成后再刷新")
+    connection = connect()
     try:
+        migrate(connection)
         job_id = create_job(connection, job_type, source=source)
         job = get_job(connection, job_id)
     finally:
         connection.close()
+        release_write_job()
     threading.Thread(target=run_job, args=(job_id,), name=f"refresh-job-{job_id}", daemon=True).start()
     return job

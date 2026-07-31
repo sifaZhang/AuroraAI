@@ -33,22 +33,23 @@ def run_detection(connection, items: Iterable[tuple[str,object]], parameters: Ma
     else:
         run_id=create_run(connection,'detect',parameters,run_id=run_id); done=set()
     counts=Counter(); failures=[]
-    for symbol, day in values:
-        key=f'{symbol}:{day}'
-        if key in done and not force: counts['skipped']+=1; continue
-        try:
-            result=decide(symbol,day) # event_repository tuple
-            result=(*result[:-1], run_id)
-            with connection:
+    with connection:
+        for symbol, day in values:
+            key=f'{symbol}:{day}'
+            if key in done and not force: counts['skipped']+=1; continue
+            try:
+                result=decide(symbol,day) # event_repository tuple
+                result=(*result[:-1], run_id)
                 if result[3].is_first_limit:
                     upsert_events(connection,[result])
                 record_item(connection,run_id,key,'success',planned_start=day,planned_end=day,row_count=1,
                             result=_result_payload(result[3]),commit=False)
-            counts['success']+=1
-            counts[result[3].status.value]+=1
-        except Exception as exc:
-            record_item(connection,run_id,key,'failed',planned_start=day,planned_end=day,error=f'{type(exc).__name__}: {exc}')
-            counts['failed']+=1; failures.append(str(exc))
+                counts['success']+=1
+                counts[result[3].status.value]+=1
+            except Exception as exc:
+                record_item(connection,run_id,key,'failed',planned_start=day,planned_end=day,
+                            error=f'{type(exc).__name__}: {exc}',commit=False)
+                counts['failed']+=1; failures.append(str(exc))
     if resume and not force and counts['skipped']==len(values):
         return {'run_id':run_id,'status':get_resumable_run(connection,run_id,'detect',parameters)['status'],**counts}
     status='failed' if counts['failed']==len(values) else ('partial' if counts['failed'] or counts['indeterminate'] else 'success')

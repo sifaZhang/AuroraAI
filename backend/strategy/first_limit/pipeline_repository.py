@@ -135,6 +135,32 @@ def recover_stale(connection):
     return cursor.rowcount
 
 
+def cancel(connection, job_id):
+    """Cancel an active job without discarding its completed step outputs."""
+    row = job(connection, job_id)
+    if row is None:
+        raise LookupError("pipeline job not found")
+    if row["status"] in {"success", "partial", "failed", "cancelled"}:
+        return row, False
+    stamp = now()
+    connection.execute(
+        """UPDATE first_limit_pipeline_steps
+           SET status='interrupted', finished_at=?, error_code='user_cancelled',
+               error_message='cancelled by user'
+           WHERE job_id=? AND status='running'""",
+        (stamp, job_id),
+    )
+    connection.execute(
+        """UPDATE first_limit_pipeline_jobs
+           SET status='cancelled', finished_at=?, heartbeat_at=?,
+               error_code='user_cancelled', error_message='cancelled by user',
+               message='cancelled by user'
+           WHERE id=?""",
+        (stamp, stamp, job_id),
+    )
+    return job(connection, job_id), True
+
+
 def prepare_retry(connection, job_id):
     row = job(connection, job_id)
     if row is None:

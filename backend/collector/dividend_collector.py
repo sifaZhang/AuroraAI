@@ -16,6 +16,8 @@ from typing import Iterable, Literal
 
 import pandas as pd
 
+from backend.env import load_env_file as _load_project_env_file
+
 
 SourceName = Literal["akshare", "eastmoney", "tushare"]
 
@@ -51,23 +53,9 @@ def get_tushare() -> object:
     return ts
 
 
-def load_env_file(path: str | Path = ".env") -> bool:
-    """Load simple KEY=VALUE pairs from a local .env file."""
-
-    env_path = Path(path)
-    if not env_path.exists():
-        return False
-
-    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        key = key.strip()
-        value = value.strip().strip('"').strip("'")
-        if key and key not in os.environ:
-            os.environ[key] = value
-    return True
+def load_env_file(path: str | Path | None = None) -> bool:
+    """Backward-compatible wrapper for the shared project environment loader."""
+    return _load_project_env_file(path)
 
 
 def normalize_stock_code(value: object) -> str:
@@ -183,6 +171,7 @@ def fetch_latest_prices_akshare_by_codes(
     ak = get_akshare()
     start_date = (date.today() - timedelta(days=lookback_days)).strftime("%Y%m%d")
     frames: list[pd.DataFrame] = []
+    errors: list[str] = []
 
     for stock_code in stock_codes:
         code = normalize_stock_code(stock_code)
@@ -198,7 +187,8 @@ def fetch_latest_prices_akshare_by_codes(
                 retries=retries,
                 sleep_seconds=sleep_seconds,
             )
-        except Exception:
+        except Exception as exc:
+            errors.append(f"{code}: {type(exc).__name__}: {exc}")
             continue
         if raw is None or raw.empty:
             continue
@@ -208,6 +198,10 @@ def fetch_latest_prices_akshare_by_codes(
         frames.append(_normalize_akshare_price_frame(latest))
 
     if not frames:
+        if errors:
+            raise RuntimeError(
+                "A-share price requests failed: " + " | ".join(errors[:3])
+            )
         return pd.DataFrame(columns=["stock_code", "stock_name", "current_price"])
     return pd.concat(frames, ignore_index=True)
 

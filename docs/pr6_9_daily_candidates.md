@@ -38,7 +38,7 @@ PR6.8 的历史 S0～S4 复核。
 
 ### tail_preview
 
-默认 `as_of=14:55`。分钟 provider 的请求上限就是 `as_of`，默认 provider
+默认 `as_of=14:30`。分钟 provider 的请求上限就是 `as_of`，默认 provider
 只读取 `first_limit_minute_bars` 中不晚于该时点的数据。PR6.8 只复用纯
 `confirm_tail_entry()`，不复用历史成交 runner。
 

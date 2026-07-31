@@ -93,6 +93,32 @@ def test_migration_job_identity_scope_and_integrity(tmp_path, monkeypatch):
     assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
 
 
+def test_create_resumes_cancelled_natural_key_job(tmp_path, monkeypatch):
+    _path, connection = database(tmp_path, monkeypatch)
+    seed_calendar(connection)
+    first = create(connection)
+    job_id = first["job_id"]
+    with connection:
+        repo.claim(connection, job_id)
+        repo.start_step(connection, job_id, service.STEP_CODES[0])
+        repo.finish_step(
+            connection, job_id, service.STEP_CODES[0], "success"
+        )
+        repo.cancel(connection, job_id)
+
+    replay = create(connection)
+
+    assert replay["job_id"] == job_id
+    assert replay["status"] == "interrupted"
+    assert replay["reused"] is True
+    states = {
+        row["step_code"]: row["status"]
+        for row in repo.steps(connection, job_id)
+    }
+    assert states[service.STEP_CODES[0]] == "success"
+    assert states[service.STEP_CODES[1]] == "pending"
+
+
 def test_window_uses_open_day_dependencies_and_rejects_non_trading_day(
     tmp_path, monkeypatch
 ):
@@ -311,6 +337,15 @@ def test_future_date_and_future_cutoff_are_rejected():
         assert exc.code == "first_limit_pipeline_future_cutoff"
     else:
         raise AssertionError("future cutoff should fail")
+
+
+def test_tail_preview_defaults_to_1430_and_starts_at_1430():
+    current = datetime(2026, 7, 21, 14, 30, tzinfo=SHANGHAI)
+    parameters, _ = service.normalize_parameters(
+        trade_date="2026-07-21", stage="tail_preview", now=current,
+    )
+    assert parameters["as_of"] == "2026-07-21T14:30:00+08:00"
+    assert parameters["data_cutoff"] == "2026-07-21T14:30:00+08:00"
 
 
 def test_default_executor_offline_full_pipeline_has_complete_coverage(

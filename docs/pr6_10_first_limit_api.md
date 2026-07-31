@@ -87,7 +87,7 @@ Content-Type: application/json
 }
 ```
 
-`as_of` 和 `data_cutoff` 可省略。`tail_preview` 默认二者均为交易日 14:55，`close_confirmed` 默认均为 15:00。显式时间必须带时区；内部由 PR6.9 的 `normalize_parameters()` 转换为上海策略时间并生成完全相同的 `parameter_hash`。symbol 去重排序也由该正式入口完成。
+`as_of` 和 `data_cutoff` 可省略。`tail_preview` 默认二者均为交易日 14:30，`close_confirmed` 默认均为 15:00。显式时间必须带时区；内部由 PR6.9 的 `normalize_parameters()` 转换为上海策略时间并生成完全相同的 `parameter_hash`。symbol 去重排序也由该正式入口完成。
 
 同步响应：
 
@@ -105,7 +105,7 @@ Content-Type: application/json
 ## 时间与未来信息边界
 
 - `trade_date` 必须在 `a_share_trading_calendar` 中明确为中国市场开市日；无记录或休市返回 422，不回退到前一日。
-- `tail_preview` 的 `as_of` 只能为 14:40～14:55，默认 14:55。
+- `tail_preview` 的 `as_of` 只能为 14:30～14:55，默认 14:30。
 - `close_confirmed` 的 `as_of` 不早于 15:00，默认 15:00。
 - `as_of` 与 `data_cutoff` 必须属于 `trade_date`，且 `as_of <= data_cutoff`。
 - API 不使用服务器当前时间替代历史请求时间。

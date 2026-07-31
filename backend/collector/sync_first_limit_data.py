@@ -23,7 +23,7 @@ from backend.expectation_gap.database import connect, migrate
 from backend.market_data.a_share_daily_repository import DailyBar, upsert_daily_bars
 from backend.market_data.sector_history_repository import list_current_member_stocks
 from backend.strategy.first_limit.contracts import BoardType, DataSource, QualityFlag, SecurityStatus
-from backend.strategy.first_limit.repository import CalendarDay, SecurityMaster, upsert_calendar_days, upsert_security_master, upsert_security_status
+from backend.strategy.first_limit.repository import CalendarDay, SecurityMaster, upsert_calendar_days, upsert_security_master, upsert_security_statuses
 from backend.strategy.first_limit.rules import (detect_price_anomalies, normalize_symbol,
     resolve_board_type, resolve_limit_prices, resolve_price_limit_rule)
 from backend.strategy.first_limit.sync_repository import (DailyMetadata, MinuteBar, completed_item_keys,
@@ -31,7 +31,8 @@ from backend.strategy.first_limit.sync_repository import (DailyMetadata, MinuteB
 
 DEFAULT_WORKERS = 2
 MAX_WORKERS = 8
-STATUS_BATCH_SIZE = 25
+STATUS_BATCH_SIZE = 200
+DAILY_BATCH_SIZE = 50
 MAX_MINUTE_CODES = 5
 MAX_MINUTE_DAYS = 5
 SHANGHAI = ZoneInfo("Asia/Shanghai")
@@ -250,6 +251,17 @@ def sync_securities(connection, api: Any, symbols: Iterable, *, workers=DEFAULT_
     return result
 
 
+def plan_security_gaps(connection, symbols: Iterable) -> list:
+    """Return securities that are not already in the local master."""
+    items = list(symbols)
+    existing = {
+        row[0] for row in connection.execute(
+            "SELECT symbol FROM a_share_security_master"
+        )
+    }
+    return [item for item in items if item.canonical not in existing]
+
+
 def _status_to_values(record: Mapping[str, Any], requested) -> tuple[SecurityStatus, DailyMetadata] | None:
     raw_symbol = _field(record, "symbol") or requested.gm_symbol
     try:
@@ -261,40 +273,117 @@ def _status_to_values(record: Mapping[str, Any], requested) -> tuple[SecuritySta
         return None
     day = _parse_date(day_value)
     board, flags = _board(_field(record, "board"), symbol, day)
-    # GM PR6.0 did not prove a historical ST field. Preserve None rather than infer it.
+    # GM history does not expose a dedicated historical ST flag, but sec_name
+    # is an as-of field. Chinese exchanges encode ST/*ST and delisting status
+    # in that daily security name.
+    security_name = str(_field(record, "sec_name", "security_name", "name") or "")
+    is_st = "ST" in security_name.upper() or "退" in security_name
     suspended = _field(record, "is_suspended")
     no_limit = _field(record, "no_price_limit")
-    status = SecurityStatus(symbol, day, board, None, None if suspended is None else bool(suspended),
+    status = SecurityStatus(symbol, day, board, is_st, None if suspended is None else bool(suspended),
                             None if no_limit is None else bool(no_limit),
                             _parse_date(_field(record, "listed_date")) if _field(record, "listed_date") else None,
                             _parse_date(_field(record, "delisted_date")) if _field(record, "delisted_date") else None,
                             DataSource.GM, frozenset(flags))
-    meta = DailyMetadata(symbol, day, _field(record, "pre_close"), _field(record, "upper_limit"),
-                         _field(record, "lower_limit"), DataSource.GM, frozenset(flags))
+    def positive_or_none(value):
+        try:
+            parsed = float(value)
+        except (TypeError, ValueError):
+            return None
+        return value if parsed > 0 else None
+
+    meta = DailyMetadata(
+        symbol, day, positive_or_none(_field(record, "pre_close")),
+        positive_or_none(_field(record, "upper_limit")),
+        positive_or_none(_field(record, "lower_limit")),
+        DataSource.GM, frozenset(flags),
+    )
     return status, meta
 
 
-def sync_statuses(connection, api: Any, symbols: Iterable, start_date: date, end_date: date, *, dry_run=False, run_id: str | None = None) -> SyncResult:
+def plan_status_gaps(connection, symbols: Iterable, start_date: date, end_date: date) -> dict:
+    """Group symbols by contiguous missing trading-day intervals."""
+    items = list(symbols)
+    if not items:
+        return {}
+    open_days = _open_days(connection, start_date, end_date)
+    positions = {day: index for index, day in enumerate(open_days)}
+    existing: dict[str, set[date]] = {item.canonical: set() for item in items}
+    wanted = set(existing)
+    bounds = {
+        row["symbol"]: (
+            date.fromisoformat(row["listed_date"]) if row["listed_date"] else None,
+            date.fromisoformat(row["delisted_date"]) if row["delisted_date"] else None,
+        )
+        for row in connection.execute(
+            "SELECT symbol,listed_date,delisted_date FROM a_share_security_master"
+        )
+        if row["symbol"] in wanted
+    }
+    for row in connection.execute(
+        """SELECT symbol,effective_date,is_st,is_suspended
+           FROM a_share_security_status_history
+           WHERE effective_date BETWEEN ? AND ?""",
+        (start_date.isoformat(), end_date.isoformat()),
+    ):
+        if (
+            row["symbol"] in wanted
+            and row["is_st"] is not None
+            and row["is_suspended"] is not None
+        ):
+            existing[row["symbol"]].add(date.fromisoformat(row["effective_date"]))
+    grouped: dict[tuple[date, date], list] = {}
+    for item in items:
+        listed, delisted = bounds.get(item.canonical, (None, None))
+        expected = [
+            day for day in open_days
+            if (listed is None or listed <= day)
+            and (delisted is None or day < delisted)
+        ]
+        missing = [day for day in expected if day not in existing[item.canonical]]
+        intervals: list[list[date]] = []
+        for day in missing:
+            if (
+                not intervals
+                or positions[day] != positions[intervals[-1][1]] + 1
+            ):
+                intervals.append([day, day])
+            else:
+                intervals[-1][1] = day
+        for interval_start, interval_end in intervals:
+            grouped.setdefault((interval_start, interval_end), []).append(item)
+    return grouped
+
+
+def sync_statuses(connection, api: Any, symbols: Iterable, start_date: date, end_date: date, *, plans=None, progress: Callable | None = None, dry_run=False, run_id: str | None = None) -> SyncResult:
     if start_date > end_date: raise ValueError("start-date must not be later than end-date")
-    items = list(symbols); parameters = {"symbols": [item.canonical for item in items], "start_date": start_date.isoformat(), "end_date": end_date.isoformat()}
+    items = list(symbols)
+    grouped = plans if plans is not None else {(start_date, end_date): items}
+    entries = [
+        (interval_start, interval_end, interval_symbols[offset:offset + STATUS_BATCH_SIZE])
+        for (interval_start, interval_end), interval_symbols in grouped.items()
+        for offset in range(0, len(interval_symbols), STATUS_BATCH_SIZE)
+    ]
+    planned_count = sum(len(interval_symbols) for interval_symbols in grouped.values())
+    parameters = {"symbols": [item.canonical for item in items], "start_date": start_date.isoformat(), "end_date": end_date.isoformat()}
     if dry_run:
-        return SyncResult(run_id or "dry-run", "statuses", len(items), skipped=len(items))
+        return SyncResult(run_id or "dry-run", "statuses", planned_count, skipped=planned_count)
     completed: set[str] = set()
     if run_id:
         get_resumable_run(connection, run_id, "statuses", parameters)
         completed = completed_item_keys(connection, run_id)
     else: run_id = create_run(connection, "statuses", parameters, dry_run=dry_run)
     success = empty = skipped = failed = rows = retries = 0; failures = []
-    for offset in range(0, len(items), STATUS_BATCH_SIZE):
-        batch = items[offset:offset + STATUS_BATCH_SIZE]; key = ",".join(item.canonical for item in batch)
+    for interval_start, interval_end, batch in entries:
+        key = f"{interval_start}:{interval_end}:" + ",".join(item.canonical for item in batch)
         if key in completed:
             skipped += len(batch)
             continue
         try:
-            response, retry_count = _retry(lambda: api.get_history_instruments(symbols=[item.gm_symbol for item in batch], start_date=start_date.isoformat(), end_date=end_date.isoformat(), df=False)); retries += retry_count
+            response, retry_count = _retry(lambda: api.get_history_instruments(symbols=[item.gm_symbol for item in batch], start_date=interval_start.isoformat(), end_date=interval_end.isoformat(), df=False)); retries += retry_count
             values = [value for value in (_status_to_values(record, batch[0]) for record in _records(response)) if value]
             if not values:
-                empty += len(batch); record_item(connection, run_id, key, "empty", planned_start=start_date, planned_end=end_date); continue
+                empty += len(batch); record_item(connection, run_id, key, "empty", planned_start=interval_start, planned_end=interval_end); continue
             enriched = []
             for status, meta in values:
                 previous = connection.execute(
@@ -309,12 +398,14 @@ def sync_statuses(connection, api: Any, symbols: Iterable, start_date: date, end
                                               source_lower_limit=meta.source_lower_limit)
                 flags.update(limits.quality_flags)
                 enriched.append((status, replace(meta, quality_flags=frozenset(flags))))
-            for status, meta in enriched: upsert_security_status(connection, status)
+            upsert_security_statuses(connection, [status for status, _meta in enriched])
             upsert_daily_metadata(connection, [meta for _, meta in enriched]); rows += len(enriched); success += len(batch)
-            record_item(connection, run_id, key, "success", planned_start=start_date, planned_end=end_date, row_count=len(values))
+            record_item(connection, run_id, key, "success", planned_start=interval_start, planned_end=interval_end, row_count=len(values))
         except Exception as exc:
-            message = f"{type(exc).__name__}: {exc}"[:4000]; failed += len(batch); failures.append((key, message)); record_item(connection, run_id, key, "failed", planned_start=start_date, planned_end=end_date, error=message)
-    result = SyncResult(run_id, "statuses", len(items), success, empty, failed=failed, rows=rows, retries=retries, failures=tuple(failures))
+            message = f"{type(exc).__name__}: {exc}"[:4000]; failed += len(batch); failures.append((key, message)); record_item(connection, run_id, key, "failed", planned_start=interval_start, planned_end=interval_end, error=message)
+        if progress:
+            progress(success + empty + skipped + failed, planned_count)
+    result = SyncResult(run_id, "statuses", planned_count, success, empty, failed=failed, rows=rows, retries=retries, failures=tuple(failures))
     finish_run(connection, run_id, status=result.status, planned_count=result.planned, success_count=success, empty_count=empty, failure_count=failed, inserted_rows=rows, retry_count=retries, last_error=failures[-1][1] if failures else None)
     return result
 
@@ -326,10 +417,49 @@ def _open_days(connection, start_date: date, end_date: date) -> list[date]:
 
 
 def plan_daily_gaps(connection, symbols: Iterable, start_date: date, end_date: date) -> dict:
-    open_days = _open_days(connection, start_date, end_date); planned = {}
-    for symbol in symbols:
-        existing = {date.fromisoformat(row[0]) for row in connection.execute("SELECT trade_date FROM a_share_daily_bars WHERE stock_code=? AND adjustment='none' AND trade_date BETWEEN ? AND ?", (symbol.code, start_date.isoformat(), end_date.isoformat()))}
-        missing = [day for day in open_days if day not in existing]
+    open_days = _open_days(connection, start_date, end_date)
+    items = list(symbols)
+    wanted = {item.canonical for item in items}
+    bounds = {
+        row["symbol"]: (
+            date.fromisoformat(row["listed_date"]) if row["listed_date"] else None,
+            date.fromisoformat(row["delisted_date"]) if row["delisted_date"] else None,
+        )
+        for row in connection.execute(
+            "SELECT symbol,listed_date,delisted_date FROM a_share_security_master"
+        )
+        if row["symbol"] in wanted
+    }
+    suspended = {
+        (row["symbol"], date.fromisoformat(row["effective_date"]))
+        for row in connection.execute(
+            """SELECT symbol,effective_date
+               FROM a_share_security_status_history
+               WHERE is_suspended=1 AND effective_date BETWEEN ? AND ?""",
+            (start_date.isoformat(), end_date.isoformat()),
+        )
+        if row["symbol"] in wanted
+    }
+    existing_by_code: dict[str, set[date]] = {}
+    for row in connection.execute(
+        """SELECT stock_code,trade_date FROM a_share_daily_bars
+           WHERE adjustment='none' AND trade_date BETWEEN ? AND ?""",
+        (start_date.isoformat(), end_date.isoformat()),
+    ):
+        existing_by_code.setdefault(row["stock_code"], set()).add(
+            date.fromisoformat(row["trade_date"])
+        )
+    planned = {}
+    for symbol in items:
+        listed, delisted = bounds.get(symbol.canonical, (None, None))
+        expected = [
+            day for day in open_days
+            if (listed is None or listed <= day)
+            and (delisted is None or day < delisted)
+            and (symbol.canonical, day) not in suspended
+        ]
+        existing = existing_by_code.get(symbol.code, set())
+        missing = [day for day in expected if day not in existing]
         intervals = []
         for day in missing:
             if not intervals or day != intervals[-1][1] + timedelta(days=1): intervals.append([day, day])
@@ -351,44 +481,85 @@ def _daily_bars_from_frame(symbol, frame: Any) -> list[DailyBar]:
     return values
 
 
-def sync_daily(connection, api: Any, plans: Mapping, *, workers=DEFAULT_WORKERS, dry_run=False, run_id: str | None = None) -> SyncResult:
-    entries = [(symbol, start, end) for symbol, intervals in plans.items() for start, end in intervals]
-    parameters = {"intervals": [(symbol.canonical, start.isoformat(), end.isoformat()) for symbol, start, end in entries]}
+def _daily_bars_from_batch(symbols: Iterable, frame: Any) -> list[DailyBar]:
+    requested = {item.gm_symbol: item for item in symbols}
+    fallback = next(iter(requested.values())) if len(requested) == 1 else None
+    values = []
+    for record in _records(frame):
+        raw_symbol = _field(record, "symbol")
+        try:
+            symbol = normalize_symbol(raw_symbol) if raw_symbol else fallback
+        except (TypeError, ValueError):
+            continue
+        if symbol is None or symbol.gm_symbol not in requested:
+            continue
+        values.extend(_daily_bars_from_frame(symbol, [record]))
+    return values
+
+
+def sync_daily(connection, api: Any, plans: Mapping, *, workers=DEFAULT_WORKERS, progress: Callable | None = None, dry_run=False, run_id: str | None = None) -> SyncResult:
+    grouped: dict[tuple[date, date], list] = {}
+    for symbol, intervals in plans.items():
+        for start, end in intervals:
+            grouped.setdefault((start, end), []).append(symbol)
+    entries = [
+        (interval_symbols[offset:offset + DAILY_BATCH_SIZE], start, end)
+        for (start, end), interval_symbols in grouped.items()
+        for offset in range(0, len(interval_symbols), DAILY_BATCH_SIZE)
+    ]
+    parameters = {"intervals": [
+        (symbol.canonical, start.isoformat(), end.isoformat())
+        for (start, end), interval_symbols in grouped.items()
+        for symbol in interval_symbols
+    ]}
+    planned_count = sum(len(interval_symbols) for interval_symbols in grouped.values())
     if dry_run:
-        return SyncResult(run_id or "dry-run", "daily", len(entries), skipped=len(entries))
+        return SyncResult(run_id or "dry-run", "daily", planned_count, skipped=planned_count)
     completed: set[str] = set()
     if run_id:
         get_resumable_run(connection, run_id, "daily", parameters)
         completed = completed_item_keys(connection, run_id)
     else: run_id = create_run(connection, "daily", parameters, dry_run=dry_run)
     def fetch(entry):
-        symbol, start, end = entry
-        response, retry_count = _retry(lambda: api.history(symbol=symbol.gm_symbol, frequency="1d", start_time=f"{start.isoformat()} 09:30:00", end_time=f"{end.isoformat()} 15:00:00", fields="open,high,low,close,volume,amount,pre_close", adjust=0, df=True))
-        return entry, _daily_bars_from_frame(symbol, response), retry_count
+        batch, start, end = entry
+        response, retry_count = _retry(lambda: api.history(symbol=",".join(symbol.gm_symbol for symbol in batch), frequency="1d", start_time=f"{start.isoformat()}T09:30:00+08:00", end_time=f"{end.isoformat()}T15:00:00+08:00", fields="symbol,eob,open,high,low,close,volume,amount,pre_close", adjust=0, df=True))
+        return entry, _daily_bars_from_batch(batch, response), retry_count
     success = empty = skipped = failed = rows = retries = 0; failures = []
     with ThreadPoolExecutor(max_workers=_workers(workers), thread_name_prefix="first-limit-daily") as executor:
         futures = [executor.submit(fetch, entry) for entry in entries
-                   if f"{entry[0].canonical}:{entry[1]}:{entry[2]}" not in completed]
+                   if f"{entry[1]}:{entry[2]}:{','.join(symbol.canonical for symbol in entry[0])}" not in completed]
         for future in as_completed(futures):
             entry = None
             try:
-                entry, bars, retry_count = future.result(); retries += retry_count; symbol, start, end = entry; key = f"{symbol.canonical}:{start}:{end}"
+                entry, bars, retry_count = future.result(); retries += retry_count
+                batch, start, end = entry
+                key = f"{start}:{end}:{','.join(symbol.canonical for symbol in batch)}"
                 if not bars:
-                    empty += 1; record_item(connection, run_id, key, "empty", planned_start=start, planned_end=end); continue
-                existing_dates = {row[0] for row in connection.execute(
-                    "SELECT trade_date FROM a_share_daily_bars WHERE stock_code=? AND adjustment='none' AND trade_date BETWEEN ? AND ?",
-                    (symbol.code, start.isoformat(), end.isoformat()),
-                )}
+                    empty += len(batch); record_item(connection, run_id, key, "empty", planned_start=start, planned_end=end); continue
+                placeholders = ",".join("?" for _ in batch)
+                existing_dates = {
+                    (row["stock_code"], row["trade_date"])
+                    for row in connection.execute(
+                        f"""SELECT stock_code,trade_date
+                            FROM a_share_daily_bars
+                            WHERE adjustment='none'
+                              AND trade_date BETWEEN ? AND ?
+                              AND stock_code IN ({placeholders})""",
+                        (start.isoformat(), end.isoformat(), *(item.code for item in batch)),
+                    )
+                }
                 missing_only = [bar for bar in bars if start <= _parse_date(bar.trade_date) <= end
-                                and str(bar.trade_date) not in existing_dates]
+                                and (bar.stock_code, str(bar.trade_date)) not in existing_dates]
                 if not missing_only:
-                    skipped += 1; record_item(connection, run_id, key, "skipped", planned_start=start, planned_end=end); continue
-                write = upsert_daily_bars(connection, missing_only); success += 1; rows += write.affected_count
+                    skipped += len(batch); record_item(connection, run_id, key, "skipped", planned_start=start, planned_end=end); continue
+                write = upsert_daily_bars(connection, missing_only); success += len(batch); rows += write.affected_count
                 record_item(connection, run_id, key, "success", planned_start=start, planned_end=end, row_count=write.affected_count)
             except Exception as exc:
-                key = "unknown" if entry is None else f"{entry[0].canonical}:{entry[1]}:{entry[2]}"; message = f"{type(exc).__name__}: {exc}"[:4000]
-                failed += 1; failures.append((key, message)); record_item(connection, run_id, key, "failed", error=message)
-    result = SyncResult(run_id, "daily", len(entries), success=success, empty=empty, skipped=skipped, failed=failed,
+                key = "unknown" if entry is None else f"{entry[1]}:{entry[2]}:{','.join(symbol.canonical for symbol in entry[0])}"; message = f"{type(exc).__name__}: {exc}"[:4000]
+                failed += 1 if entry is None else len(entry[0]); failures.append((key, message)); record_item(connection, run_id, key, "failed", error=message)
+            if progress:
+                progress(success + empty + skipped + failed, planned_count)
+    result = SyncResult(run_id, "daily", planned_count, success=success, empty=empty, skipped=skipped, failed=failed,
                         rows=rows, retries=retries, failures=tuple(failures))
     finish_run(connection, run_id, status=result.status, planned_count=result.planned, success_count=success, empty_count=empty, skipped_count=skipped, failure_count=failed, inserted_rows=rows, retry_count=retries, last_error=failures[-1][1] if failures else None)
     return result
@@ -405,6 +576,23 @@ def _minute_from_frame(symbol, frame: Any) -> list[MinuteBar]:
             values.append(MinuteBar(symbol, stamp, float(_field(record, "open")), float(_field(record, "high")), float(_field(record, "low")), float(_field(record, "close")), float(_field(record, "volume") or 0), float(_field(record, "amount")) if _field(record, "amount") is not None else None))
         except (TypeError, ValueError): continue
     return values
+
+
+def _minute_request_windows(start_date: date, end_date: date):
+    """Yield bounded session chunks; GM may truncate long 60-second queries."""
+    day = start_date
+    while day <= end_date:
+        for start_clock, end_clock in (
+            ("09:30:00", "10:30:00"),
+            ("10:30:00", "11:30:00"),
+            ("13:00:00", "14:00:00"),
+            ("14:00:00", "15:00:00"),
+        ):
+            yield (
+                f"{day.isoformat()}T{start_clock}+08:00",
+                f"{day.isoformat()}T{end_clock}+08:00",
+            )
+        day += timedelta(days=1)
 
 
 def sync_minutes(connection, api: Any, symbols: Iterable, start_date: date, end_date: date, *, dry_run=False, allow_large_run=False, run_id: str | None = None) -> SyncResult:
@@ -428,8 +616,22 @@ def sync_minutes(connection, api: Any, symbols: Iterable, start_date: date, end_
             skipped += 1
             continue
         try:
-            frame, retry_count = _retry(lambda: api.history(symbol=symbol.gm_symbol, frequency="60s", start_time=f"{start_date.isoformat()} 09:30:00", end_time=f"{end_date.isoformat()} 15:00:00", fields="open,high,low,close,volume,amount", adjust=0, df=True)); retries += retry_count
-            bars = _minute_from_frame(symbol, frame)
+            by_moment = {}
+            for window_start, window_end in _minute_request_windows(
+                start_date, end_date
+            ):
+                frame, retry_count = _retry(
+                    lambda start=window_start, end=window_end: api.history(
+                        symbol=symbol.gm_symbol, frequency="60s",
+                        start_time=start, end_time=end,
+                        fields="eob,open,high,low,close,volume,amount",
+                        adjust=0, df=True,
+                    )
+                )
+                retries += retry_count
+                for bar in _minute_from_frame(symbol, frame):
+                    by_moment[bar.bar_time] = bar
+            bars = [by_moment[moment] for moment in sorted(by_moment)]
             if not bars: empty += 1; record_item(connection, run_id, key, "empty", planned_start=start_date, planned_end=end_date); continue
             rows += upsert_minute_bars(connection, bars); success += 1; record_item(connection, run_id, key, "success", planned_start=start_date, planned_end=end_date, row_count=len(bars))
         except Exception as exc:

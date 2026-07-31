@@ -29,6 +29,7 @@ class Candidate(StrictModel):
     run_id: str
     first_limit_event_id: int
     symbol: str
+    security_name: str | None = None
     trade_date: date
     stage: Stage
     as_of: datetime

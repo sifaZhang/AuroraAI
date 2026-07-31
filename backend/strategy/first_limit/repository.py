@@ -69,20 +69,36 @@ def upsert_security_master(connection: sqlite3.Connection, item: SecurityMaster,
 
 
 def upsert_security_status(connection: sqlite3.Connection, item: SecurityStatus, updated_at=None) -> None:
+    upsert_security_statuses(connection, [item], updated_at=updated_at)
+
+
+def upsert_security_statuses(connection: sqlite3.Connection, items: Iterable[SecurityStatus], updated_at=None) -> int:
     now = _timestamp(updated_at)
+    records = list(items)
+    values = [
+        (
+            item.symbol.canonical, _date(item.effective_date),
+            item.board_type.value,
+            None if item.is_st is None else int(item.is_st),
+            None if item.is_suspended is None else int(item.is_suspended),
+            None if item.no_price_limit is None else int(item.no_price_limit),
+            _date(item.listed_date) if item.listed_date else None,
+            _date(item.delisted_date) if item.delisted_date else None,
+            item.source.value, _flags(item.quality_flags), now,
+        )
+        for item in records
+    ]
     with connection:
-        connection.execute(
+        connection.executemany(
             """INSERT INTO a_share_security_status_history(symbol,effective_date,board_type,is_st,is_suspended,no_price_limit,listed_date,delisted_date,source,quality_flags,updated_at)
                VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(symbol,effective_date) DO UPDATE SET
                board_type=excluded.board_type,is_st=excluded.is_st,is_suspended=excluded.is_suspended,no_price_limit=excluded.no_price_limit,
                listed_date=COALESCE(excluded.listed_date,a_share_security_status_history.listed_date),
                delisted_date=COALESCE(excluded.delisted_date,a_share_security_status_history.delisted_date),source=excluded.source,
                quality_flags=excluded.quality_flags,updated_at=excluded.updated_at""",
-            (item.symbol.canonical, _date(item.effective_date), item.board_type.value,
-             None if item.is_st is None else int(item.is_st), None if item.is_suspended is None else int(item.is_suspended),
-             None if item.no_price_limit is None else int(item.no_price_limit), _date(item.listed_date) if item.listed_date else None,
-             _date(item.delisted_date) if item.delisted_date else None, item.source.value, _flags(item.quality_flags), now),
+            values,
         )
+    return len(records)
 
 
 def get_security_status_as_of(connection: sqlite3.Connection, symbol: SecurityId | object, day: date | str) -> SecurityStatus | None:

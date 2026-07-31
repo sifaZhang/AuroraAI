@@ -63,6 +63,7 @@
       <div id="pipeline-step-list" class="pipeline-step-list"></div>
       <p id="pipeline-coverage-note" class="state-note"></p>
       <button id="pipeline-retry" type="button" class="secondary-button" hidden>重试未完成步骤</button>
+      <button id="pipeline-cancel" type="button" class="secondary-button" hidden>停止任务</button>
     </section>
   </section>
 
@@ -111,8 +112,8 @@
       </div>
       <div class="table-region first-limit-table-wrap">
         <table class="first-limit-table">
-          <thead><tr><th>等级</th><th>股票</th><th>观察日</th><th>生命周期</th><th>阶段</th><th>首板日期</th><th>核心结论</th><th>变化</th><th>评价时间</th><th>操作</th></tr></thead>
-          <tbody id="candidate-rows"><tr><td colspan="10" class="empty-state">正在加载候选…</td></tr></tbody>
+          <thead><tr><th>等级</th><th>分数</th><th>股票</th><th>事件 ID</th><th>观察日</th><th>生命周期</th><th>阶段</th><th>首板日期</th><th>核心结论</th><th>变化</th><th>评价时间</th><th>操作</th></tr></thead>
+          <tbody id="candidate-rows"><tr><td colspan="12" class="empty-state">正在加载候选…</td></tr></tbody>
         </table>
       </div>
       <div class="pager"><button id="candidate-prev" type="button">上一页</button><span id="candidate-page-label">第 1 页</span><button id="candidate-next" type="button">下一页</button></div>
