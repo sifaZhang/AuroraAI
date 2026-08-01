@@ -395,6 +395,7 @@ When **ALL** of the following are true:
 * `PROJECT_STATUS.md` has been updated to reflect the completed work.
 * The final summary has been prepared.
 * No further file modifications are required.
+* The notification command must be executed only AFTER the final response has been completely generated and no further tool calls or text output will occur. It must be the last executable action of the entire task.
 
 Run the following command as the **final action** of the task:
 

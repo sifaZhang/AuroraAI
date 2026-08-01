@@ -15,6 +15,7 @@ from .industry_snapshots import (
     IndustrySnapshotRepository, build_industry_daily_snapshots,
     build_industry_snapshot_range,
 )
+from backend.industry import IndustryScoreRepository, IndustryService, build_industry_scores, build_industry_score_range
 from backend.expectation_gap.database import connect, connect_readonly, migrate
 
 
@@ -88,6 +89,11 @@ def main(argv: list[str] | None = None) -> int:
     query_snapshots.add_argument("--date", type=date.fromisoformat, required=True)
     query_snapshots.add_argument("--level", type=int, choices=(1, 2, 3))
     query_snapshots.add_argument("--limit", type=int, default=20)
+    scores = commands.add_parser("build-industry-scores")
+    score_dates=scores.add_mutually_exclusive_group(required=True);score_dates.add_argument("--date",type=date.fromisoformat);score_dates.add_argument("--start-date",type=date.fromisoformat)
+    scores.add_argument("--end-date",type=date.fromisoformat);scores.add_argument("--level",choices=("1","2","3","all"),default="all");scores.add_argument("--dry-run",action="store_true");scores.add_argument("--force",action="store_true")
+    db_scores=commands.add_parser("db-industry-scores");db_scores.add_argument("--date",type=date.fromisoformat,required=True);db_scores.add_argument("--level",type=int,choices=(1,2,3));db_scores.add_argument("--limit",type=int,default=20)
+    db_context=commands.add_parser("db-symbol-industry-context");db_context.add_argument("--symbol",required=True);db_context.add_argument("--date",type=date.fromisoformat,required=True)
     args = parser.parse_args(argv)
     if args.command == "industry-health":
         _print([asdict(item) for item in get_data_source_health()])
@@ -159,6 +165,21 @@ def main(argv: list[str] | None = None) -> int:
         finally:
             if "connection" in locals():
                 connection.close()
+    if args.command == "build-industry-scores":
+        if args.start_date and not args.end_date: parser.error("--end-date is required with --start-date")
+        levels=(1,2,3) if args.level=="all" else (int(args.level),);connection=connect_readonly() if args.dry_run else connect()
+        try:
+            if not args.dry_run:migrate(connection)
+            value=build_industry_scores(connection=connection,trade_date=args.date,levels=levels,dry_run=args.dry_run,force=args.force) if args.date else build_industry_score_range(connection=connection,start_date=args.start_date,end_date=args.end_date,levels=levels,dry_run=args.dry_run,force=args.force)
+            _print(asdict(value) if args.date else [asdict(x) for x in value]);failed=value.failed_count if args.date else sum(x.failed_count for x in value);scored=value.scored_count if args.date else sum(x.scored_count for x in value);return 2 if failed and not scored else 1 if failed else 0
+        finally:connection.close()
+    if args.command in {"db-industry-scores","db-symbol-industry-context"}:
+        connection=connect_readonly()
+        try:
+            if args.command=="db-industry-scores":items=IndustryScoreRepository(connection).list_scores(args.date,args.level);_print([asdict(x) for x in items[:max(0,args.limit)]])
+            else:_print(asdict(IndustryService(connection).get_symbol_industry_context(args.symbol,args.date)))
+            return 0
+        finally:connection.close()
     if args.command in {"db-symbol-industry", "db-industry-constituents"}:
         try:
             connection = connect_readonly()
