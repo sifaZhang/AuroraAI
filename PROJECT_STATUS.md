@@ -1,5 +1,17 @@
 # AuroraAI 项目状态
 
+## 2026-08-02：PR6.13A 最终验收完成
+
+- 有效行业五类回退场景、候选生成到 `daily_candidate_evidence` 的真实持久化与重读均已覆盖；候选总分未改变。
+- 026 仅增加六个高频查询字段，并已通过全新临时库、旧候选表升级及四张既有表哨兵数据保持验证。
+- 旧行业分不再进入新候选主流程；本次未联网、未调用 Provider、未写正式数据库，PR6.13B 尚未开始。
+
+## 2026-08-02：PR6.13A 首板 IndustryService 上下文（已实现，待提交）
+
+- 新增完整正式评分日期查询、三级到一级有效行业回退及 `FirstLimitIndustryContext`。
+- 026 迁移仅扩展候选高频行业代码/状态字段；不写正式业务库。
+- 已停用候选服务对旧 `first_limit_context_scores.industry_score` 的 `SECTOR_ENVIRONMENT` 依赖，为 PR6.13B 尾盘估算和候选评分提供入口。
+
 ## 2026-08-01：PR5.14 板块雷达每日增量刷新（已实现，待提交）
 
 - 新增统一 `IndustryRadarRefreshService`，由 CLI、API、页面自动检查和手动按钮共用；使用本地 SQLite 优先、交易日历展开断档，并按日期升序补齐快照和 `industry_score_v1` 评分。

@@ -221,6 +221,8 @@ def _event_inputs(connection, event, params, minute_provider):
 
 
 def review_event(connection, event, params, minute_provider=None):
+    from .industry_context import build_first_limit_industry_context
+
     provider = minute_provider or (
         lambda symbol, start, end: cached_minute_provider(
             connection, symbol, start, end
@@ -264,6 +266,13 @@ def review_event(connection, event, params, minute_provider=None):
         ),
         "lookahead_check": "providers_bounded_by_as_of_and_data_cutoff",
     }
+    industry_context = build_first_limit_industry_context(
+        connection,
+        event["symbol"],
+        date.fromisoformat(event["trade_date"]),
+        date.fromisoformat(params["trade_date"]),
+    )
+    audit["industry_context"] = industry_context.evidence()
     return decision, preview, change, audit
 
 

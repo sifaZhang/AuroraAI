@@ -252,18 +252,8 @@ def evaluate_candidate(
                 reason="BEARISH_HIGH_VOLUME_BAR" if bearish else None
             ))
 
-    if context is None or context.get("industry_score") is None:
-        evidence.append(ev(
-            "SECTOR_ENVIRONMENT", "unknown", reason="SECTOR_CONTEXT_MISSING"
-        ))
-    else:
-        industry_score = d(context["industry_score"])
-        retreat = industry_score <= Decimal("8")
-        evidence.append(ev(
-            "SECTOR_ENVIRONMENT", "fail" if retreat else "pass",
-            industry_score, Decimal("8"), "score", context.get("observation_date"),
-            reason="SECTOR_RETREAT" if retreat else None
-        ))
+    # PR6.13A removes the obsolete sector-score dependency. IndustryService context
+    # is attached by the caller for subsequent candidate scoring phases.
 
     score = d(context.get("daily_base_score")) if context else None
     classification = context.get("classification") if context else None

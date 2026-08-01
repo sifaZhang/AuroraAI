@@ -31,3 +31,9 @@ class SymbolIndustryContext:
     level3_score: float | None; level3_rank: int | None; level3_total: int | None
     level3_confidence: str | None; level3_price_volume_state: str | None
     level2_snapshot: dict | None; level3_snapshot: dict | None; industry_context_status: str
+
+@dataclass(frozen=True)
+class EffectiveIndustryContext:
+    effective_level: int | None; effective_industry_code: str | None; effective_industry_name: str | None
+    effective_score: float | None; effective_rank: int | None; effective_total: int | None
+    effective_confidence: str | None; fallback_reason: str | None; status: str

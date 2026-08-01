@@ -5,6 +5,12 @@ look-ahead-prone inputs indeterminate/approximate instead of manufacturing a sco
 """
 from __future__ import annotations
 from dataclasses import dataclass
+"""Deprecated PR6.5 context components.
+
+Kept for historical scoring/replay callers only.  The PR6.13A daily-candidate
+path obtains industry context exclusively through IndustryService.
+"""
+
 from decimal import Decimal
 
 VERSION='first_limit_context_v1'; DAILY_MAX=Decimal('90')

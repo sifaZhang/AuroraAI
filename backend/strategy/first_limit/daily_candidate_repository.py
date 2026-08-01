@@ -256,13 +256,18 @@ def save_candidate(
     strategy_version, preview, change_type, audit,
 ):
     stamp = now()
+    industry = audit.get("industry_context") or {}
+    membership = industry.get("membership") or {}
+    effective = industry.get("effective") or {}
     cursor = connection.execute(
         """INSERT INTO daily_candidate_snapshots(
              run_id,first_limit_event_id,trade_date,stage,symbol,observation_day,
              lifecycle_status,candidate_grade,score,preview_candidate_id,change_type,
              detection_version,pullback_version,context_version,strategy_version,
-             primary_reasons_json,audit_json,created_at,updated_at)
-           VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+             primary_reasons_json,audit_json,created_at,updated_at,
+             sw_level1_code,sw_level2_code,sw_level3_code,
+             effective_industry_level,effective_industry_code,industry_context_status)
+           VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             run_id, event["id"], trade_date, stage, event["symbol"],
             decision.observation_day, decision.lifecycle_status,
@@ -271,6 +276,9 @@ def save_candidate(
             preview["id"] if preview else None, change_type,
             versions["detection"], versions["pullback"], versions["context"],
             strategy_version, dump(decision.primary_reasons), dump(audit), stamp, stamp,
+            membership.get("level1_code"), membership.get("level2_code"),
+            membership.get("level3_code"), effective.get("effective_level"),
+            effective.get("effective_industry_code"), industry.get("status"),
         ),
     )
     candidate_id = cursor.lastrowid
@@ -286,6 +294,21 @@ def save_candidate(
                 dump(evidence.threshold_value) if evidence.threshold_value is not None else None,
                 evidence.unit, evidence.source_date, evidence.source_time,
                 evidence.reason_code, evidence.display_text, ordinal,
+            ),
+        )
+    if industry:
+        connection.execute(
+            """INSERT INTO daily_candidate_evidence(
+                 candidate_id,rule_code,result,actual_value,threshold_value,unit,
+                 source_date,source_time,reason_code,display_text,ordinal)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                candidate_id, "INDUSTRY_CONTEXT",
+                "pass" if industry.get("status") == "complete" else "unknown",
+                dump(industry), None, None,
+                str(industry.get("first_limit_score_date") or "") or None,
+                None, industry.get("status"), "首板行业上下文",
+                len(decision.evidence),
             ),
         )
     return candidate_id

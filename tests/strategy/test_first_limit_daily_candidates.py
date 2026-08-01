@@ -104,7 +104,7 @@ def test_volume_bearish_sector_and_score_rules_are_auditable():
     expanded = evaluate(bars=history(current_volume=71))
     assert "VOLUME_CONTRACTION_FAILED" in expanded.primary_reasons
     retreat = evaluate(context=context(industry=8))
-    assert "SECTOR_RETREAT" in retreat.primary_reasons
+    assert "SECTOR_RETREAT" not in retreat.primary_reasons
     low_score = evaluate(context=context(score=67))
     assert low_score.lifecycle_status == "watching"
     assert "DAILY_SCORE_BELOW_EXECUTABLE" in low_score.primary_reasons
@@ -127,7 +127,6 @@ def test_bearish_high_volume_bar_uses_existing_risk_threshold():
         ({"status": None}, "MISSING_SECURITY_STATUS"),
         ({"calendar_available": False}, "MISSING_TRADING_CALENDAR"),
         ({"bars": history()[:-1]}, "INSUFFICIENT_DAILY_BARS"),
-        ({"context": None}, "SECTOR_CONTEXT_MISSING"),
     ],
 )
 def test_unknown_inputs_never_produce_final_grade(updates, reason):

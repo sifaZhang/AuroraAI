@@ -34,6 +34,7 @@ FIRST_LIMIT_PIPELINE_JOBS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migratio
 CURRENT_SW_INDUSTRY_SNAPSHOT_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "023_current_sw_industry_snapshot.sql"
 INDUSTRY_DAILY_SNAPSHOTS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "024_industry_daily_snapshots.sql"
 INDUSTRY_DAILY_SCORES_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "025_industry_daily_scores.sql"
+FIRST_LIMIT_INDUSTRY_CONTEXT_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "026_first_limit_industry_context.sql"
 MIGRATION_LOCK = threading.RLock()
 WRITE_JOB_LOCK = threading.RLock()
 SQLITE_TIMEOUT_SECONDS = 30
@@ -142,6 +143,9 @@ def _migrate_unlocked(connection: sqlite3.Connection) -> None:
     connection.executescript(CURRENT_SW_INDUSTRY_SNAPSHOT_MIGRATION_PATH.read_text(encoding="utf-8"))
     connection.executescript(INDUSTRY_DAILY_SNAPSHOTS_MIGRATION_PATH.read_text(encoding="utf-8"))
     connection.executescript(INDUSTRY_DAILY_SCORES_MIGRATION_PATH.read_text(encoding="utf-8"))
+    candidate_columns = {row[1] for row in connection.execute("PRAGMA table_info(daily_candidate_snapshots)")}
+    if "effective_industry_code" not in candidate_columns:
+        connection.executescript(FIRST_LIMIT_INDUSTRY_CONTEXT_MIGRATION_PATH.read_text(encoding="utf-8"))
     security_columns = {row[1] for row in connection.execute("PRAGMA table_info(a_share_security_master)")}
     if "is_active" not in security_columns:
         connection.execute("ALTER TABLE a_share_security_master ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1))")

@@ -2,7 +2,7 @@ from __future__ import annotations
 import json
 from dataclasses import asdict
 from datetime import date,timedelta
-from .models import SymbolIndustryContext,SCORE_VERSION
+from .models import SymbolIndustryContext,SCORE_VERSION,EffectiveIndustryContext
 from .repository import IndustryScoreRepository
 
 SORTS={"score":"total_score","return":"equal_weight_return","median_return":"median_return","rise_ratio":"rise_ratio","limit_up":"limit_up_count","first_limit":"first_limit_count","turnover":"turnover_amount","turnover_ratio_5d":"turnover_ratio_5d","turnover_ratio_20d":"turnover_ratio_20d","coverage":"coverage_ratio"}
@@ -10,6 +10,31 @@ class IndustryService:
  def __init__(self,connection):self.connection=connection;self.scores=IndustryScoreRepository(connection)
  def latest_date(self):
   r=self.connection.execute("SELECT MAX(trade_date) FROM industry_daily_scores WHERE score_version=?",(SCORE_VERSION,)).fetchone();return r[0]
+ def is_score_complete(self,trade_date,score_version=SCORE_VERSION):
+  counts={int(r[0]):int(r[1]) for r in self.connection.execute("SELECT industry_level,COUNT(*) FROM industry_nodes GROUP BY industry_level")}
+  snap={int(r[0]):int(r[1]) for r in self.connection.execute("SELECT industry_level,COUNT(*) FROM industry_daily_snapshots WHERE trade_date=? GROUP BY industry_level",(str(trade_date),))}
+  score={int(r[0]):int(r[1]) for r in self.connection.execute("SELECT industry_level,COUNT(*) FROM industry_daily_scores WHERE trade_date=? AND score_version=? GROUP BY industry_level",(str(trade_date),score_version))}
+  return all(counts.get(x,0)>0 and counts.get(x)==snap.get(x)==score.get(x) for x in (1,2,3))
+ def get_nearest_score_date(self,trade_date,*,direction='previous',score_version=SCORE_VERSION):
+  if direction not in {'previous','next'}:raise ValueError('direction must be previous or next')
+  op='<' if direction=='previous' else '>';order='DESC' if direction=='previous' else 'ASC'
+  for r in self.connection.execute(f"SELECT DISTINCT trade_date FROM industry_daily_scores WHERE score_version=? AND trade_date{op}? ORDER BY trade_date {order}",(score_version,str(trade_date))):
+   if self.is_score_complete(r[0],score_version):return date.fromisoformat(r[0])
+  return None
+ def get_latest_score_date(self,score_version=SCORE_VERSION):
+  for r in self.connection.execute("SELECT DISTINCT trade_date FROM industry_daily_scores WHERE score_version=? ORDER BY trade_date DESC",(score_version,)):
+   if self.is_score_complete(r[0],score_version):return date.fromisoformat(r[0])
+  return None
+ def get_previous_score_date(self,trade_date,score_version=SCORE_VERSION):return self.get_nearest_score_date(trade_date,direction='previous',score_version=score_version)
+ def get_next_score_date(self,trade_date,score_version=SCORE_VERSION):return self.get_nearest_score_date(trade_date,direction='next',score_version=score_version)
+ def get_effective_industry_context(self,symbol,trade_date,*,context_type='official_close',score_version=SCORE_VERSION):
+  m=self.get_symbol_membership(symbol)
+  if not m:return EffectiveIndustryContext(None,None,None,None,None,None,None,None,'unavailable')
+  for level in (3,2,1):
+   code=m[f'level{level}_code']; score=self.get_industry_score(trade_date,code,score_version); snap=self.get_industry_snapshot(trade_date,code)
+   if score and snap and (level==1 or (score.confidence in {'high','medium'} and snap.get('valid_bar_count',0)>=8 and snap.get('coverage_ratio',0)>=.8)):
+    return EffectiveIndustryContext(level,code,m[f'level{level}_name'],score.total_score,score.rank_in_level,score.industry_count_in_level,score.confidence,None if level==3 else f'level{level+1}_insufficient','complete')
+  return EffectiveIndustryContext(None,None,None,None,None,None,None,'all_levels_insufficient','unavailable')
  def get_symbol_membership(self,symbol):
   r=self.connection.execute("SELECT * FROM industry_memberships_current WHERE symbol=?",(symbol.upper(),)).fetchone();return dict(r) if r else None
  def get_industry_snapshot(self,trade_date,code):

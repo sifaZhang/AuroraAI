@@ -24,6 +24,28 @@ def database(tmp_path, name="daily-candidates.db"):
     return connection
 
 
+def seed_industry_context(connection, symbol="000001.SZ"):
+    for level, code, parent in ((1, "L1", None), (2, "L2", "L1"), (3, "L3", "L2")):
+        connection.execute(
+            "INSERT INTO industry_nodes VALUES('SW','2021',?,?,?,?,?,'2026-07-22')",
+            (code, f"行业{level}", level, parent, "test"),
+        )
+    connection.execute(
+        "INSERT INTO industry_memberships_current VALUES('SW','2021',?,?,?,?,?,?,?,?,'2026-07-22')",
+        (symbol, "L1", "行业1", "L2", "行业2", "L3", "行业3", "test"),
+    )
+    for day, score in (("2026-07-19", 41), ("2026-07-20", 63)):
+        for level, code in ((1, "L1"), (2, "L2"), (3, "L3")):
+            connection.execute(
+                "INSERT INTO industry_daily_snapshots VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (day,"SW","2021",code,level,8,8,8,0,0,1,1,1,1,0,0,1,0,1,0,0,0,None,None,1,1,"complete","{}",NOW),
+            )
+            connection.execute(
+                "INSERT INTO industry_daily_scores VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (day,"SW","2021",code,level,score,1,1,1,1,1,1,1,None,None,None,"neutral",20,1,1,1,"high","industry_score_v1","{}",NOW),
+            )
+
+
 def seed_bar(connection, symbol, day, o=10.4, h=10.6, low=10, close=10.5, volume=50):
     connection.execute(
         """INSERT INTO a_share_daily_bars(
@@ -139,6 +161,40 @@ def test_close_runner_persists_evidence_stable_reports_and_idempotent_replay(tmp
     assert connection.execute(
         "SELECT COUNT(*) FROM daily_candidate_snapshots"
     ).fetchone()[0] == 1
+
+
+def test_candidate_path_persists_and_reloads_industry_context_evidence(tmp_path):
+    connection = database(tmp_path, "industry-evidence.db")
+    seed_source(connection)
+    seed_industry_context(connection)
+    result = run_daily_candidates(connection, run_id="industry-context", **kwargs())
+    assert result["status"] == "success"
+    snapshot = connection.execute(
+        "SELECT * FROM daily_candidate_snapshots WHERE run_id='industry-context'"
+    ).fetchone()
+    assert tuple(snapshot[key] for key in (
+        "sw_level1_code", "sw_level2_code", "sw_level3_code",
+        "effective_industry_level", "effective_industry_code", "industry_context_status",
+    )) == ("L1", "L2", "L3", 3, "L3", "complete")
+    stored = connection.execute(
+        "SELECT actual_value FROM daily_candidate_evidence WHERE candidate_id=? AND rule_code='INDUSTRY_CONTEXT'",
+        (snapshot["id"],),
+    ).fetchone()
+    evidence = json.loads(stored["actual_value"])
+    assert evidence["membership"] == {
+        "classification": "SW", "classification_version": "2021", "symbol": "000001.SZ",
+        "level1_code": "L1", "level1_name": "行业1", "level2_code": "L2",
+        "level2_name": "行业2", "level3_code": "L3", "level3_name": "行业3",
+        "source": "test", "updated_at": "2026-07-22",
+    }
+    assert evidence["effective"]["effective_level"] == 3
+    assert evidence["effective"]["effective_industry_code"] == "L3"
+    assert evidence["effective"]["effective_industry_name"] == "行业3"
+    assert evidence["first_limit_score"] == 63 and evidence["first_limit_rank"] == 1
+    assert evidence["previous_score"] == 63 and evidence["previous_rank"] == 1
+    assert evidence["status"] == "complete"
+    assert evidence["effective"]["effective_confidence"] == "high"
+    assert evidence["effective"]["fallback_reason"] is None
 
 
 def test_tail_preview_is_immutable_bounded_and_close_is_newly_qualified(tmp_path):
