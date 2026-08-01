@@ -251,6 +251,15 @@ def delete_candidate(connection, run_id, event_id):
     )
 
 
+def is_persistable_scoring(scoring):
+    """PR6.13B formal snapshots contain S/A/B only; exclusions never persist."""
+    return bool(
+        scoring
+        and scoring.get("grade") in {"S", "A", "B"}
+        and not scoring.get("hard_exclusions")
+    )
+
+
 def save_candidate(
     connection, run_id, event, trade_date, stage, decision, versions,
     strategy_version, preview, change_type, audit,
@@ -259,6 +268,12 @@ def save_candidate(
     industry = audit.get("industry_context") or {}
     membership = industry.get("membership") or {}
     effective = industry.get("effective") or {}
+    scoring = audit.get("candidate_scoring") or {}
+    intraday = scoring.get("INTRADAY_INDUSTRY_ESTIMATE") or {}
+    capital = scoring.get("CAPITAL_ACTIVITY") or {}
+    leader = scoring.get("LEADER_SCORE") or {}
+    environment = scoring.get("INDUSTRY_ENVIRONMENT") or {}
+    candidate_score = scoring.get("CANDIDATE_SCORE") or {}
     cursor = connection.execute(
         """INSERT INTO daily_candidate_snapshots(
              run_id,first_limit_event_id,trade_date,stage,symbol,observation_day,
@@ -266,8 +281,10 @@ def save_candidate(
              detection_version,pullback_version,context_version,strategy_version,
              primary_reasons_json,audit_json,created_at,updated_at,
              sw_level1_code,sw_level2_code,sw_level3_code,
-             effective_industry_level,effective_industry_code,industry_context_status)
-           VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+             effective_industry_level,effective_industry_code,industry_context_status,
+             effective_score,effective_rank,capital_activity_score,leader_score,
+             industry_trend_score,industry_environment_score,buy_recommendation,scoring_version)
+           VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             run_id, event["id"], trade_date, stage, event["symbol"],
             decision.observation_day, decision.lifecycle_status,
@@ -279,6 +296,10 @@ def save_candidate(
             membership.get("level1_code"), membership.get("level2_code"),
             membership.get("level3_code"), effective.get("effective_level"),
             effective.get("effective_industry_code"), industry.get("status"),
+            intraday.get("intraday_score"), intraday.get("intraday_rank"),
+            capital.get("score"), leader.get("score"),
+            environment.get("trend", {}).get("score"), environment.get("score"),
+            candidate_score.get("buy_recommendation"), candidate_score.get("version"),
         ),
     )
     candidate_id = cursor.lastrowid
@@ -311,11 +332,29 @@ def save_candidate(
                 len(decision.evidence),
             ),
         )
+    for code in (
+        "INTRADAY_INDUSTRY_ESTIMATE", "CAPITAL_ACTIVITY", "LEADER_SCORE",
+        "INDUSTRY_ENVIRONMENT", "CANDIDATE_SCORE",
+    ):
+        payload = scoring.get(code)
+        if payload is None:
+            continue
+        connection.execute(
+            """INSERT INTO daily_candidate_evidence(
+                 candidate_id,rule_code,result,actual_value,threshold_value,unit,
+                 source_date,source_time,reason_code,display_text,ordinal)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+            (candidate_id, code, "pass" if payload.get("status", "complete") == "complete" else "unknown",
+             dump(payload), None, None, str(payload.get("trade_date") or "") or None,
+             str(payload.get("as_of_time") or "") or None, payload.get("status"), code,
+             len(decision.evidence) + 1 + list(scoring).index(code)),
+        )
     return candidate_id
 
 
 def save_item(
-    connection, run_id, event_id, symbol, status, candidate_id=None, error=None
+    connection, run_id, event_id, symbol, status, candidate_id=None, error=None,
+    reason_codes=(),
 ):
     stamp = now()
     previous = connection.execute(
@@ -336,8 +375,9 @@ def save_item(
              updated_at=excluded.updated_at""",
         (
             run_id, event_id, symbol, status, candidate_id, attempt,
-            type(error).__name__ if error else None,
-            str(error)[:1000] if error else None, stamp, stamp, stamp,
+            type(error).__name__ if error else ("Eliminated" if reason_codes else None),
+            str(error)[:1000] if error else (dump(list(reason_codes)) if reason_codes else None),
+            stamp, stamp, stamp,
         ),
     )
 
@@ -362,14 +402,33 @@ def finish_run(connection, run_id, forced_status=None, error=None):
         else "success"
     )
     stamp = now()
+    grades = {row[0]: row[1] for row in connection.execute(
+        "SELECT candidate_grade,COUNT(*) FROM daily_candidate_snapshots WHERE run_id=? GROUP BY candidate_grade",
+        (run_id,),
+    )}
+    reason_counts = {}
+    for row in connection.execute(
+        "SELECT last_error FROM daily_candidate_items WHERE run_id=? AND error_type='Eliminated'",
+        (run_id,),
+    ):
+        for reason in json.loads(row[0] or "[]"):
+            reason_counts[reason] = reason_counts.get(reason, 0) + 1
+    summary = {
+        "scanned_count": planned,
+        "candidate_count": sum(grades.get(key, 0) for key in ("S", "A", "B")),
+        "s_count": grades.get("S", 0), "a_count": grades.get("A", 0),
+        "b_count": grades.get("B", 0),
+        "eliminated_count": planned - sum(grades.get(key, 0) for key in ("S", "A", "B")),
+        "elimination_reason_counts": reason_counts,
+    }
     connection.execute(
         """UPDATE daily_candidate_runs SET status=?,success_count=?,
                   indeterminate_count=?,skipped_count=?,failure_count=?,last_error=?,
-                  finished_at=?,updated_at=? WHERE run_id=?""",
+                  finished_at=?,updated_at=?,summary_json=? WHERE run_id=?""",
         (
             status, counts["success"], counts["indeterminate"], counts["skipped"],
             counts["failed"], str(error)[:1000] if error else None,
-            stamp, stamp, run_id,
+            stamp, stamp, dump(summary), run_id,
         ),
     )
     return status

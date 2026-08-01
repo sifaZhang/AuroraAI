@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import json
 import uuid
+from dataclasses import replace
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
@@ -68,7 +69,7 @@ def normalize_parameters(
             raise ValueError("tail_preview as_of must be between 14:30 and 14:55")
     elif evaluated_at.timetz().replace(tzinfo=None) < time(15, 0):
         raise ValueError("close_confirmed as_of must be at or after 15:00")
-    if strategy_version != VERSION:
+    if strategy_version not in {VERSION, "first_limit_candidate_score_v1"}:
         raise ValueError(f"unsupported daily candidate version: {strategy_version}")
     canonical = (
         sorted({normalize_symbol(symbol).canonical for symbol in symbols})
@@ -222,6 +223,7 @@ def _event_inputs(connection, event, params, minute_provider):
 
 def review_event(connection, event, params, minute_provider=None):
     from .industry_context import build_first_limit_industry_context
+    from .candidate_scoring_service import FirstLimitCandidateScoringService
 
     provider = minute_provider or (
         lambda symbol, start, end: cached_minute_provider(
@@ -273,6 +275,19 @@ def review_event(connection, event, params, minute_provider=None):
         date.fromisoformat(params["trade_date"]),
     )
     audit["industry_context"] = industry_context.evidence()
+    if params["stage"] == "tail_preview" and params["strategy_version"] == "first_limit_candidate_score_v1":
+        scoring = FirstLimitCandidateScoringService(connection).score(
+            event, inputs["context"], industry_context, params["as_of"]
+        )
+        audit["candidate_scoring"] = scoring.evidence()
+        scored = scoring.candidate
+        lifecycle = "eliminated" if scored.hard_exclusions else decision.lifecycle_status
+        grade = scored.grade if lifecycle == "eligible" else None
+        decision = replace(
+            decision, lifecycle_status=lifecycle, candidate_grade=grade,
+            score=Decimal(str(scored.total_score)),
+            primary_reasons=tuple(sorted(set(decision.primary_reasons + scored.hard_exclusions))),
+        )
     return decision, preview, change, audit
 
 
@@ -528,22 +543,30 @@ def run_daily_candidates(
                     decision, preview, change, audit = review_event(
                         connection, event, params, minute_provider
                     )
-                    candidate_id = repo.save_candidate(
-                        connection, selected_run, event, params["trade_date"],
-                        params["stage"], decision, params["versions"],
-                        params["strategy_version"], preview, change, audit,
-                    )
+                    candidate_id = None
+                    scoring = audit.get("candidate_scoring", {}).get("CANDIDATE_SCORE")
+                    if scoring is None or repo.is_persistable_scoring(scoring):
+                        candidate_id = repo.save_candidate(
+                            connection, selected_run, event, params["trade_date"],
+                            params["stage"], decision, params["versions"],
+                            params["strategy_version"], preview, change, audit,
+                        )
                     if failure_hook:
                         failure_hook(event["id"], "before_item")
                     item_status = (
                         "indeterminate"
                         if decision.lifecycle_status == "indeterminate"
-                        else "skipped" if decision.lifecycle_status == "expired"
+                        else "skipped" if decision.lifecycle_status == "expired" or (
+                            scoring is not None and candidate_id is None
+                        )
                         else "success"
                     )
                     repo.save_item(
                         connection, selected_run, event["id"], event["symbol"],
                         item_status, candidate_id,
+                        reason_codes=(scoring.get("hard_exclusions") or (
+                            ["TOTAL_SCORE_BELOW_65"] if scoring is not None else []
+                        )) if candidate_id is None else (),
                     )
             except Exception as exc:
                 with connection:

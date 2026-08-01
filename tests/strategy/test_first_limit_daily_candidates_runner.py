@@ -13,6 +13,8 @@ from backend.strategy.first_limit.run_daily_candidates import (
     main,
     run_daily_candidates,
 )
+from backend.strategy.first_limit import daily_candidate_repository as candidate_repo
+from backend.strategy.first_limit.daily_candidates import Decision
 
 NOW = "2026-01-01T00:00:00+00:00"
 TZ = ZoneInfo("Asia/Shanghai")
@@ -195,6 +197,53 @@ def test_candidate_path_persists_and_reloads_industry_context_evidence(tmp_path)
     assert evidence["status"] == "complete"
     assert evidence["effective"]["effective_confidence"] == "high"
     assert evidence["effective"]["fallback_reason"] is None
+
+
+def test_pr613b_hard_elimination_is_not_snapshot_and_run_summary_is_kept(tmp_path):
+    connection = database(tmp_path, "pr613b-eliminated.db")
+    seed_source(connection)
+    result = run_daily_candidates(
+        connection, run_id="pr613b-eliminated",
+        strategy_version="first_limit_candidate_score_v1",
+        minute_provider=lambda *_: iter(()),
+        **kwargs(stage="tail_preview", as_of="2026-07-22T14:55:00+08:00",
+                 data_cutoff="2026-07-22T14:55:00+08:00"),
+    )
+    assert result["status"] == "success"
+    assert connection.execute("SELECT COUNT(*) FROM daily_candidate_snapshots").fetchone()[0] == 0
+    summary = json.loads(connection.execute(
+        "SELECT summary_json FROM daily_candidate_runs WHERE run_id='pr613b-eliminated'"
+    ).fetchone()[0])
+    assert summary["scanned_count"] == 1 and summary["candidate_count"] == 0
+    assert summary["eliminated_count"] == 1
+    assert summary["elimination_reason_counts"]["INTRADAY_DATA_SEVERELY_INSUFFICIENT"] == 1
+
+
+def test_pr613b_scoring_columns_and_all_evidence_round_trip(tmp_path):
+    connection = database(tmp_path, "pr613b-evidence.db")
+    event_id = seed_source(connection)
+    event = connection.execute("SELECT * FROM first_limit_events WHERE id=?", (event_id,)).fetchone()
+    params = {"trade_date":"2026-07-22","stage":"tail_preview","as_of":"2026-07-22T14:55:00+08:00",
+        "data_cutoff":"2026-07-22T14:55:00+08:00","strategy_version":"first_limit_candidate_score_v1",
+        "versions":{"detection":"first_limit_v1","pullback":"first_limit_pullback_v1","context":"first_limit_context_v1"}}
+    candidate_repo.create_run(connection,"persist-score",params,"hash",1,True)
+    candidate_repo.initialize_items(connection,"persist-score",[event])
+    scoring={
+        "INTRADAY_INDUSTRY_ESTIMATE":{"status":"complete","intraday_score":80,"intraday_rank":2,"trade_date":"2026-07-22","as_of_time":"14:55"},
+        "CAPITAL_ACTIVITY":{"status":"complete","score":8},"LEADER_SCORE":{"status":"complete","score":9},
+        "INDUSTRY_ENVIRONMENT":{"status":"complete","score":12,"trend":{"score":5}},
+        "CANDIDATE_SCORE":{"version":"first_limit_candidate_score_v1","status":"complete","total_score":86,
+            "grade":"S","buy_recommendation":"重点候选","hard_exclusions":[],"grade_caps":[]},
+    }
+    decision=Decision("eligible","S",Decimal("86"),2,(),())
+    candidate_id=candidate_repo.save_candidate(connection,"persist-score",event,"2026-07-22","tail_preview",
+        decision,params["versions"],params["strategy_version"],None,None,{"candidate_scoring":scoring})
+    row=connection.execute("SELECT * FROM daily_candidate_snapshots WHERE id=?",(candidate_id,)).fetchone()
+    assert (row["effective_score"],row["effective_rank"],row["capital_activity_score"],row["leader_score"],
+        row["industry_trend_score"],row["industry_environment_score"],row["score"],row["candidate_grade"],
+        row["buy_recommendation"],row["scoring_version"]) == (80,2,8,9,5,12,86,"S","重点候选","first_limit_candidate_score_v1")
+    evidence={r["rule_code"]:json.loads(r["actual_value"]) for r in candidate_repo.evidence_for(connection,candidate_id)}
+    assert set(scoring)<=set(evidence) and evidence["CANDIDATE_SCORE"]["total_score"]==86
 
 
 def test_tail_preview_is_immutable_bounded_and_close_is_newly_qualified(tmp_path):

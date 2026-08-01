@@ -35,6 +35,7 @@ CURRENT_SW_INDUSTRY_SNAPSHOT_MIGRATION_PATH = PROJECT_ROOT / "database" / "migra
 INDUSTRY_DAILY_SNAPSHOTS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "024_industry_daily_snapshots.sql"
 INDUSTRY_DAILY_SCORES_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "025_industry_daily_scores.sql"
 FIRST_LIMIT_INDUSTRY_CONTEXT_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "026_first_limit_industry_context.sql"
+FIRST_LIMIT_CANDIDATE_SCORING_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "027_first_limit_candidate_scoring.sql"
 MIGRATION_LOCK = threading.RLock()
 WRITE_JOB_LOCK = threading.RLock()
 SQLITE_TIMEOUT_SECONDS = 30
@@ -146,6 +147,19 @@ def _migrate_unlocked(connection: sqlite3.Connection) -> None:
     candidate_columns = {row[1] for row in connection.execute("PRAGMA table_info(daily_candidate_snapshots)")}
     if "effective_industry_code" not in candidate_columns:
         connection.executescript(FIRST_LIMIT_INDUSTRY_CONTEXT_MIGRATION_PATH.read_text(encoding="utf-8"))
+    candidate_columns = {row[1] for row in connection.execute("PRAGMA table_info(daily_candidate_snapshots)")}
+    scoring_columns = {
+        "effective_score": "REAL", "effective_rank": "INTEGER",
+        "capital_activity_score": "REAL", "leader_score": "REAL",
+        "industry_trend_score": "REAL", "industry_environment_score": "REAL",
+        "buy_recommendation": "TEXT", "scoring_version": "TEXT",
+    }
+    for column, sql_type in scoring_columns.items():
+        if column not in candidate_columns:
+            connection.execute(f"ALTER TABLE daily_candidate_snapshots ADD COLUMN {column} {sql_type}")
+    run_columns = {row[1] for row in connection.execute("PRAGMA table_info(daily_candidate_runs)")}
+    if "summary_json" not in run_columns:
+        connection.execute("ALTER TABLE daily_candidate_runs ADD COLUMN summary_json TEXT NOT NULL DEFAULT '{}'")
     security_columns = {row[1] for row in connection.execute("PRAGMA table_info(a_share_security_master)")}
     if "is_active" not in security_columns:
         connection.execute("ALTER TABLE a_share_security_master ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1))")
