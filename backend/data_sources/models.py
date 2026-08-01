@@ -39,6 +39,14 @@ class IndustryMembership:
 
 
 @dataclass(frozen=True)
+class TradingDay:
+    trade_date: date
+    is_open: bool
+    previous_trade_date: date | None
+    source: str
+
+
+@dataclass(frozen=True)
 class ProviderResult(Generic[T]):
     data: T
     provider: str

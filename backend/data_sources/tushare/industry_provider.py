@@ -9,7 +9,7 @@ from typing import Iterable
 from ..contracts import IndustryDataProvider
 from ..date_normalizer import normalize_date
 from ..errors import ProviderEmptyDataError, ProviderSchemaError, ProviderValidationError
-from ..models import IndustryMembership, IndustryNode, ProviderHealth, ProviderResult, utc_now
+from ..models import IndustryMembership, IndustryNode, ProviderHealth, ProviderResult, TradingDay, utc_now
 from ..symbol_normalizer import normalize_symbol
 from ..validation import validate_industry_nodes, validate_memberships
 from .client import TushareClient
@@ -213,6 +213,31 @@ class TushareIndustryProvider(IndustryDataProvider):
         if not rows:
             raise ProviderEmptyDataError(f"no constituents for industry {industry_code}")
         return self._result(rows, started, warnings)
+
+    def list_calendar_days(self, *, start_date: date, end_date: date, exchange: str = "SSE"):
+        if start_date > end_date:
+            raise ProviderValidationError("calendar start_date must not exceed end_date")
+        self._ensure_enabled()
+        started = utc_now()
+        frame = self.client.call("trade_cal", exchange=exchange, start_date=start_date.strftime("%Y%m%d"),
+                                 end_date=end_date.strftime("%Y%m%d"), fields="exchange,cal_date,is_open,pretrade_date")
+        if frame is None or getattr(frame, "empty", True):
+            raise ProviderEmptyDataError("Tushare trade_cal returned no rows")
+        required = {"cal_date", "is_open", "pretrade_date"}
+        columns = set(getattr(frame, "columns", ()))
+        if not required <= columns:
+            raise ProviderSchemaError(f"Tushare trade_cal missing fields: {sorted(required-columns)}")
+        items: list[TradingDay] = []
+        try:
+            for row in frame.to_dict("records"):
+                raw_open = row["is_open"]
+                if str(raw_open).strip() not in {"0", "1"}:
+                    raise ValueError("is_open must be 0 or 1")
+                items.append(TradingDay(normalize_date(row["cal_date"]), bool(int(raw_open)),
+                                        normalize_date(row.get("pretrade_date")), self.name))
+        except (TypeError, ValueError) as exc:
+            raise ProviderSchemaError("Tushare trade_cal contains invalid values") from exc
+        return self._result(items, started)
 
     def health_check(self) -> ProviderHealth:
         if not self.enabled:

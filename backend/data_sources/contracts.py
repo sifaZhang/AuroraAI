@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Protocol
 
-from .models import IndustryMembership, IndustryNode, ProviderHealth, ProviderResult
+from .models import IndustryMembership, IndustryNode, ProviderHealth, ProviderResult, TradingDay
 
 
 class IndustryDataProvider(Protocol):
@@ -31,3 +31,6 @@ class IndustryDataProvider(Protocol):
     def list_industry_constituents(
         self, industry_code: str, *, as_of_date: date | None = None,
     ) -> ProviderResult[list[IndustryMembership]]: ...
+
+    def list_calendar_days(self, *, start_date: date, end_date: date,
+                           exchange: str = "SSE") -> ProviderResult[list[TradingDay]]: ...

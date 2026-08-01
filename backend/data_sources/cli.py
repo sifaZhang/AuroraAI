@@ -16,6 +16,7 @@ from .industry_snapshots import (
     build_industry_snapshot_range,
 )
 from backend.industry import IndustryScoreRepository, IndustryService, build_industry_scores, build_industry_score_range
+from backend.industry.refresh_service import IndustryRadarRefreshService
 from backend.expectation_gap.database import connect, connect_readonly, migrate
 
 
@@ -94,10 +95,33 @@ def main(argv: list[str] | None = None) -> int:
     scores.add_argument("--end-date",type=date.fromisoformat);scores.add_argument("--level",choices=("1","2","3","all"),default="all");scores.add_argument("--dry-run",action="store_true");scores.add_argument("--force",action="store_true")
     db_scores=commands.add_parser("db-industry-scores");db_scores.add_argument("--date",type=date.fromisoformat,required=True);db_scores.add_argument("--level",type=int,choices=(1,2,3));db_scores.add_argument("--limit",type=int,default=20)
     db_context=commands.add_parser("db-symbol-industry-context");db_context.add_argument("--symbol",required=True);db_context.add_argument("--date",type=date.fromisoformat,required=True)
+    radar = commands.add_parser("refresh-industry-radar")
+    radar.add_argument("--target-date", type=date.fromisoformat)
+    radar.add_argument("--start-date", type=date.fromisoformat)
+    radar.add_argument("--dry-run", action="store_true")
+    radar.add_argument("--force", action="store_true")
+    radar.add_argument("--refresh-memberships", action="store_true")
+    radar.add_argument("--continue-on-error", action="store_true")
     args = parser.parse_args(argv)
     if args.command == "industry-health":
         _print([asdict(item) for item in get_data_source_health()])
         return 0
+    if args.command == "refresh-industry-radar":
+        connection = connect_readonly() if args.dry_run else connect()
+        try:
+            if not args.dry_run:
+                migrate(connection)
+            result = IndustryRadarRefreshService(connection).refresh(
+                target_trade_date=args.target_date, start_date=args.start_date,
+                dry_run=args.dry_run, force=args.force,
+                refresh_memberships=args.refresh_memberships,
+                continue_on_error=args.continue_on_error,
+            )
+            _print(asdict(result))
+            return {"success": 0, "no_work": 0, "partial_success": 1,
+                    "failed": 2, "already_running": 1}[result.status]
+        finally:
+            connection.close()
     if args.command == "sync-industries":
         provider = build_industry_provider(provider=args.provider)
         if args.dry_run:

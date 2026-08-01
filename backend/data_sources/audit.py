@@ -78,3 +78,6 @@ class AuditedIndustryProvider:
     def list_industry_constituents(self, industry_code, **kwargs):
         return self._call("list_industry_constituents",
                           lambda: self.provider.list_industry_constituents(industry_code, **kwargs))
+
+    def list_calendar_days(self, **kwargs):
+        return self._call("list_calendar_days", lambda: self.provider.list_calendar_days(**kwargs))
