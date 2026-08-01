@@ -4,11 +4,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import sqlite3
 from dataclasses import asdict
+from datetime import date
 from pathlib import Path
 
 from .registry import build_industry_provider, get_data_source_health
 from .industry_sync import IndustryRepository, sync_current_industries
+from .industry_snapshots import (
+    IndustrySnapshotRepository, build_industry_daily_snapshots,
+    build_industry_snapshot_range,
+)
 from backend.expectation_gap.database import connect, connect_readonly, migrate
 
 
@@ -70,6 +76,18 @@ def main(argv: list[str] | None = None) -> int:
     constituents.add_argument("--industry-code", required=True)
     constituents.add_argument("--level", type=int, choices=(1, 2, 3), required=True)
     constituents.add_argument("--limit", type=int, default=20)
+    snapshots = commands.add_parser("build-industry-snapshots")
+    snapshot_dates = snapshots.add_mutually_exclusive_group(required=True)
+    snapshot_dates.add_argument("--date", type=date.fromisoformat)
+    snapshot_dates.add_argument("--start-date", type=date.fromisoformat)
+    snapshots.add_argument("--end-date", type=date.fromisoformat)
+    snapshots.add_argument("--level", choices=("1", "2", "3", "all"), default="all")
+    snapshots.add_argument("--dry-run", action="store_true")
+    snapshots.add_argument("--force", action="store_true")
+    query_snapshots = commands.add_parser("db-industry-snapshots")
+    query_snapshots.add_argument("--date", type=date.fromisoformat, required=True)
+    query_snapshots.add_argument("--level", type=int, choices=(1, 2, 3))
+    query_snapshots.add_argument("--limit", type=int, default=20)
     args = parser.parse_args(argv)
     if args.command == "industry-health":
         _print([asdict(item) for item in get_data_source_health()])
@@ -95,6 +113,52 @@ def main(argv: list[str] | None = None) -> int:
             ), encoding="utf-8")
         _print(_sync_output(result))
         return {"success": 0, "partial_success": 1, "failed": 2}[result.status]
+    if args.command == "build-industry-snapshots":
+        if args.start_date and args.end_date is None:
+            parser.error("--end-date is required with --start-date")
+        if args.date and args.end_date is not None:
+            parser.error("--end-date requires --start-date")
+        levels = (1, 2, 3) if args.level == "all" else (int(args.level),)
+        connection = connect_readonly() if args.dry_run else connect()
+        try:
+            if not args.dry_run:
+                migrate(connection)
+            if args.date:
+                result = build_industry_daily_snapshots(
+                    connection=connection, trade_date=args.date, levels=levels,
+                    dry_run=args.dry_run, force=args.force,
+                )
+                payload = asdict(result)
+                exit_code = 2 if result.failed_count and not result.snapshot_count else (
+                    1 if result.failed_count or result.partial_count else 0
+                )
+            else:
+                result = build_industry_snapshot_range(
+                    connection=connection, start_date=args.start_date,
+                    end_date=args.end_date, levels=levels,
+                    dry_run=args.dry_run, force=args.force,
+                )
+                payload = asdict(result)
+                failed = sum(item.failed_count for item in result.results)
+                snapshots_built = sum(item.snapshot_count for item in result.results)
+                partial = sum(item.partial_count for item in result.results)
+                exit_code = 2 if failed and not snapshots_built else (1 if failed or partial else 0)
+            _print(payload)
+            return exit_code
+        finally:
+            connection.close()
+    if args.command == "db-industry-snapshots":
+        try:
+            connection = connect_readonly()
+            items = IndustrySnapshotRepository(connection).list_snapshots(args.date, args.level)
+            _print([asdict(item) for item in items[:max(0, args.limit)]])
+            return 0
+        except (FileNotFoundError, ValueError, sqlite3.Error) as exc:
+            _print({"error": f"{type(exc).__name__}: {exc}"})
+            return 2
+        finally:
+            if "connection" in locals():
+                connection.close()
     if args.command in {"db-symbol-industry", "db-industry-constituents"}:
         try:
             connection = connect_readonly()

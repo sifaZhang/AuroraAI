@@ -32,6 +32,7 @@ FIRST_LIMIT_MINUTE_REVIEW_MIGRATION_PATH = PROJECT_ROOT / "database" / "migratio
 FIRST_LIMIT_DAILY_CANDIDATES_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "021_first_limit_daily_candidates.sql"
 FIRST_LIMIT_PIPELINE_JOBS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "022_first_limit_pipeline_jobs.sql"
 CURRENT_SW_INDUSTRY_SNAPSHOT_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "023_current_sw_industry_snapshot.sql"
+INDUSTRY_DAILY_SNAPSHOTS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "024_industry_daily_snapshots.sql"
 MIGRATION_LOCK = threading.RLock()
 WRITE_JOB_LOCK = threading.RLock()
 SQLITE_TIMEOUT_SECONDS = 30
@@ -138,6 +139,7 @@ def _migrate_unlocked(connection: sqlite3.Connection) -> None:
             FIRST_LIMIT_PIPELINE_JOBS_MIGRATION_PATH.read_text(encoding="utf-8")
         )
     connection.executescript(CURRENT_SW_INDUSTRY_SNAPSHOT_MIGRATION_PATH.read_text(encoding="utf-8"))
+    connection.executescript(INDUSTRY_DAILY_SNAPSHOTS_MIGRATION_PATH.read_text(encoding="utf-8"))
     security_columns = {row[1] for row in connection.execute("PRAGMA table_info(a_share_security_master)")}
     if "is_active" not in security_columns:
         connection.execute("ALTER TABLE a_share_security_master ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1))")
