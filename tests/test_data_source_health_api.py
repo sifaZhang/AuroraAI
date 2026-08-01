@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from backend.api import data_source_health as routes
 from backend.api.app import app
 from backend.sector_radar.health_repository import record_failure, record_success
+from backend.data_sources.models import ProviderHealth
 
 
 def test_health_get_and_post_endpoints(tmp_path, monkeypatch):
@@ -60,3 +61,16 @@ def test_one_source_failure_does_not_make_all_500(tmp_path, monkeypatch):
     monkeypatch.setattr(routes, "run_health_checks", isolated)
     response = TestClient(app).post("/api/data-source-health/check", json={"source": "all"})
     assert response.status_code == 200
+
+
+def test_unified_health_extends_existing_api_without_database_write(monkeypatch):
+    monkeypatch.setattr(routes, "get_unified_health", lambda: [
+        ProviderHealth("tushare", True, True, True, "healthy", 12,
+                       {"industry_catalog": "healthy"}),
+        ProviderHealth("akshare", True, True, None, "degraded", 25,
+                       {"industry_catalog": "healthy",
+                        "industry_third_constituents": "degraded"}, "ProviderSchemaError"),
+    ])
+    response = TestClient(app).get("/api/data-source-health/unified")
+    assert response.status_code == 200
+    assert [item["provider"] for item in response.json()["items"]] == ["tushare", "akshare"]

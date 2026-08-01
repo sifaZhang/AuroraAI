@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from dataclasses import asdict
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -10,6 +11,7 @@ from pydantic import BaseModel
 from backend.expectation_gap.database import connect, migrate
 from backend.sector_radar.health_checks import CHECK_ORDER, run_health_checks
 from backend.sector_radar.health_repository import list_statuses
+from backend.data_sources.registry import get_data_source_health as get_unified_health
 
 router = APIRouter(prefix="/api/data-source-health", tags=["data-source-health"])
 
@@ -45,3 +47,9 @@ def check_data_source_health(request: CheckRequest):
         raise HTTPException(500, "数据库操作失败") from exc
     finally:
         connection.close()
+
+
+@router.get("/unified")
+def get_unified_data_source_health():
+    """Run read-only health checks for the provider-neutral industry layer."""
+    return {"items": [asdict(item) for item in get_unified_health()]}
