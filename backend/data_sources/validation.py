@@ -40,7 +40,10 @@ def validate_industry_nodes(
     return nodes
 
 
-def validate_memberships(rows: list[IndustryMembership]) -> list[IndustryMembership]:
+def validate_memberships(
+    rows: list[IndustryMembership], *, allow_current_conflicts: bool = False,
+    preserve_exact_duplicates: bool = False,
+) -> list[IndustryMembership]:
     if not rows:
         raise ProviderEmptyDataError("industry memberships are empty")
     unique: dict[tuple[str, str, object, object], IndustryMembership] = {}
@@ -53,7 +56,7 @@ def validate_memberships(rows: list[IndustryMembership]) -> list[IndustryMembers
             raise ProviderValidationError("membership in_date is after out_date")
         if row.is_current:
             existing = current_by_symbol.get(row.symbol)
-            if existing and existing != row.level3_code:
+            if existing and existing != row.level3_code and not allow_current_conflicts:
                 raise ProviderValidationError(f"multiple current level-3 memberships: {row.symbol}")
             current_by_symbol[row.symbol] = row.level3_code
         key = (row.symbol, row.level3_code, row.in_date, row.out_date)
@@ -61,4 +64,4 @@ def validate_memberships(rows: list[IndustryMembership]) -> list[IndustryMembers
         if existing and existing != row:
             raise ProviderValidationError(f"conflicting duplicate membership: {row.symbol}")
         unique[key] = row
-    return list(unique.values())
+    return rows if preserve_exact_duplicates else list(unique.values())

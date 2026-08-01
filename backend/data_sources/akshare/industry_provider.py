@@ -109,7 +109,7 @@ class AKShareIndustryProvider(IndustryDataProvider):
             raise ProviderUnavailableError(f"AKShare catalog failed: {type(exc).__name__}") from exc
         return self._result(nodes if level is None else [x for x in nodes if x.industry_level == level], started)
 
-    def _constituents(self, industry_code: str) -> list[IndustryMembership]:
+    def _constituents(self, industry_code: str, *, preserve_duplicates: bool = False) -> list[IndustryMembership]:
         catalog = self.list_industries(classification="SW", version="2021").data
         nodes = {node.industry_code: node for node in catalog}
         industry_code = industry_code.removesuffix(".SI")
@@ -148,7 +148,10 @@ class AKShareIndustryProvider(IndustryDataProvider):
                 node.industry_code, node.industry_name,
                 normalize_date(raw.get(date_col)) if date_col else None, None, True, "akshare",
             ))
-        return validate_memberships(rows)
+        return validate_memberships(
+            rows, allow_current_conflicts=preserve_duplicates,
+            preserve_exact_duplicates=preserve_duplicates,
+        )
 
     def list_industry_constituents(self, industry_code: str, *, as_of_date: date | None = None):
         if as_of_date is not None:
@@ -164,8 +167,10 @@ class AKShareIndustryProvider(IndustryDataProvider):
         third = self.list_industries(classification=classification, version=version, level=3).data
         rows = []
         for node in third:
-            rows.extend(self._constituents(node.industry_code))
-        return self._result(validate_memberships(rows), started,
+            rows.extend(self._constituents(node.industry_code, preserve_duplicates=True))
+        return self._result(validate_memberships(
+            rows, allow_current_conflicts=True, preserve_exact_duplicates=True,
+        ), started,
                             ("AKShare current snapshot has no historical out dates",))
 
     def get_symbol_membership(self, symbol: str, *, classification: str, version: str,

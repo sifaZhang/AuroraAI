@@ -35,7 +35,10 @@ def _current(value: object, out_date: date | None) -> bool:
     return out_date is None
 
 
-def map_memberships(frame: object, *, warnings: list[str] | None = None) -> list[IndustryMembership]:
+def map_memberships(
+    frame: object, *, warnings: list[str] | None = None,
+    allow_current_conflicts: bool = False, preserve_exact_duplicates: bool = False,
+) -> list[IndustryMembership]:
     result = []
     for row in _records(frame):
         out_date = normalize_date(row.get("out_date"))
@@ -57,7 +60,10 @@ def map_memberships(frame: object, *, warnings: list[str] | None = None) -> list
             in_date=normalize_date(row.get("in_date")), out_date=out_date,
             is_current=_current(row.get("is_new"), out_date), source="tushare",
         ))
-    return validate_memberships(result)
+    return validate_memberships(
+        result, allow_current_conflicts=allow_current_conflicts,
+        preserve_exact_duplicates=preserve_exact_duplicates,
+    )
 
 
 def build_nodes(rows: Iterable[IndustryMembership], *, enforce_count_ranges: bool = True) -> list[IndustryNode]:
@@ -146,7 +152,10 @@ class TushareIndustryProvider(IndustryDataProvider):
 
     def _all(self) -> tuple[list[IndustryMembership], tuple[str, ...]]:
         warnings: list[str] = []
-        return map_memberships(self._all_frame(), warnings=warnings), tuple(warnings)
+        return map_memberships(
+            self._all_frame(), warnings=warnings, allow_current_conflicts=True,
+            preserve_exact_duplicates=True,
+        ), tuple(warnings)
 
     def _result(self, data, requested_at, warnings=()):
         return ProviderResult(data, self.name, requested_at, utc_now(),
