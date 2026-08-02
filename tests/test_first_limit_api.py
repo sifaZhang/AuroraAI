@@ -159,6 +159,9 @@ def test_candidate_filters_stable_pagination_detail_and_errors(tmp_path, monkeyp
     assert body["total"] == 6 and len(body["items"]) == 2
     assert [item["grade"] for item in body["items"]] == ["S", "S"]
     assert body["run_id"] == "close" and body["run_status"] == "partial"
+    assert {"intraday_industry_score","official_industry_score","intraday_total_score",
+        "final_total_score","confirmation_status","confirmed_at"} <= set(body["items"][0])
+    assert body["items"][0]["official_industry_score"] is None
     filtered = client.get(
         "/api/first-limit/candidates",
         params=[

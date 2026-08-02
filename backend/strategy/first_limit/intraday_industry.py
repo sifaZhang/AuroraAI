@@ -1,7 +1,7 @@
 """Offline PR6.13B intraday industry estimation from cached SQLite minutes."""
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, replace
 from datetime import date, datetime, time
 from statistics import median
 
@@ -39,6 +39,7 @@ class IntradayIndustryEstimate:
     strong_rise_ratio: float | None = None
     limit_up_count: int | None = None
     projected_turnover: float | None = None
+    intraday_percentile: float | None = None
 
     def evidence(self):
         return asdict(self)
@@ -60,7 +61,7 @@ class IntradayIndustryEstimator:
     def __init__(self, connection):
         self.connection = connection
 
-    def estimate(self, symbol, trade_date, as_of_time, effective_context):
+    def estimate(self, symbol, trade_date, as_of_time, effective_context, *, _rank=True):
         day = date.fromisoformat(str(trade_date))
         cutoff_time = time.fromisoformat(str(as_of_time))
         ratio = completed_session_ratio(cutoff_time)
@@ -116,10 +117,37 @@ class IntradayIndustryEstimator:
         )
         status = "complete" if coverage >= COMPLETE_COVERAGE else "partial"
         confidence = "high" if coverage >= .9 else "medium" if coverage >= .8 else "low"
-        return IntradayIndustryEstimate(day, cutoff_time, cutoff, "intraday_estimated", VERSION,
+        result = IntradayIndustryEstimate(day, cutoff_time, cutoff, "intraday_estimated", VERSION,
             level, code, name, count, valid, coverage, round(score, 4), None, None,
             confidence, status, True, ("turnover_projected_from_elapsed_trading_minutes",),
             mean_return, middle, rise, strong, sum(value >= .095 for value in returns), projected)
+        if not _rank:
+            return result
+        ranked = []
+        for row in self.connection.execute(
+            "SELECT industry_code,industry_name FROM industry_nodes WHERE industry_level=? ORDER BY industry_code",
+            (level,),
+        ):
+            peer = type("Effective", (), {
+                "effective_level": level, "effective_industry_code": row[0],
+                "effective_industry_name": row[1],
+            })()
+            estimate = self.estimate(symbol, day, cutoff_time, peer, _rank=False)
+            if estimate.intraday_score is not None:
+                ranked.append((estimate.intraday_score, row[0]))
+        ranked.sort(key=lambda item: (-item[0], item[1]))
+        position = next((index + 1 for index, item in enumerate(ranked) if item[1] == code), None)
+        total = len(ranked)
+        return replace(
+            result, intraday_rank=position, intraday_total=total,
+            intraday_percentile=(1 - (position - 1) / total) if position and total else None,
+            warnings=result.warnings + (("partial_cross_industry_ranking",) if total < self._node_count(level) else ()),
+        )
+
+    def _node_count(self, level):
+        return self.connection.execute(
+            "SELECT COUNT(*) FROM industry_nodes WHERE industry_level=?", (level,)
+        ).fetchone()[0]
 
     def _empty(self, day, cutoff_time, cutoff, status):
         return IntradayIndustryEstimate(day, cutoff_time, cutoff, "intraday_estimated", VERSION,

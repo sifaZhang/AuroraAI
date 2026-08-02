@@ -283,8 +283,9 @@ def save_candidate(
              sw_level1_code,sw_level2_code,sw_level3_code,
              effective_industry_level,effective_industry_code,industry_context_status,
              effective_score,effective_rank,capital_activity_score,leader_score,
-             industry_trend_score,industry_environment_score,buy_recommendation,scoring_version)
-           VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+             industry_trend_score,industry_environment_score,buy_recommendation,scoring_version,
+             intraday_total_score,intraday_candidate_grade,confirmation_status)
+           VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             run_id, event["id"], trade_date, stage, event["symbol"],
             decision.observation_day, decision.lifecycle_status,
@@ -300,6 +301,7 @@ def save_candidate(
             capital.get("score"), leader.get("score"),
             environment.get("trend", {}).get("score"), environment.get("score"),
             candidate_score.get("buy_recommendation"), candidate_score.get("version"),
+            candidate_score.get("total_score"), candidate_score.get("grade"), "intraday",
         ),
     )
     candidate_id = cursor.lastrowid

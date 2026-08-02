@@ -45,6 +45,26 @@ class Candidate(StrictModel):
     preview_candidate_id: int | None
     created_at: datetime
     updated_at: datetime
+    industry_level2: str | None = None
+    industry_level3: str | None = None
+    effective_industry_level: int | None = None
+    effective_industry_code: str | None = None
+    intraday_industry_score: float | None = None
+    intraday_industry_rank: int | None = None
+    official_industry_score: float | None = None
+    official_industry_rank: int | None = None
+    capital_activity_score: float | None = None
+    leader_score: float | None = None
+    intraday_total_score: float | None = None
+    intraday_candidate_grade: Grade | None = None
+    final_total_score: float | None = None
+    final_candidate_grade: Grade | None = None
+    final_buy_recommendation: str | None = None
+    confirmation_status: str | None = None
+    confirmation_change_type: str | None = None
+    industry_context_status: str | None = None
+    data_cutoff: datetime | None = None
+    confirmed_at: datetime | None = None
 
 
 class CandidatePage(StrictModel):

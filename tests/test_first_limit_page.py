@@ -23,6 +23,9 @@ def test_first_limit_page_and_assets_are_served_with_navigation():
     assert "javascript" in script.headers["content-type"]
     assert "run_daily_candidates" not in script.text
     assert "/api/first-limit/pipeline-jobs" in script.text
+    for field in ("intraday_industry_score","official_industry_score","intraday_total_score",
+                  "final_total_score","confirmation_status","confirmation_change_type"):
+        assert field in script.text
 
     stylesheet = client.get("/first-limit.css")
     assert stylesheet.status_code == 200

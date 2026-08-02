@@ -15,6 +15,7 @@ from backend.strategy.first_limit.run_daily_candidates import (
 )
 from backend.strategy.first_limit import daily_candidate_repository as candidate_repo
 from backend.strategy.first_limit.daily_candidates import Decision
+from backend.strategy.first_limit.close_confirmation import CloseConfirmationService
 
 NOW = "2026-01-01T00:00:00+00:00"
 TZ = ZoneInfo("Asia/Shanghai")
@@ -244,6 +245,37 @@ def test_pr613b_scoring_columns_and_all_evidence_round_trip(tmp_path):
         row["buy_recommendation"],row["scoring_version"]) == (80,2,8,9,5,12,86,"S","重点候选","first_limit_candidate_score_v1")
     evidence={r["rule_code"]:json.loads(r["actual_value"]) for r in candidate_repo.evidence_for(connection,candidate_id)}
     assert set(scoring)<=set(evidence) and evidence["CANDIDATE_SCORE"]["total_score"]==86
+
+
+def test_close_confirmation_pending_then_official_and_idempotent(tmp_path):
+    connection=database(tmp_path,"close-confirmation.db");event_id=seed_source(connection);seed_industry_context(connection)
+    event=connection.execute("SELECT * FROM first_limit_events WHERE id=?",(event_id,)).fetchone()
+    params={"trade_date":"2026-07-22","stage":"tail_preview","as_of":"2026-07-22T14:55:00+08:00",
+        "data_cutoff":"2026-07-22T14:55:00+08:00","strategy_version":"first_limit_candidate_score_v1",
+        "versions":{"detection":"first_limit_v1","pullback":"first_limit_pullback_v1","context":"first_limit_context_v1"}}
+    candidate_repo.create_run(connection,"confirm",params,"confirm-hash",1,True);candidate_repo.initialize_items(connection,"confirm",[event])
+    components={"shape_pullback":35,"first_limit":20,"industry_environment":10,"capital_activity":8,"leader":8,"market_risk":7}
+    scoring={"INTRADAY_INDUSTRY_ESTIMATE":{"status":"complete","intraday_score":75,"intraday_rank":1,
+        "industry_level":3,"trade_date":"2026-07-22","as_of_time":"14:55"},
+        "CANDIDATE_SCORE":{"version":"first_limit_candidate_score_v1","status":"complete","components":components,
+        "total_score":88,"grade":"S","buy_recommendation":"重点候选","hard_exclusions":[],"grade_caps":[]}}
+    snapshot_id=candidate_repo.save_candidate(connection,"confirm",event,"2026-07-22","tail_preview",
+        Decision("eligible","S",Decimal("88"),2,(),()),params["versions"],params["strategy_version"],None,None,
+        {"candidate_scoring":scoring})
+    service=CloseConfirmationService(connection)
+    assert service.confirm_snapshot(snapshot_id,dry_run=True)["status"]=="pending"
+    for level,code in ((1,"L1"),(2,"L2"),(3,"L3")):
+        connection.execute("INSERT INTO industry_daily_snapshots VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            ("2026-07-22","SW","2021",code,level,8,8,8,0,0,1,1,1,1,0,0,1,0,1,0,0,0,None,None,1,1,"complete","{}",NOW))
+        connection.execute("INSERT INTO industry_daily_scores VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            ("2026-07-22","SW","2021",code,level,70,1,1,1,1,1,1,1,None,None,None,"neutral",20,1,1,1,"high","industry_score_v1","{}",NOW))
+    with connection: first=service.confirm_snapshot(snapshot_id)
+    with connection: second=service.confirm_snapshot(snapshot_id)
+    assert first["status"] in {"confirmed","removed"} and second["change"].change_type==first["change"].change_type
+    row=connection.execute("SELECT * FROM daily_candidate_snapshots WHERE id=?",(snapshot_id,)).fetchone()
+    assert row["official_industry_score"]==70 and row["confirmation_status"]==first["status"]
+    codes={r[0] for r in connection.execute("SELECT rule_code FROM daily_candidate_evidence WHERE candidate_id=?",(snapshot_id,))}
+    assert {"OFFICIAL_CLOSE_INDUSTRY","INDUSTRY_ESTIMATION_ERROR","CLOSE_CONFIRMATION","CANDIDATE_CHANGE"}<=codes
 
 
 def test_tail_preview_is_immutable_bounded_and_close_is_newly_qualified(tmp_path):

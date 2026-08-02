@@ -36,6 +36,7 @@ INDUSTRY_DAILY_SNAPSHOTS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migration
 INDUSTRY_DAILY_SCORES_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "025_industry_daily_scores.sql"
 FIRST_LIMIT_INDUSTRY_CONTEXT_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "026_first_limit_industry_context.sql"
 FIRST_LIMIT_CANDIDATE_SCORING_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "027_first_limit_candidate_scoring.sql"
+FIRST_LIMIT_CLOSE_CONFIRMATION_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "028_first_limit_close_confirmation.sql"
 MIGRATION_LOCK = threading.RLock()
 WRITE_JOB_LOCK = threading.RLock()
 SQLITE_TIMEOUT_SECONDS = 30
@@ -160,6 +161,21 @@ def _migrate_unlocked(connection: sqlite3.Connection) -> None:
     run_columns = {row[1] for row in connection.execute("PRAGMA table_info(daily_candidate_runs)")}
     if "summary_json" not in run_columns:
         connection.execute("ALTER TABLE daily_candidate_runs ADD COLUMN summary_json TEXT NOT NULL DEFAULT '{}'")
+    candidate_columns = {row[1] for row in connection.execute("PRAGMA table_info(daily_candidate_snapshots)")}
+    confirmation_columns = {
+        "intraday_total_score": "REAL", "intraday_candidate_grade": "TEXT",
+        "official_industry_score": "REAL", "official_industry_rank": "INTEGER",
+        "final_total_score": "REAL", "final_candidate_grade": "TEXT",
+        "final_buy_recommendation": "TEXT", "confirmation_status": "TEXT NOT NULL DEFAULT 'intraday'",
+        "confirmation_change_type": "TEXT", "confirmed_at": "TEXT",
+    }
+    for column, sql_type in confirmation_columns.items():
+        if column not in candidate_columns:
+            connection.execute(f"ALTER TABLE daily_candidate_snapshots ADD COLUMN {column} {sql_type}")
+    backtest_columns = {row[1] for row in connection.execute("PRAGMA table_info(backtest_signals)")}
+    for column in ("intraday_grade", "final_grade", "intraday_to_final_change", "next_day_result"):
+        if column not in backtest_columns:
+            connection.execute(f"ALTER TABLE backtest_signals ADD COLUMN {column} TEXT")
     security_columns = {row[1] for row in connection.execute("PRAGMA table_info(a_share_security_master)")}
     if "is_active" not in security_columns:
         connection.execute("ALTER TABLE a_share_security_master ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1))")

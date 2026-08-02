@@ -10,6 +10,8 @@ from backend.strategy.first_limit.intraday_industry import (
 
 def database(member_count=4):
     c=sqlite3.connect(":memory:");c.row_factory=sqlite3.Row
+    c.execute("CREATE TABLE industry_nodes(industry_code TEXT,industry_name TEXT,industry_level INTEGER)")
+    c.execute("INSERT INTO industry_nodes VALUES('L3','三级',3)")
     c.execute("CREATE TABLE industry_memberships_current(symbol TEXT,level3_code TEXT)")
     c.execute("CREATE TABLE first_limit_minute_bars(symbol TEXT,bar_time TEXT,timeframe TEXT,close REAL,amount REAL)")
     c.execute("CREATE TABLE a_share_daily_bars(stock_code TEXT,trade_date TEXT,adjustment TEXT,close REAL)")

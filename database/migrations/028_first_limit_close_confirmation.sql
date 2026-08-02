@@ -1,0 +1,14 @@
+ALTER TABLE daily_candidate_snapshots ADD COLUMN intraday_total_score REAL;
+ALTER TABLE daily_candidate_snapshots ADD COLUMN intraday_candidate_grade TEXT;
+ALTER TABLE daily_candidate_snapshots ADD COLUMN official_industry_score REAL;
+ALTER TABLE daily_candidate_snapshots ADD COLUMN official_industry_rank INTEGER;
+ALTER TABLE daily_candidate_snapshots ADD COLUMN final_total_score REAL;
+ALTER TABLE daily_candidate_snapshots ADD COLUMN final_candidate_grade TEXT;
+ALTER TABLE daily_candidate_snapshots ADD COLUMN final_buy_recommendation TEXT;
+ALTER TABLE daily_candidate_snapshots ADD COLUMN confirmation_status TEXT NOT NULL DEFAULT 'intraday';
+ALTER TABLE daily_candidate_snapshots ADD COLUMN confirmation_change_type TEXT;
+ALTER TABLE daily_candidate_snapshots ADD COLUMN confirmed_at TEXT;
+ALTER TABLE backtest_signals ADD COLUMN intraday_grade TEXT;
+ALTER TABLE backtest_signals ADD COLUMN final_grade TEXT;
+ALTER TABLE backtest_signals ADD COLUMN intraday_to_final_change TEXT;
+ALTER TABLE backtest_signals ADD COLUMN next_day_result TEXT;
