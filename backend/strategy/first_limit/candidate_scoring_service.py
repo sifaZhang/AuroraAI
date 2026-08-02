@@ -144,8 +144,9 @@ class FirstLimitCandidateScoringService:
     @staticmethod
     def _hard_exclusions(event, context, estimate):
         reasons=[]
-        if context is None or not context["is_complete"]: reasons.append("KEY_BASE_DATA_MISSING")
-        if estimate.status in {"intraday_data_insufficient", "membership_missing", "unavailable"}:
-            reasons.append("INTRADAY_DATA_SEVERELY_INSUFFICIENT")
+        if context is None or any(
+            context[key] is None for key in ("first_limit_score", "pullback_score")
+        ):
+            reasons.append("KEY_BASE_DATA_MISSING")
         if event["is_one_word_limit"]: reasons.append("ONE_WORD_LIMIT")
         return tuple(reasons)

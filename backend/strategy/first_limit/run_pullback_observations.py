@@ -12,6 +12,8 @@ from datetime import date, datetime, timezone
 
 from . import pullback
 
+BATCH_COMMIT_SIZE = 1000
+
 
 def _now():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -133,7 +135,7 @@ def _save(connection, event, observation_date, offset, pullback_version,
         if eliminated else "pass"
     )
     stamp = _now()
-    connection.execute(
+    observation_id = connection.execute(
         """INSERT INTO first_limit_pullback_observations(
              event_id,symbol,first_limit_date,observation_date,trading_day_offset,
              detection_version,scoring_version,pullback_version,
@@ -152,7 +154,8 @@ def _save(connection, event, observation_date, offset, pullback_version,
              determinable_max_score=excluded.determinable_max_score,
              coverage_ratio=excluded.coverage_ratio,
              is_complete=excluded.is_complete,reasons_json=excluded.reasons_json,
-             updated_at=excluded.updated_at""",
+             updated_at=excluded.updated_at
+           RETURNING id""",
         (
             event["id"], event["symbol"], event["trade_date"], observation_date,
             offset, event["detection_version"], event["scoring_version"],
@@ -162,33 +165,30 @@ def _save(connection, event, observation_date, offset, pullback_version,
             str(summary["determinable_max_score"]), str(summary["coverage_ratio"]),
             int(summary["is_complete"]), 0, _dump(summary["reasons"]), stamp, stamp,
         ),
-    )
-    observation_id = connection.execute(
-        """SELECT id FROM first_limit_pullback_observations
-           WHERE event_id=? AND observation_date=? AND pullback_version=?""",
-        (event["id"], observation_date, pullback_version),
     ).fetchone()[0]
-    for part in parts:
-        connection.execute(
-            """INSERT INTO first_limit_pullback_components(
-                 observation_id,component_key,component_status,earned_score,
-                 max_score,raw_value_json,reasons_json,source_table,source_date,
-                 is_approximate)
-               VALUES(?,?,?,?,?,?,?,?,?,?)
-               ON CONFLICT(observation_id,component_key) DO UPDATE SET
-                 component_status=excluded.component_status,
-                 earned_score=excluded.earned_score,max_score=excluded.max_score,
-                 raw_value_json=excluded.raw_value_json,
-                 reasons_json=excluded.reasons_json,
-                 source_date=excluded.source_date,
-                 is_approximate=excluded.is_approximate""",
+    connection.executemany(
+        """INSERT INTO first_limit_pullback_components(
+             observation_id,component_key,component_status,earned_score,
+             max_score,raw_value_json,reasons_json,source_table,source_date,
+             is_approximate)
+           VALUES(?,?,?,?,?,?,?,?,?,?)
+           ON CONFLICT(observation_id,component_key) DO UPDATE SET
+             component_status=excluded.component_status,
+             earned_score=excluded.earned_score,max_score=excluded.max_score,
+             raw_value_json=excluded.raw_value_json,
+             reasons_json=excluded.reasons_json,
+             source_date=excluded.source_date,
+             is_approximate=excluded.is_approximate""",
+        [
             (
                 observation_id, part.key, part.status,
                 None if part.score is None else str(part.score), str(part.maximum),
                 _dump(part.raw), _dump(part.reasons), "a_share_daily_bars",
                 observation_date, int(part.approximate),
-            ),
-        )
+            )
+            for part in parts
+        ],
+    )
     return observation_id, status
 
 
@@ -231,13 +231,14 @@ def run_pullback_observations(
     )
     counts = Counter()
     last_error = None
-    for event, observation_date, offset in items:
+    for index, (event, observation_date, offset) in enumerate(items, 1):
         key = f"{event['id']}:{observation_date}"
         try:
             _bars, parts, classification, class_reasons = _inputs(
                 connection, event, observation_date, dates
             )
-            with connection:
+            connection.execute("SAVEPOINT pullback_item")
+            try:
                 observation_id, status = _save(
                     connection, event, observation_date, offset,
                     pullback_version, parts, classification, class_reasons,
@@ -252,18 +253,24 @@ def run_pullback_observations(
                         _dump({"observation_status": status}), _now(),
                     ),
                 )
+            except Exception:
+                connection.execute("ROLLBACK TO SAVEPOINT pullback_item")
+                connection.execute("RELEASE SAVEPOINT pullback_item")
+                raise
+            connection.execute("RELEASE SAVEPOINT pullback_item")
             counts["success"] += 1
             counts[status] += 1
         except Exception as exc:
             last_error = f"{type(exc).__name__}: {exc}"
-            with connection:
-                connection.execute(
-                    """INSERT INTO first_limit_pullback_run_items(
-                         run_id,item_key,status,last_error,updated_at)
-                       VALUES(?,?,'failed',?,?)""",
-                    (run_id, key, last_error[:1000], _now()),
-                )
+            connection.execute(
+                """INSERT INTO first_limit_pullback_run_items(
+                     run_id,item_key,status,last_error,updated_at)
+                   VALUES(?,?,'failed',?,?)""",
+                (run_id, key, last_error[:1000], _now()),
+            )
             counts["failed"] += 1
+        if index % BATCH_COMMIT_SIZE == 0:
+            connection.commit()
     status = (
         "failed" if items and counts["failed"] == len(items)
         else "partial" if counts["failed"] or counts["indeterminate"]

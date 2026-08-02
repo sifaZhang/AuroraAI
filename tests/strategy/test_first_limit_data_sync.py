@@ -3,7 +3,7 @@ from datetime import date
 import pandas as pd
 import pytest
 
-from backend.collector.sync_first_limit_data import (MAX_MINUTE_CODES, SyncResult, _pool,
+from backend.collector.sync_first_limit_data import (MAX_MINUTE_CODES, SyncResult, _pool, _retry,
     _instrument_to_master, _is_target_stock, plan_daily_gaps, plan_security_gaps,
     plan_status_gaps, sync_calendar, sync_daily, sync_minutes, sync_securities,
     sync_statuses)
@@ -63,6 +63,19 @@ def database(tmp_path):
 
 def symbols():
     return [normalize_symbol("600000.SH"), normalize_symbol("000001.SZ")]
+
+
+def test_gm_retry_retries_immediately_without_sleep_hook():
+    calls = []
+
+    def flaky():
+        calls.append(len(calls) + 1)
+        if len(calls) < 3:
+            raise ConnectionError("temporary")
+        return "ok"
+
+    assert _retry(flaky) == ("ok", 2)
+    assert calls == [1, 2, 3]
 
 
 @pytest.mark.parametrize(("record", "expected"), [

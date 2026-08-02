@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 from . import api_repository as api_repo
 from . import daily_candidate_repository as candidate_repo
 from .api_models import RunRequest
-from .daily_candidates import VERSION
+from .candidate_scoring import VERSION
 from .rules import normalize_symbol
 from .run_daily_candidates import (
     DEFAULT_VERSIONS,

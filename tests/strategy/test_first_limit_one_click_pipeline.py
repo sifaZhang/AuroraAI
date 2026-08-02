@@ -93,7 +93,7 @@ def test_migration_job_identity_scope_and_integrity(tmp_path, monkeypatch):
     assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
 
 
-def test_create_resumes_cancelled_natural_key_job(tmp_path, monkeypatch):
+def test_create_restarts_cancelled_natural_key_job_from_zero(tmp_path, monkeypatch):
     _path, connection = database(tmp_path, monkeypatch)
     seed_calendar(connection)
     first = create(connection)
@@ -104,19 +104,56 @@ def test_create_resumes_cancelled_natural_key_job(tmp_path, monkeypatch):
         repo.finish_step(
             connection, job_id, service.STEP_CODES[0], "success"
         )
+        assert repo.steps(connection, job_id)[0]["duration_seconds"] is not None
         repo.cancel(connection, job_id)
 
     replay = create(connection)
 
-    assert replay["job_id"] == job_id
-    assert replay["status"] == "interrupted"
-    assert replay["reused"] is True
+    assert replay["job_id"] != job_id
+    assert replay["status"] == "pending"
+    assert replay["reused"] is False
+    assert repo.job(connection, job_id)["status"] == "cancelled"
     states = {
         row["step_code"]: row["status"]
-        for row in repo.steps(connection, job_id)
+        for row in repo.steps(connection, replay["job_id"])
     }
-    assert states[service.STEP_CODES[0]] == "success"
-    assert states[service.STEP_CODES[1]] == "pending"
+    assert set(states.values()) == {"pending"}
+
+
+def test_create_restarts_failed_natural_key_job_from_zero(tmp_path, monkeypatch):
+    _path, connection = database(tmp_path, monkeypatch)
+    seed_calendar(connection)
+    first = create(connection)
+    with connection:
+        repo.finish_job(
+            connection, first["job_id"], "failed",
+            error_code="fixture", error_message="fixture",
+        )
+
+    replacement = create(connection)
+
+    assert replacement["job_id"] != first["job_id"]
+    assert replacement["status"] == "pending"
+    assert replacement["reused"] is False
+    assert repo.job(connection, first["job_id"])["status"] == "failed"
+    assert {row["status"] for row in repo.steps(
+        connection, replacement["job_id"]
+    )} == {"pending"}
+
+
+def test_create_restarts_partial_natural_key_job_from_zero(tmp_path, monkeypatch):
+    _path, connection = database(tmp_path, monkeypatch)
+    seed_calendar(connection)
+    first = create(connection)
+    with connection:
+        repo.finish_job(connection, first["job_id"], "partial")
+
+    replacement = create(connection)
+
+    assert replacement["job_id"] != first["job_id"]
+    assert replacement["status"] == "pending"
+    assert replacement["reused"] is False
+    assert repo.job(connection, first["job_id"])["status"] == "partial"
 
 
 def test_window_uses_open_day_dependencies_and_rejects_non_trading_day(
@@ -137,6 +174,65 @@ def test_window_uses_open_day_dependencies_and_rejects_non_trading_day(
         assert exc.code == "first_limit_non_trading_day"
     else:
         raise AssertionError("non-trading day should fail")
+
+
+def test_calendar_step_reuses_complete_local_calendar(tmp_path, monkeypatch):
+    _path, connection = database(tmp_path, monkeypatch)
+    seed_calendar(connection)
+    created = create(connection)
+
+    class ProviderThatMustNotBeCalled:
+        @property
+        def api(self):
+            raise AssertionError("complete local calendar should skip GM")
+
+    context = service.PipelineContext(
+        connection=connection,
+        job_id=created["job_id"],
+        parameters=repo.load(repo.job(connection, created["job_id"])["parameter_json"]),
+        provider=ProviderThatMustNotBeCalled(),
+    )
+    output = service.DefaultExecutor(context.provider).run_step("calendar", context)
+
+    assert output["planned"] == 0
+    assert output["sync"] == {
+        "status": "skipped",
+        "reason": "local_calendar_complete",
+    }
+    assert output["dependency_open_days"] == 29
+
+
+def test_minute_step_skips_when_daily_sab_prescreen_is_empty(
+    tmp_path, monkeypatch
+):
+    _path, connection = database(tmp_path, monkeypatch)
+    seed_calendar(connection)
+    created = create(connection)
+    parameters = repo.load(
+        repo.job(connection, created["job_id"])["parameter_json"]
+    )
+    parameters["stage"] = "tail_preview"
+    connection.execute(
+        """INSERT INTO first_limit_events(
+             symbol,exchange,trade_date,detection_version,detection_status,
+             is_first_limit,is_one_word_limit,lookback_trading_days,
+             observed_lookback_days,detected_at,created_at,updated_at)
+           VALUES(?,'SZ',?,'first_limit_v1','detected',1,0,20,20,?,?,?)""",
+        ("000001.SZ", DAY, *(["2026-07-21T08:00:00+00:00"] * 3)),
+    )
+    connection.commit()
+    context = service.PipelineContext(
+        connection, created["job_id"], parameters, None
+    )
+
+    output = service.DefaultExecutor().run_step("minute_bars", context)
+
+    assert output == {
+        "status": "skipped",
+        "reason": "no_daily_sab_candidates",
+        "planned": 0,
+        "rows": 0,
+    }
 
 
 def test_success_partial_failure_resume_and_redaction(tmp_path, monkeypatch):
@@ -346,6 +442,7 @@ def test_tail_preview_defaults_to_1430_and_starts_at_1430():
     )
     assert parameters["as_of"] == "2026-07-21T14:30:00+08:00"
     assert parameters["data_cutoff"] == "2026-07-21T14:30:00+08:00"
+    assert parameters["strategy_version"] == "first_limit_candidate_score_v2"
 
 
 def test_default_executor_offline_full_pipeline_has_complete_coverage(

@@ -13,11 +13,13 @@ from zoneinfo import ZoneInfo
 from backend.expectation_gap.database import connect, connect_readonly, migrate
 
 from . import daily_candidate_repository as repo
-from .daily_candidates import VERSION, compare_preview, evaluate_candidate
+from .candidate_scoring import VERSION
+from .daily_candidates import compare_preview, evaluate_candidate
 from .minute_review import MinuteBar, confirm_tail_entry
 from .rules import normalize_symbol
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
+BATCH_COMMIT_SIZE = 1000
 DEFAULT_VERSIONS = {
     "detection": "first_limit_v1",
     "pullback": "first_limit_pullback_v1",
@@ -69,7 +71,7 @@ def normalize_parameters(
             raise ValueError("tail_preview as_of must be between 14:30 and 14:55")
     elif evaluated_at.timetz().replace(tzinfo=None) < time(15, 0):
         raise ValueError("close_confirmed as_of must be at or after 15:00")
-    if strategy_version not in {VERSION, "first_limit_candidate_score_v1"}:
+    if strategy_version != VERSION:
         raise ValueError(f"unsupported daily candidate version: {strategy_version}")
     canonical = (
         sorted({normalize_symbol(symbol).canonical for symbol in symbols})
@@ -135,6 +137,23 @@ def cached_minute_provider(connection, symbol, start, end):
         yield _minute(row)
 
 
+def apply_candidate_score(decision, scored):
+    lifecycle = (
+        "eliminated"
+        if scored.hard_exclusions or decision.lifecycle_status == "eliminated"
+        else "eligible" if scored.grade else decision.lifecycle_status
+    )
+    return replace(
+        decision,
+        lifecycle_status=lifecycle,
+        candidate_grade=scored.grade if lifecycle == "eligible" else None,
+        score=Decimal(str(scored.total_score)),
+        primary_reasons=tuple(sorted(set(
+            decision.primary_reasons + scored.hard_exclusions
+        ))),
+    )
+
+
 def _minute_contiguous(previous, current):
     seconds = (current.moment - previous.moment).total_seconds()
     if seconds == 60:
@@ -151,7 +170,7 @@ def _intraday_bar(minutes, trade_date, as_of):
         return None, False
     ordered = sorted(values, key=lambda bar: bar.moment)
     complete = (
-        ordered[0].moment.timetz().replace(tzinfo=None) == time(9, 30)
+        ordered[0].moment.timetz().replace(tzinfo=None) in {time(9, 30), time(9, 31)}
         and ordered[-1].moment >= as_of.replace(second=0, microsecond=0)
         and all(
             _minute_contiguous(previous, current)
@@ -275,19 +294,13 @@ def review_event(connection, event, params, minute_provider=None):
         date.fromisoformat(params["trade_date"]),
     )
     audit["industry_context"] = industry_context.evidence()
-    if params["stage"] == "tail_preview" and params["strategy_version"] == "first_limit_candidate_score_v1":
+    if params["stage"] == "tail_preview" and params["strategy_version"] == VERSION:
         scoring = FirstLimitCandidateScoringService(connection).score(
             event, inputs["context"], industry_context, params["as_of"]
         )
         audit["candidate_scoring"] = scoring.evidence()
         scored = scoring.candidate
-        lifecycle = "eliminated" if scored.hard_exclusions else decision.lifecycle_status
-        grade = scored.grade if lifecycle == "eligible" else None
-        decision = replace(
-            decision, lifecycle_status=lifecycle, candidate_grade=grade,
-            score=Decimal(str(scored.total_score)),
-            primary_reasons=tuple(sorted(set(decision.primary_reasons + scored.hard_exclusions))),
-        )
+        decision = apply_candidate_score(decision, scored)
     return decision, preview, change, audit
 
 
@@ -436,6 +449,7 @@ def run_daily_candidates(
     strategy_version=VERSION,
     versions=None,
     run_id=None,
+    execution_key=None,
     dry_run=False,
     resume=False,
     force=False,
@@ -452,6 +466,13 @@ def run_daily_candidates(
         strategy_version=strategy_version, versions=versions,
         detect_missing_events=detect_missing_events,
     )
+    if execution_key is not None:
+        if resume:
+            raise ValueError("execution_key cannot be combined with resume")
+        params = {**params, "execution_key": str(execution_key)}
+        parameter_hash = hashlib.sha256(
+            _json(params).encode("utf-8")
+        ).hexdigest()
     if dry_run and (run_id or resume or force or force_symbols):
         raise ValueError("dry-run cannot use run_id, resume, force, or force_symbols")
     if force and not resume:
@@ -531,53 +552,60 @@ def run_daily_candidates(
     try:
         if run_failure_hook:
             run_failure_hook("before_items")
-        for event in processing:
+        connection.execute("BEGIN")
+        for index, event in enumerate(processing, 1):
             if event["id"] in completed and not force:
                 continue
+            connection.execute("SAVEPOINT candidate_item")
             try:
-                with connection:
-                    if force:
-                        repo.delete_candidate(connection, selected_run, event["id"])
-                    if failure_hook:
-                        failure_hook(event["id"], "before_review")
-                    decision, preview, change, audit = review_event(
-                        connection, event, params, minute_provider
+                if force:
+                    repo.delete_candidate(connection, selected_run, event["id"])
+                if failure_hook:
+                    failure_hook(event["id"], "before_review")
+                decision, preview, change, audit = review_event(
+                    connection, event, params, minute_provider
+                )
+                candidate_id = None
+                scoring = audit.get("candidate_scoring", {}).get("CANDIDATE_SCORE")
+                if scoring is None or repo.is_persistable_scoring(scoring):
+                    candidate_id = repo.save_candidate(
+                        connection, selected_run, event, params["trade_date"],
+                        params["stage"], decision, params["versions"],
+                        params["strategy_version"], preview, change, audit,
                     )
-                    candidate_id = None
-                    scoring = audit.get("candidate_scoring", {}).get("CANDIDATE_SCORE")
-                    if scoring is None or repo.is_persistable_scoring(scoring):
-                        candidate_id = repo.save_candidate(
-                            connection, selected_run, event, params["trade_date"],
-                            params["stage"], decision, params["versions"],
-                            params["strategy_version"], preview, change, audit,
-                        )
-                    if failure_hook:
-                        failure_hook(event["id"], "before_item")
-                    item_status = (
-                        "indeterminate"
-                        if decision.lifecycle_status == "indeterminate"
-                        else "skipped" if decision.lifecycle_status == "expired" or (
-                            scoring is not None and candidate_id is None
-                        )
-                        else "success"
+                if failure_hook:
+                    failure_hook(event["id"], "before_item")
+                item_status = (
+                    "indeterminate"
+                    if decision.lifecycle_status == "indeterminate"
+                    else "skipped" if decision.lifecycle_status == "expired" or (
+                        scoring is not None and candidate_id is None
                     )
-                    repo.save_item(
-                        connection, selected_run, event["id"], event["symbol"],
-                        item_status, candidate_id,
-                        reason_codes=(scoring.get("hard_exclusions") or (
-                            ["TOTAL_SCORE_BELOW_65"] if scoring is not None else []
-                        )) if candidate_id is None else (),
-                    )
+                    else "success"
+                )
+                repo.save_item(
+                    connection, selected_run, event["id"], event["symbol"],
+                    item_status, candidate_id,
+                    reason_codes=(scoring.get("hard_exclusions") or (
+                        ["TOTAL_SCORE_BELOW_65"] if scoring is not None else []
+                    )) if candidate_id is None else (),
+                )
             except Exception as exc:
-                with connection:
-                    if force:
-                        repo.delete_candidate(connection, selected_run, event["id"])
-                    repo.save_item(
-                        connection, selected_run, event["id"], event["symbol"],
-                        "failed", error=exc,
-                    )
-        with connection:
-            status = repo.finish_run(connection, selected_run)
+                connection.execute("ROLLBACK TO SAVEPOINT candidate_item")
+                connection.execute("RELEASE SAVEPOINT candidate_item")
+                if force:
+                    repo.delete_candidate(connection, selected_run, event["id"])
+                repo.save_item(
+                    connection, selected_run, event["id"], event["symbol"],
+                    "failed", error=exc,
+                )
+            else:
+                connection.execute("RELEASE SAVEPOINT candidate_item")
+            if index % BATCH_COMMIT_SIZE == 0:
+                connection.commit()
+                connection.execute("BEGIN")
+        status = repo.finish_run(connection, selected_run)
+        connection.commit()
         return {
             "run_id": selected_run, "status": status,
             "planned_count": len(events),

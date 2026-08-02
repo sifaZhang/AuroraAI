@@ -17,8 +17,9 @@ from backend.expectation_gap.database import (
 )
 
 from . import pipeline_repository as repo
+from . import daily_candidate_repository as candidate_repo
 from .detect_first_limits import detect_first_limits
-from .daily_candidates import VERSION as CANDIDATE_VERSION
+from .candidate_scoring import VERSION as CANDIDATE_VERSION
 from .rules import normalize_symbol
 from .run_daily_candidates import normalize_parameters as normalize_candidate_parameters
 from .run_daily_candidates import run_daily_candidates
@@ -252,6 +253,77 @@ def _universe_record(raw, day):
     }
 
 
+def local_calendar_plan(connection, trade_date):
+    """Return a dependency plan when the locally stored calendar is complete."""
+    target = str(trade_date)
+    target_row = connection.execute(
+        """SELECT is_open FROM a_share_trading_calendar
+           WHERE market='CN' AND trade_date=?""",
+        (target,),
+    ).fetchone()
+    if target_row is None:
+        return None
+    if not target_row[0]:
+        return plan_required_window(connection, trade_date)
+
+    required_open_days = (
+        DEPENDENCIES["active_observation_days"]
+        + DEPENDENCIES["first_limit_lookback_days"]
+        + DEPENDENCIES["safety_buffer_open_days"] + 1
+    )
+    rows = connection.execute(
+        """SELECT trade_date FROM a_share_trading_calendar
+           WHERE market='CN' AND is_open=1 AND trade_date<=?
+           ORDER BY trade_date DESC LIMIT ?""",
+        (target, required_open_days),
+    ).fetchall()
+    if len(rows) < required_open_days:
+        return None
+
+    required_start = date.fromisoformat(rows[-1][0])
+    stored_days = connection.execute(
+        """SELECT COUNT(*) FROM a_share_trading_calendar
+           WHERE market='CN' AND trade_date BETWEEN ? AND ?""",
+        (str(required_start), target),
+    ).fetchone()[0]
+    expected_days = (trade_date - required_start).days + 1
+    if stored_days != expected_days:
+        return None
+    return plan_required_window(connection, trade_date)
+
+
+def minute_scope_symbols(connection, events, trade_date):
+    """Return prior-limit stocks whose optimistic final score can reach B."""
+    symbols = set()
+    for event in events:
+        context = candidate_repo.context_for_event(
+            connection, event["id"], str(trade_date),
+            "first_limit_v1", "first_limit_pullback_v1",
+            "first_limit_context_v1", exact_date=False,
+        )
+        if context is None or event["is_one_word_limit"]:
+            continue
+        if context["first_limit_score"] is None or context["pullback_score"] is None:
+            continue
+        if context["is_eliminated"]:
+            continue
+        shape = max(
+            0.0,
+            min(35.0, float(context["pullback_score"]) / 30.0 * 35.0),
+        )
+        known_score = (
+            shape
+            + max(0.0, min(20.0, float(context["first_limit_score"])))
+            + max(0.0, min(10.0, float(context["market_score"] or 0)))
+        )
+        # Industry, capital and leader components contribute at most 35.
+        # Below this optimistic bound the final score cannot reach B (65).
+        if known_score + 35.0 < 65.0:
+            continue
+        symbols.add(event["symbol"])
+    return [normalize_symbol(symbol) for symbol in sorted(symbols)]
+
+
 @dataclass
 class PipelineContext:
     connection: Any
@@ -286,6 +358,16 @@ class DefaultExecutor:
     def run_step(self, code, context):
         con, params = context.connection, context.parameters
         if code == "calendar":
+            plan = local_calendar_plan(con, context.day)
+            if plan is not None:
+                return {
+                    **plan,
+                    "planned": 0,
+                    "sync": {
+                        "status": "skipped",
+                        "reason": "local_calendar_complete",
+                    },
+                }
             provider = self._provider()
             api = getattr(provider, "api", provider)
             # Bootstrap is deliberately calendar-based, then the exact window is
@@ -388,28 +470,37 @@ class DefaultExecutor:
         if code == "minute_bars":
             if params["stage"] != "tail_preview":
                 return {"status": "skipped", "reason": "close_confirmed"}
-            event_symbols = [
-                normalize_symbol(row[0])
-                for row in con.execute(
-                    """SELECT DISTINCT symbol FROM first_limit_events
+            events = con.execute(
+                    """SELECT id,symbol,trade_date,is_one_word_limit
+                       FROM first_limit_events
                        WHERE trade_date BETWEEN ? AND ?
                          AND detection_status='detected' AND is_first_limit=1
                        ORDER BY symbol""",
                     (str(d0_start), str(target)),
-                )
-            ]
-            if not event_symbols:
+                ).fetchall()
+            if not events:
                 return {"status": "success", "planned": 0, "rows": 0}
+            minute_symbols = minute_scope_symbols(con, events, target)
+            if not minute_symbols:
+                return {
+                    "status": "skipped",
+                    "reason": "no_daily_sab_candidates",
+                    "planned": 0,
+                    "rows": 0,
+                }
             provider = self._provider()
             api = getattr(provider, "api", provider)
             return sync.sync_minutes(
-                con, api, event_symbols, target, target, allow_large_run=True
+                con, api, minute_symbols, target, target, allow_large_run=True
             ).__dict__
         if code == "candidate_generation":
             return run_daily_candidates(
                 con, trade_date=target, stage=params["stage"],
                 as_of=params["as_of"], data_cutoff=params["data_cutoff"],
                 symbols=[item.canonical for item in symbols],
+                strategy_version=CANDIDATE_VERSION,
+                run_id=f"candidate-pipeline-{context.job_id}",
+                execution_key=f"pipeline:{context.job_id}",
                 detect_missing_events=False,
             )
         if code == "coverage_validation":
@@ -505,7 +596,7 @@ def validate_coverage(context):
         context, "limit_detection", detection_expected, detection_covered, plan
     )
     placeholders = ",".join("?" for _ in symbols)
-    event_sql = """SELECT id,symbol,trade_date FROM first_limit_events
+    event_sql = """SELECT id,symbol,trade_date,is_one_word_limit FROM first_limit_events
                    WHERE trade_date BETWEEN ? AND ?
                      AND detection_version='first_limit_v1'
                      AND detection_status='detected' AND is_first_limit=1"""
@@ -549,12 +640,13 @@ def validate_coverage(context):
         context, "market_context", expected_observations, contexts, plan
     )
     if params["stage"] == "tail_preview":
-        event_symbols = sorted({event["symbol"] for event in events})
+        minute_symbols = minute_scope_symbols(con, events, context.day)
         cutoff = _timestamp(params["data_cutoff"], "data_cutoff")
         start_stamp = datetime.combine(context.day, datetime.min.time(), SHANGHAI)
         start_stamp = start_stamp.replace(hour=9, minute=30)
         minute_covered = 0
-        for symbol in event_symbols:
+        for security in minute_symbols:
+            symbol = security.canonical
             row = con.execute(
                 """SELECT MIN(bar_time),MAX(bar_time),COUNT(*)
                    FROM first_limit_minute_bars
@@ -562,12 +654,15 @@ def validate_coverage(context):
                 (symbol, start_stamp.isoformat(), cutoff.isoformat()),
             ).fetchone()
             if (
-                row[2] and str(row[0]).startswith(f"{params['trade_date']}T09:30")
+                row[2] and str(row[0])[:16] in {
+                    f"{params['trade_date']}T09:30",
+                    f"{params['trade_date']}T09:31",
+                }
                 and str(row[1]).startswith(cutoff.strftime("%Y-%m-%dT%H:%M"))
             ):
                 minute_covered += 1
         checks["minutes"] = _domain(
-            context, "minute_bars", len(event_symbols), minute_covered, plan
+            context, "minute_bars", len(minute_symbols), minute_covered, plan
         )
     candidate = con.execute(
         """SELECT run_id,detection_complete,status FROM daily_candidate_runs
@@ -604,12 +699,17 @@ def create_job(connection, **values):
             row, created = repo.create_or_reuse(
                 connection, parameters, digest, STEP_CODES
             )
-            # Repeated requests share a natural-key job. A cancelled job is
-            # terminal and cannot be claimed until it is prepared for retry.
-            # A new click on "generate" explicitly resumes it while retaining
-            # the outputs of steps that already completed successfully.
-            if not created and row["status"] == "cancelled":
-                row, _changed = repo.prepare_retry(connection, row["id"])
+            # Only a genuinely pending/running attempt may be reused. Every
+            # explicit click after completion starts a new auditable job.
+            if not created and row["status"] in {
+                "success", "partial", "failed", "cancelled", "interrupted"
+            }:
+                repo.release_restartable_natural_key(connection, row["id"])
+                row, created = repo.create_or_reuse(
+                    connection, parameters, digest, STEP_CODES
+                )
+                if not created:
+                    raise RuntimeError("unable to create replacement pipeline job")
     except sqlite3.OperationalError as exc:
         if "locked" in str(exc).lower() or "busy" in str(exc).lower():
             raise PipelineError(
@@ -788,7 +888,7 @@ def recover_jobs(connection, *, start=True):
         repo.recover_stale(connection)
     rows = connection.execute(
         """SELECT id FROM first_limit_pipeline_jobs
-           WHERE status IN ('pending','interrupted') ORDER BY id"""
+           WHERE status='pending' ORDER BY id"""
     ).fetchall()
     if start:
         for row in rows:

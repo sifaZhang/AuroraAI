@@ -2,7 +2,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, asdict
 
-VERSION = "first_limit_candidate_score_v1"
+VERSION = "first_limit_candidate_score_v2"
 
 
 def _clamp(value, low=0, high=10): return round(max(low, min(high, value)), 4)

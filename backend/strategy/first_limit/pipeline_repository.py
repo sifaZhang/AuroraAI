@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 
 def now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds")
 
 
 def dump(value) -> str:
@@ -53,6 +53,26 @@ def create_or_reuse(connection, parameters, parameter_hash, steps):
             [(row["id"], code, ordinal) for ordinal, code in enumerate(steps, 1)],
         )
     return row, bool(cursor.rowcount)
+
+
+def release_restartable_natural_key(connection, job_id):
+    """Preserve a terminal attempt audit row while allowing a clean new run."""
+    row = job(connection, job_id)
+    if row is None:
+        raise LookupError("pipeline job not found")
+    if row["status"] not in {
+        "success", "partial", "failed", "cancelled", "interrupted"
+    }:
+        return False
+    cursor = connection.execute(
+        """UPDATE first_limit_pipeline_jobs
+           SET parameter_hash=parameter_hash || ':' || status || ':' || id
+           WHERE id=? AND status IN (
+             'success','partial','failed','cancelled','interrupted'
+           )""",
+        (job_id,),
+    )
+    return cursor.rowcount == 1
 
 
 def job(connection, job_id):
@@ -251,7 +271,14 @@ def finish_step(
 
 def steps(connection, job_id):
     return connection.execute(
-        """SELECT * FROM first_limit_pipeline_steps WHERE job_id=?
+        """SELECT *,
+                  CASE WHEN started_at IS NOT NULL AND finished_at IS NOT NULL
+                       THEN ROUND(
+                           (julianday(finished_at)-julianday(started_at))*86400,
+                           3
+                       )
+                  END AS duration_seconds
+           FROM first_limit_pipeline_steps WHERE job_id=?
            ORDER BY ordinal""",
         (job_id,),
     ).fetchall()

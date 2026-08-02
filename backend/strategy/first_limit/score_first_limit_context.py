@@ -8,6 +8,8 @@ from .rules import normalize_symbol
 from . import context_repository as repo
 from .context import *
 
+BATCH_COMMIT_SIZE=1000
+
 def parser():
  p=argparse.ArgumentParser();g=p.add_mutually_exclusive_group(required=True);g.add_argument('--observation-date');g.add_argument('--start-date');p.add_argument('--end-date');p.add_argument('--codes');p.add_argument('--detection-version',default='first_limit_v1');p.add_argument('--scoring-version',default='first_limit_quality_v1');p.add_argument('--pullback-version',default='first_limit_pullback_v1');p.add_argument('--context-scoring-version',default=VERSION);p.add_argument('--dry-run',action='store_true');p.add_argument('--resume',action='store_true');p.add_argument('--run-id');p.add_argument('--max-symbols',type=int);p.add_argument('--force',action='store_true');return p
 def components(con,row):
@@ -33,20 +35,26 @@ def score_first_limit_context(con, *, start, end, symbols=None,
  with con:
   rid=run_id if resume else repo.create_run(con,params)
   run=repo.resume_run(con,rid,params) if resume else None
- done=repo.done(con,rid) if resume else set(); counts=Counter()
- for r in rows:
+ done=repo.done(con,rid) if resume else set(); counts=Counter();con.execute('BEGIN')
+ for index,r in enumerate(rows,1):
   key=f"{r['id']}:{r['symbol']}:{r['observation_date']}"
   if key in done and not force:counts['skipped']+=1;continue
   try:
    parts=components(con,r);s=aggregate(parts,r['first_limit_score'],r['earned_score'])
-   with con:sid=repo.save(con,r,context_scoring_version,s,parts);repo.item(con,rid,key,'success',sid,s)
+   con.execute('SAVEPOINT context_item')
+   try:
+    sid=repo.save(con,r,context_scoring_version,s,parts);repo.item(con,rid,key,'success',sid,s)
+   except Exception:
+    con.execute('ROLLBACK TO SAVEPOINT context_item');con.execute('RELEASE SAVEPOINT context_item');raise
+   con.execute('RELEASE SAVEPOINT context_item')
    counts['success']+=1; counts[s['score_status']]+=1
   except Exception as e:
-   with con:repo.item(con,rid,key,'failed',error=f'{type(e).__name__}: {e}');counts['failed']+=1
+   repo.item(con,rid,key,'failed',error=f'{type(e).__name__}: {e}');counts['failed']+=1
+  if index%BATCH_COMMIT_SIZE==0:con.commit()
  if resume and not force and counts['skipped']==len(rows):
   return {'run_id':rid,'status':run['status'],**counts}
  status='failed' if rows and counts['failed']==len(rows) else 'partial' if counts['failed'] or counts['missing'] or counts['indeterminate'] or counts['approximate'] else 'success'
- with con:repo.finish(con,rid,status,len(rows),counts['success'],counts['skipped'],counts['failed'],counts['indeterminate']+counts['missing']+counts['approximate'])
+ repo.finish(con,rid,status,len(rows),counts['success'],counts['skipped'],counts['failed'],counts['indeterminate']+counts['missing']+counts['approximate']);con.commit()
  return {'run_id':rid,'status':status,**counts}
 
 def main(argv=None):

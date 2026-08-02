@@ -200,24 +200,24 @@ def test_candidate_path_persists_and_reloads_industry_context_evidence(tmp_path)
     assert evidence["effective"]["fallback_reason"] is None
 
 
-def test_pr613b_hard_elimination_is_not_snapshot_and_run_summary_is_kept(tmp_path):
+def test_pr613b_missing_industry_minutes_are_not_a_hard_elimination(tmp_path):
     connection = database(tmp_path, "pr613b-eliminated.db")
     seed_source(connection)
     result = run_daily_candidates(
         connection, run_id="pr613b-eliminated",
-        strategy_version="first_limit_candidate_score_v1",
+        strategy_version="first_limit_candidate_score_v2",
         minute_provider=lambda *_: iter(()),
         **kwargs(stage="tail_preview", as_of="2026-07-22T14:55:00+08:00",
                  data_cutoff="2026-07-22T14:55:00+08:00"),
     )
     assert result["status"] == "success"
-    assert connection.execute("SELECT COUNT(*) FROM daily_candidate_snapshots").fetchone()[0] == 0
     summary = json.loads(connection.execute(
         "SELECT summary_json FROM daily_candidate_runs WHERE run_id='pr613b-eliminated'"
     ).fetchone()[0])
-    assert summary["scanned_count"] == 1 and summary["candidate_count"] == 0
-    assert summary["eliminated_count"] == 1
-    assert summary["elimination_reason_counts"]["INTRADAY_DATA_SEVERELY_INSUFFICIENT"] == 1
+    assert summary["scanned_count"] == 1
+    assert "INTRADAY_DATA_SEVERELY_INSUFFICIENT" not in summary[
+        "elimination_reason_counts"
+    ]
 
 
 def test_pr613b_scoring_columns_and_all_evidence_round_trip(tmp_path):
@@ -225,7 +225,7 @@ def test_pr613b_scoring_columns_and_all_evidence_round_trip(tmp_path):
     event_id = seed_source(connection)
     event = connection.execute("SELECT * FROM first_limit_events WHERE id=?", (event_id,)).fetchone()
     params = {"trade_date":"2026-07-22","stage":"tail_preview","as_of":"2026-07-22T14:55:00+08:00",
-        "data_cutoff":"2026-07-22T14:55:00+08:00","strategy_version":"first_limit_candidate_score_v1",
+        "data_cutoff":"2026-07-22T14:55:00+08:00","strategy_version":"first_limit_candidate_score_v2",
         "versions":{"detection":"first_limit_v1","pullback":"first_limit_pullback_v1","context":"first_limit_context_v1"}}
     candidate_repo.create_run(connection,"persist-score",params,"hash",1,True)
     candidate_repo.initialize_items(connection,"persist-score",[event])
@@ -233,7 +233,7 @@ def test_pr613b_scoring_columns_and_all_evidence_round_trip(tmp_path):
         "INTRADAY_INDUSTRY_ESTIMATE":{"status":"complete","intraday_score":80,"intraday_rank":2,"trade_date":"2026-07-22","as_of_time":"14:55"},
         "CAPITAL_ACTIVITY":{"status":"complete","score":8},"LEADER_SCORE":{"status":"complete","score":9},
         "INDUSTRY_ENVIRONMENT":{"status":"complete","score":12,"trend":{"score":5}},
-        "CANDIDATE_SCORE":{"version":"first_limit_candidate_score_v1","status":"complete","total_score":86,
+        "CANDIDATE_SCORE":{"version":"first_limit_candidate_score_v2","status":"complete","total_score":86,
             "grade":"S","buy_recommendation":"重点候选","hard_exclusions":[],"grade_caps":[]},
     }
     decision=Decision("eligible","S",Decimal("86"),2,(),())
@@ -242,7 +242,7 @@ def test_pr613b_scoring_columns_and_all_evidence_round_trip(tmp_path):
     row=connection.execute("SELECT * FROM daily_candidate_snapshots WHERE id=?",(candidate_id,)).fetchone()
     assert (row["effective_score"],row["effective_rank"],row["capital_activity_score"],row["leader_score"],
         row["industry_trend_score"],row["industry_environment_score"],row["score"],row["candidate_grade"],
-        row["buy_recommendation"],row["scoring_version"]) == (80,2,8,9,5,12,86,"S","重点候选","first_limit_candidate_score_v1")
+        row["buy_recommendation"],row["scoring_version"]) == (80,2,8,9,5,12,86,"S","重点候选","first_limit_candidate_score_v2")
     evidence={r["rule_code"]:json.loads(r["actual_value"]) for r in candidate_repo.evidence_for(connection,candidate_id)}
     assert set(scoring)<=set(evidence) and evidence["CANDIDATE_SCORE"]["total_score"]==86
 
@@ -251,13 +251,13 @@ def test_close_confirmation_pending_then_official_and_idempotent(tmp_path):
     connection=database(tmp_path,"close-confirmation.db");event_id=seed_source(connection);seed_industry_context(connection)
     event=connection.execute("SELECT * FROM first_limit_events WHERE id=?",(event_id,)).fetchone()
     params={"trade_date":"2026-07-22","stage":"tail_preview","as_of":"2026-07-22T14:55:00+08:00",
-        "data_cutoff":"2026-07-22T14:55:00+08:00","strategy_version":"first_limit_candidate_score_v1",
+        "data_cutoff":"2026-07-22T14:55:00+08:00","strategy_version":"first_limit_candidate_score_v2",
         "versions":{"detection":"first_limit_v1","pullback":"first_limit_pullback_v1","context":"first_limit_context_v1"}}
     candidate_repo.create_run(connection,"confirm",params,"confirm-hash",1,True);candidate_repo.initialize_items(connection,"confirm",[event])
     components={"shape_pullback":35,"first_limit":20,"industry_environment":10,"capital_activity":8,"leader":8,"market_risk":7}
     scoring={"INTRADAY_INDUSTRY_ESTIMATE":{"status":"complete","intraday_score":75,"intraday_rank":1,
         "industry_level":3,"trade_date":"2026-07-22","as_of_time":"14:55"},
-        "CANDIDATE_SCORE":{"version":"first_limit_candidate_score_v1","status":"complete","components":components,
+        "CANDIDATE_SCORE":{"version":"first_limit_candidate_score_v2","status":"complete","components":components,
         "total_score":88,"grade":"S","buy_recommendation":"重点候选","hard_exclusions":[],"grade_caps":[]}}
     snapshot_id=candidate_repo.save_candidate(connection,"confirm",event,"2026-07-22","tail_preview",
         Decision("eligible","S",Decimal("88"),2,(),()),params["versions"],params["strategy_version"],None,None,

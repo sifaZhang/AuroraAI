@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from backend.api.app import app
 from backend.expectation_gap.database import connect, migrate
 from backend.strategy.first_limit import api_service
-from backend.strategy.first_limit.daily_candidates import VERSION
+from backend.strategy.first_limit.candidate_scoring import VERSION
 
 NOW = "2026-07-30T07:00:00+00:00"
 DAY = "2026-07-30"

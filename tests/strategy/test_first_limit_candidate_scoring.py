@@ -3,6 +3,9 @@ from backend.strategy.first_limit.candidate_scoring import (
     industry_trend_score, leader_score,
 )
 from backend.strategy.first_limit.daily_candidate_repository import is_persistable_scoring
+from backend.strategy.first_limit.candidate_scoring_service import FirstLimitCandidateScoringService
+from backend.strategy.first_limit.daily_candidates import Decision
+from backend.strategy.first_limit.run_daily_candidates import apply_candidate_score
 
 
 def test_capital_activity_tiers_states_history_and_bounds():
@@ -52,3 +55,32 @@ def test_candidate_exact_boundaries_hard_exclusion_and_industry_cap():
     for total in (65,75,85,100): assert is_persistable_scoring(_score(total).evidence())
     assert not is_persistable_scoring(_score(64.99).evidence())
     assert not is_persistable_scoring(_score(100,hard_exclusions=("ST",)).evidence())
+
+
+def test_incomplete_legacy_context_and_missing_industry_are_not_hard_exclusions():
+    context = {
+        "is_complete": 0,
+        "first_limit_score": 18,
+        "pullback_score": 25,
+        "market_score": None,
+    }
+    estimate = type("Estimate", (), {"status": "membership_missing"})()
+    event = {"is_one_word_limit": 0}
+    assert FirstLimitCandidateScoringService._hard_exclusions(
+        event, context, estimate
+    ) == ()
+    severely_incomplete = type(
+        "Estimate", (), {"status": "intraday_data_insufficient"}
+    )()
+    assert FirstLimitCandidateScoringService._hard_exclusions(
+        event, context, severely_incomplete
+    ) == ()
+
+
+def test_new_grade_replaces_incomplete_legacy_lifecycle():
+    decision = Decision("pending_close_confirmation", None, None, 2, (), ())
+    scored = candidate_score(35, 20, 10, 5, 5, 0)
+    merged = apply_candidate_score(decision, scored)
+    assert merged.lifecycle_status == "eligible"
+    assert merged.candidate_grade == "A"
+    assert merged.score == 75

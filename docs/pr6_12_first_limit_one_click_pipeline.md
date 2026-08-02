@@ -1,5 +1,7 @@
 # PR6.12：首板回调数据自动补齐与一键完整筛选
 
+Pipeline step 会持久化 `started_at` 和 `finished_at`，查询 API、页面进度和 CLI Markdown 报告会据此显示 `duration_seconds`。回调观察、市场上下文和候选生成写入按最多 1,000 项批量提交，并用逐项 SAVEPOINT 保持失败隔离，避免 SQLite 频繁磁盘同步。
+
 ## 1. 目标
 
 在现有 PR6.1～PR6.11 基础上，实现真正可日常使用的一键运行闭环：

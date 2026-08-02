@@ -6,7 +6,6 @@ from decimal import Decimal
 
 from .pullback import MAX_DRAWDOWN, RISK_VOLUME_RATIO
 
-VERSION = "first_limit_daily_candidates_v1"
 MIN_DAILY_BASE_SCORE = Decimal("68")
 GRADES = {"A1": "S", "A2": "A", "B": "B"}
 

@@ -9,7 +9,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta, timezone
@@ -101,15 +100,14 @@ def _workers(value: int | None) -> int:
     return result
 
 
-def _retry(call: Callable[[], Any], *, attempts: int = 3, sleep: Callable[[float], None] = time.sleep) -> tuple[Any, int]:
+def _retry(call: Callable[[], Any], *, attempts: int = 3) -> tuple[Any, int]:
+    """Retry GM calls immediately; pipeline latency must not include backoff sleeps."""
     errors = []
     for attempt in range(attempts):
         try:
             return call(), attempt
         except Exception as exc:
             errors.append(f"{type(exc).__name__}: {exc}")
-            if attempt + 1 < attempts:
-                sleep(float(2 ** attempt))
     raise RuntimeError(" | ".join(errors)[:4000])
 
 

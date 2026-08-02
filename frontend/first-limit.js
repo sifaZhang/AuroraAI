@@ -131,7 +131,7 @@
       "panel-candidates", "panel-comparison", "panel-runs",
       "pipeline-progress", "pipeline-status", "pipeline-percent",
       "pipeline-progress-bar", "pipeline-current-step", "pipeline-step-list",
-      "pipeline-coverage-note", "pipeline-retry", "pipeline-cancel",
+      "pipeline-coverage-note", "pipeline-cancel",
     ].forEach(id => { elements[id] = byId(id); });
 
     const saved = key => {
@@ -620,7 +620,19 @@
       market_context: "更新行业及市场上下文", minute_bars: "补齐候选分钟线",
       candidate_generation: "生成候选", coverage_validation: "验证数据覆盖",
     };
-    const PIPELINE_TERMINAL = new Set(["success", "partial", "failed", "cancelled"]);
+    const PIPELINE_TERMINAL = new Set([
+      "success", "partial", "failed", "cancelled", "interrupted",
+    ]);
+
+    function formatDuration(seconds) {
+      if (seconds == null) return "";
+      const value = Number(seconds);
+      if (!Number.isFinite(value)) return "";
+      if (value < 1) return `${Math.round(value * 1000)}ms`;
+      if (value < 60) return `${value.toFixed(1)}s`;
+      const minutes = Math.floor(value / 60);
+      return `${minutes}m ${(value - minutes * 60).toFixed(1)}s`;
+    }
 
     function renderPipeline(job, steps = []) {
       if (!elements["pipeline-progress"]) return;
@@ -638,9 +650,10 @@
           : (job.message || "等待执行");
       clear(elements["pipeline-step-list"]);
       steps.forEach(step => {
+        const duration = formatDuration(step.duration_seconds);
         const node = text(
           elements["pipeline-step-list"], "span",
-          `${PIPELINE_STEP_NAMES[step.step_code] || step.step_code}：${RUN_STATUS_NAMES[step.status] || step.status}`,
+          `${PIPELINE_STEP_NAMES[step.step_code] || step.step_code}：${RUN_STATUS_NAMES[step.status] || step.status}${duration ? ` · ${duration}` : ""}`,
           step.status,
         );
         node.title = step.error_message || "";
@@ -650,8 +663,6 @@
           : job.status === "partial" ? "已有结果可查看，但覆盖不完整；0 条结果不代表全市场无候选。"
           : job.status === "failed" ? `任务失败：${job.error_message || job.error_code || "请查看失败明细"}`
           : "任务尚未完成，当前结果不代表完整筛选。";
-      elements["pipeline-retry"].hidden =
-        !["failed", "partial", "interrupted"].includes(job.status);
       elements["pipeline-cancel"].hidden = !["pending", "running"].includes(job.status);
     }
 
@@ -684,7 +695,13 @@
       } catch (error) {
         if (generation !== state.pollGeneration) return false;
         showError(elements["page-error"], error);
-        setRunning(false);
+        // A transient read timeout must not freeze the UI at the creation
+        // response's pending state. Keep controls in running mode and poll
+        // again; the backend job continues independently.
+        setRunning(true, state.stage);
+        elements["pipeline-cancel"].hidden = false;
+        const schedule = options.setTimeout || root?.setTimeout;
+        if (schedule) schedule(() => pollPipeline(jobId, generation), 1500);
         return false;
       }
     }
@@ -701,6 +718,14 @@
         persist("stage", stage);
         state.pipelineJobId = result.job_id;
         persist("pipeline_job_id", String(result.job_id));
+        renderPipeline({
+          id: result.job_id,
+          status: result.status || "pending",
+          stage,
+          progress_percent: null,
+          message: "等待后台任务启动",
+          coverage_complete: false,
+        }, []);
         await pollPipeline(result.job_id);
         elements["run-message"].textContent = result.reused
           ? `已复用正在运行或已完成的一键任务：#${result.job_id}`
@@ -777,18 +802,6 @@
       elements["refresh-results"].addEventListener("click", loadAll);
       elements["run-preview"].addEventListener("click", () => runStage("tail_preview"));
       elements["run-close"].addEventListener("click", () => runStage("close_confirmed"));
-      elements["pipeline-retry"]?.addEventListener("click", async () => {
-        if (!state.pipelineJobId || state.isRunning) return;
-        showError(elements["page-error"], null);
-        setRunning(true, state.stage);
-        try {
-          await api.post(`/api/first-limit/pipeline-jobs/${state.pipelineJobId}/retry`, {});
-          await pollPipeline(state.pipelineJobId);
-        } catch (error) {
-          showError(elements["page-error"], error);
-          setRunning(false, state.stage);
-        }
-      });
       elements["pipeline-cancel"]?.addEventListener("click", async () => {
         if (!state.pipelineJobId || !confirm("停止当前一键任务？已完成的数据会保留。")) return;
         try {

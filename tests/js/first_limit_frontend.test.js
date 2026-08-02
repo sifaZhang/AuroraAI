@@ -35,7 +35,7 @@ const IDS = [
   "panel-comparison", "panel-runs",
   "pipeline-progress", "pipeline-status", "pipeline-percent",
   "pipeline-progress-bar", "pipeline-current-step", "pipeline-step-list",
-  "pipeline-coverage-note", "pipeline-retry",
+  "pipeline-coverage-note", "pipeline-cancel",
 ];
 
 function documentMock() {

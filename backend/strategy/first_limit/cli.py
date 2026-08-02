@@ -36,13 +36,13 @@ def main(argv=None):
             if not args.dry_run:migrate(connection)
             result=run_daily_candidates(connection,trade_date=args.trade_date,stage="tail_preview",
                 as_of=f"{args.trade_date}T14:55:00+08:00",data_cutoff=f"{args.trade_date}T14:55:00+08:00",
-                strategy_version="first_limit_candidate_score_v1",dry_run=args.dry_run)
+                strategy_version="first_limit_candidate_score_v2",dry_run=args.dry_run)
             print(json.dumps(result,ensure_ascii=False,default=str,indent=2));return 0
         dry_run=args.dry_run;connection=connect_readonly() if dry_run else connect()
         if not dry_run:migrate(connection)
         symbol=getattr(args,"symbol",None)
         rows=connection.execute("""SELECT id FROM daily_candidate_snapshots WHERE trade_date=? AND stage='tail_preview'
-            AND scoring_version='first_limit_candidate_score_v1' AND (? IS NULL OR symbol=?) ORDER BY id""",
+            AND scoring_version='first_limit_candidate_score_v2' AND (? IS NULL OR symbol=?) ORDER BY id""",
             (args.trade_date,symbol.upper() if symbol else None,symbol.upper() if symbol else None)).fetchall()
         service=CloseConfirmationService(connection);results=[]
         for row in rows:

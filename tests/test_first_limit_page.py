@@ -13,6 +13,7 @@ def test_first_limit_page_and_assets_are_served_with_navigation():
     assert 'id="run-preview"' in page.text
     assert 'id="run-close"' in page.text
     assert 'id="pipeline-progress"' in page.text
+    assert 'id="pipeline-retry"' not in page.text
     assert "运行默认覆盖全市场；股票代码仅筛选已生成结果" in page.text
     assert 'src="first-limit.js"' in page.text
     assert "force" not in page.text.lower()
@@ -23,6 +24,8 @@ def test_first_limit_page_and_assets_are_served_with_navigation():
     assert "javascript" in script.headers["content-type"]
     assert "run_daily_candidates" not in script.text
     assert "/api/first-limit/pipeline-jobs" in script.text
+    assert "duration_seconds" in script.text
+    assert "/retry`" not in script.text
     for field in ("intraday_industry_score","official_industry_score","intraday_total_score",
                   "final_total_score","confirmation_status","confirmation_change_type"):
         assert field in script.text

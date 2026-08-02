@@ -38,7 +38,11 @@ def _markdown(connection, row):
         "## Steps", "",
     ]
     lines.extend(
-        f"- {step['step_code']}: {step['status']}" for step in steps
+        f"- {step['step_code']}: {step['status']}"
+        f" ({step['duration_seconds']:.3f}s)"
+        if step["duration_seconds"] is not None
+        else f"- {step['step_code']}: {step['status']}"
+        for step in steps
     )
     lines.extend(["", "## Coverage", ""])
     lines.extend(

@@ -79,7 +79,7 @@ Content-Type: application/json
   "as_of": "2026-07-30T14:55:00+08:00",
   "data_cutoff": "2026-07-30T14:55:00+08:00",
   "symbols": ["000001.SZ"],
-  "strategy_version": "first_limit_daily_candidates_v1",
+  "strategy_version": "first_limit_candidate_score_v2",
   "detection_version": "first_limit_v1",
   "pullback_version": "first_limit_pullback_v1",
   "context_version": "first_limit_context_v1",
