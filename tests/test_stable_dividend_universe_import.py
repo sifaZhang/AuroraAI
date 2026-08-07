@@ -13,7 +13,7 @@ class Provider:
     def fetch_events(self, symbols):
         rows=[]
         for symbol in symbols:
-            rows.extend(DividendEvent(symbol, date(year, 4, 1), date(year, 6, 1), 1.0, "实施") for year in (2023, 2024, 2025))
+            rows.extend(DividendEvent(symbol, date(year, 4, 1), date(year, 6, 1), 1.0, "实施", date(year, 12, 31)) for year in (2023, 2024, 2025))
         return rows
 
 
@@ -44,7 +44,7 @@ def test_plan_adds_manual_telecom_and_shenhua_and_imports_only_included():
 
 def test_missing_year_prevents_any_import():
     class MissingProvider(Provider):
-        def fetch_events(self,symbols): return [DividendEvent('600000.SH',date(2023,4,1),date(2023,6,1),1,'实施')]
+        def fetch_events(self,symbols): return [DividendEvent('600000.SH',date(2023,4,1),date(2023,6,1),1,'实施',date(2023,12,31))]
     con=_database()
     with pytest.raises(ValueError,match='missing_dps_years'):
         StableUniverseImportService(con,MissingProvider()).plan(_final().iloc[:1],date(2026,8,7))

@@ -1,7 +1,8 @@
 .dividend-universe-shell { width: min(1440px, calc(100vw - 32px)); }
 .dividend-header-actions { margin: 0; flex-wrap: wrap; justify-content: flex-end; }
 .dividend-header-actions button { min-height: 40px; padding: 8px 15px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
-.dividend-header-actions button:hover:not(:disabled) { border-color: var(--accent); background: #f0fdfa; }
+.dividend-header-actions button:hover:not(:disabled) { border-color: #0d675b; background: #0d675b; color: #fff; }
+.dividend-header-actions button:nth-child(2):hover:not(:disabled) { border-color: #163e73; background: #163e73; color: #fff; }
 .dividend-header-actions button:disabled { opacity: .55; cursor: wait; }
 .dividend-overview { grid-template-columns: repeat(4, minmax(120px, 1fr)); }
 .dividend-filter-grid { grid-template-columns: minmax(260px, 1.5fr) minmax(180px, .8fr) auto; align-items: end; margin: 0; }

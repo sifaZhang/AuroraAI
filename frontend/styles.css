@@ -238,3 +238,6 @@ tbody tr:hover {
   }
 }
 
+
+.yield-tier-watch { background: #fff7df; color: #8a5a00; font-weight: 700; }
+.yield-tier-high { background: #fce8e8; color: #a13b3b; font-weight: 700; box-shadow: inset 0 0 0 1px #e7b5b5; }

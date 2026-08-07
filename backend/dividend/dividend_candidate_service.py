@@ -18,6 +18,7 @@ from .dividend_candidate_rules import (
 )
 from .dividend_candidate_rules import LISTING_AGE_EXEMPTIONS
 from .models import CandidateSecurity, DividendEvent
+from .annual_dps import aggregate_events, unique_events
 
 
 class DividendProvider(Protocol):
@@ -40,6 +41,16 @@ class TushareDividendProvider:
                 symbol = str(row.get("ts_code") or requested_symbol).upper()
                 events.append(DividendEvent(symbol, _parse_date(row.get("ann_date")), _parse_date(row.get("ex_date")), _float(row.get("cash_div_tax")), _text(row.get("div_proc")), _parse_date(row.get("end_date"))))
         return events
+
+
+def _aggregate_events(events: Iterable[DividendEvent], years: tuple[int, int, int]):
+    """Compatibility wrapper for callers; report-period aggregation is canonical."""
+    totals, _ = aggregate_events(events, years)
+    return totals, set()
+
+
+def _unique_valid_events(events: Iterable[DividendEvent], symbol: str, years: tuple[int, int, int]) -> list[DividendEvent]:
+    return [event for event in unique_events(events, years) if event.symbol == symbol]
 
 
 def _parse_date(value: object) -> date | None:
@@ -90,7 +101,8 @@ class DividendCandidateService:
                 exclusions.append(self._exclusion(security, "data_source_error", "dividend", generated_at, type(exc).__name__))
             events = []
             dividend_source_failed = True
-        yearly, invalid_symbols = _aggregate_events(events, target_years(calculation_date))
+        yearly, _ = aggregate_events(events, target_years(calculation_date))
+        invalid_symbols: set[str] = set()
         rows: list[dict[str, object]] = []
         years = target_years(calculation_date)
         for security in eligible:
@@ -113,7 +125,7 @@ class DividendCandidateService:
                 exclusions.append(self._exclusion(security, "latest_year_dividend_decline", "continuity", generated_at))
                 continue
             monopoly_type = classify_industry(security.industry_level_1, security.industry_level_2, security.industry_level_3, security.company_name)
-            rows.append(self._candidate(security, monopoly_type or "", years, amounts, average, ratio, len(_unique_valid_events(events, security.symbol, years)), calculation_date, generated_at))
+            rows.append(self._candidate(security, monopoly_type or "", years, amounts, average, ratio, len([event for event in unique_events(events, years) if event.symbol == security.symbol]), calculation_date, generated_at))
         result = pd.DataFrame(rows, columns=CSV_COLUMNS).sort_values(["monopoly_type", "industry_level_1", "symbol"], kind="stable") if rows else pd.DataFrame(columns=CSV_COLUMNS)
         excluded = pd.DataFrame(exclusions, columns=EXCLUSION_COLUMNS).sort_values(["symbol", "exclusion_stage", "exclusion_reason"], kind="stable") if exclusions else pd.DataFrame(columns=EXCLUSION_COLUMNS)
         summary = {"securities_total": len(securities), "stable_industry_candidates": stages["stable_industry_candidates"], "final_candidates": len(result), "exclusions": len(excluded)}
@@ -151,27 +163,3 @@ class DividendCandidateService:
         risk = "包含多次年度派息" if event_count > 3 else "行业分类依赖当前申万基础信息"
         if ratio <= .8: risk += ";最近一年分红接近下限"
         return {"market":"CN", "symbol":item.symbol, "company_name":item.company_name or "", "list_date":item.list_date.isoformat() if item.list_date else "", "listing_years":listing_years, "industry_level_1":item.industry_level_1 or "", "industry_level_2":item.industry_level_2 or "", "industry_source":item.industry_source or "unknown", "stability_category":"stable_monopoly_candidate", "monopoly_type":monopoly_type, "target_year_1":years[0], "target_year_1_dps":round(amounts[0],6), "target_year_2":years[1], "target_year_2_dps":round(amounts[1],6), "target_year_3":years[2], "target_year_3_dps":round(amounts[2],6), "three_year_total_dps":round(sum(amounts),6), "three_year_average_dps":round(average,6), "latest_year_dps":round(amounts[-1],6), "latest_to_average_ratio":round(ratio,4), "dividend_event_count_3y":event_count, "candidate_reason":f"{monopoly_type}；连续三年现金分红；最近一年分红未明显下降", "risk_note":risk, "data_quality_status":"complete", "generated_at":generated_at}
-
-
-def _valid_events(events: Iterable[DividendEvent], symbol: str, years: tuple[int, int, int]) -> list[DividendEvent]:
-    return [event for event in events if event.symbol == symbol and event.ex_date and event.ex_date.year in years and (event.cash_div_tax or 0) > 0 and (event.div_proc or "实施") in {"实施", "实施方案"}]
-
-
-def _unique_valid_events(events: Iterable[DividendEvent], symbol: str, years: tuple[int, int, int]) -> list[DividendEvent]:
-    unique: dict[tuple[object, ...], DividendEvent] = {}
-    for event in _valid_events(events, symbol, years):
-        unique[(event.symbol, event.end_date, event.ann_date, event.ex_date, event.cash_div_tax, event.div_proc)] = event
-    return list(unique.values())
-
-
-def _aggregate_events(events: Iterable[DividendEvent], years: tuple[int, int, int]) -> tuple[dict[str, dict[int, float]], set[str]]:
-    totals: dict[str, dict[int, float]] = defaultdict(lambda: defaultdict(float))
-    seen: set[tuple[object, ...]] = set()
-    invalid: set[str] = set()
-    for event in events:
-        if not event.ex_date or event.ex_date.year not in years or (event.cash_div_tax or 0) <= 0 or (event.div_proc or "实施") not in {"实施", "实施方案"}: continue
-        key = (event.symbol, event.end_date, event.ann_date, event.ex_date, event.cash_div_tax, event.div_proc)
-        if key in seen: continue
-        seen.add(key)
-        totals[event.symbol][event.ex_date.year] += float(event.cash_div_tax or 0)
-    return totals, invalid

@@ -19,6 +19,7 @@ from backend.dividend.dividend_candidate_service import (
     _aggregate_events,
     _unique_valid_events,
 )
+from backend.dividend.annual_dps import METHOD
 from backend.dividend.universe_repository import DividendUniverseRepository
 from backend.expectation_gap.database import connect, migrate
 
@@ -179,7 +180,7 @@ def add(payload: AddRequest):
                 connection.execute(
                     """INSERT INTO annual_cash_dividend_summaries(market,symbol,calendar_year,cash_dividend_per_share,dividend_event_count,calculation_method,source,data_quality_status,calculated_at,updated_at)
                        VALUES(?,?,?,?,?,?,?,?,?,?)""",
-                    ("CN", symbol, int(year), value, result["dividend_event_counts"][year], "implemented_cash_dividend_grouped_by_ex_date", "tushare", "complete", now, now),
+                    ("CN", symbol, int(year), value, result["dividend_event_counts"][year], METHOD, "tushare", "complete", now, now),
                 )
         return {"status": "added", "symbol": symbol, "validation": result}
 

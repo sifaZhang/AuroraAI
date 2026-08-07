@@ -3,6 +3,9 @@ from fastapi import APIRouter,Query
 from pydantic import BaseModel
 from backend.expectation_gap.database import connect,migrate
 from backend.dividend.yield_service import calculate,save,target_years
+from backend.dividend.price_refresh_service import refresh_enabled_prices
+from backend.data_sources.settings import DataSourceSettings
+from backend.data_sources.tushare import TushareClient
 router=APIRouter(prefix='/api/dividend/yields',tags=['dividend'])
 class Refresh(BaseModel): calculation_date:date
 @router.get('')
@@ -31,5 +34,5 @@ def listing(calculation_date:date|None=None,include_disabled:bool=False,stabilit
 def refresh(payload:Refresh):
  c=connect()
  try:
-  migrate(c);rows=calculate(c,payload.calculation_date);save(c,rows);return {'calculation_date':payload.calculation_date.isoformat(),'total':len(rows),'items':rows}
+  migrate(c); settings=DataSourceSettings.from_env(); summary=refresh_enabled_prices(c,TushareClient(settings.tushare_token),payload.calculation_date); rows=calculate(c,payload.calculation_date);save(c,rows);return {'calculation_date':payload.calculation_date.isoformat(),'total':len(rows),'snapshot_count':len(rows),**summary}
  finally:c.close()

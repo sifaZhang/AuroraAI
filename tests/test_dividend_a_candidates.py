@@ -29,7 +29,7 @@ def _seed(connection, symbol, *, name="测试银行", listed="2010-01-01", activ
 
 
 def _events(symbol, values=(1.0, 1.0, 1.0)):
-    return [DividendEvent(symbol, date(year, 4, 1), date(year, 6, 1), value, "实施") for year, value in zip((2023, 2024, 2025), values)]
+    return [DividendEvent(symbol, date(year, 4, 1), date(year, 6, 1), value, "实施", date(year, 12, 31)) for year, value in zip((2023, 2024, 2025), values)]
 
 
 def test_filters_st_delisted_and_recent_listing_and_keeps_normal_a_share():
@@ -45,10 +45,10 @@ def test_filters_st_delisted_and_recent_listing_and_keeps_normal_a_share():
     assert set(exclusions["exclusion_reason"]) == {"st_or_delisting", "listed_less_than_5_years", "not_active", "not_common_a_share"}
 
 
-def test_aggregates_implemented_cash_events_by_natural_year_and_deduplicates():
+def test_aggregates_implemented_cash_events_by_report_period_and_deduplicates():
     events = _events("600001.SH", (0.5, 0.5, 0.5)) + [
-        DividendEvent("600001.SH", date(2023, 7, 1), date(2023, 8, 1), .5, "实施"),
-        DividendEvent("600001.SH", date(2023, 4, 1), date(2023, 6, 1), .5, "实施"),
+        DividendEvent("600001.SH", date(2023, 7, 1), date(2023, 8, 1), .5, "实施", date(2023, 6, 30)),
+        DividendEvent("600001.SH", date(2023, 4, 1), date(2023, 6, 1), .5, "实施", date(2023, 12, 31)),
         DividendEvent("600001.SH", date(2024, 1, 1), None, 9, "实施"),
         DividendEvent("600001.SH", date(2025, 1, 1), date(2025, 2, 1), 9, "预案"),
     ]

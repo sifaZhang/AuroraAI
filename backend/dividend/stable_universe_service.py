@@ -10,10 +10,10 @@ from typing import Iterable
 import pandas as pd
 
 from .dividend_candidate_rules import MANUAL_CORE_ADDITIONS, target_years
-from .dividend_candidate_service import DividendProvider, _aggregate_events
+from .dividend_candidate_service import DividendProvider
+from .annual_dps import METHOD, aggregate_events
 from .models import DividendEvent
 
-METHOD = "implemented_cash_dividend_grouped_by_ex_date"
 
 
 @dataclass(frozen=True)
@@ -46,8 +46,7 @@ class StableUniverseImportService:
             items = {symbol: item for symbol, item in items.items() if symbol in symbols}
         self._validate_security_status(items.values(), calculation_date)
         events = self.provider.fetch_events(items)
-        totals, _ = _aggregate_events(events, target_years(calculation_date))
-        event_counts = _event_counts(events, target_years(calculation_date))
+        totals, event_counts = aggregate_events(events, target_years(calculation_date))
         errors: list[str] = []
         for symbol in items:
             values = totals[symbol]
@@ -91,12 +90,3 @@ def _value(row, name: str):
     value = getattr(row, name, None)
     return None if value is None or pd.isna(value) else str(value)
 
-
-def _event_counts(events: Iterable[DividendEvent], years: tuple[int, int, int]) -> dict[str, dict[int, int]]:
-    counts: dict[str, dict[int, int]] = defaultdict(lambda: defaultdict(int)); seen=set()
-    for event in events:
-        if not event.ex_date or event.ex_date.year not in years or (event.cash_div_tax or 0) <= 0 or (event.div_proc or "实施") not in {"实施", "实施方案"}: continue
-        key=(event.symbol,event.end_date,event.ann_date,event.ex_date,event.cash_div_tax,event.div_proc)
-        if key in seen: continue
-        seen.add(key);counts[event.symbol][event.ex_date.year]+=1
-    return counts
