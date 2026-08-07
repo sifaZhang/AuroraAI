@@ -11,6 +11,7 @@ data/*.db
 data/*.sqlite
 data/*.sqlite3
 data/dividend_*.csv
+exports/dividend/*.csv
 data/pytest-temp/
 data/audits/
 *.db

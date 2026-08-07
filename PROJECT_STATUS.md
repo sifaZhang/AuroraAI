@@ -1,5 +1,15 @@
 # AuroraAI 项目状态
 
+## 2026-08-07: A-class stable dividend candidate generator (completed, uncommitted)
+
+- Added a read-only, repeatable CLI at `backend.dividend.generate_dividend_a_candidates`; it exports review-only candidate and exclusion CSV files and never writes the production SQLite database or stock pool.
+- Reuses the existing security master, latest status history, current SW industry membership, environment-backed data-source settings, and unified `TushareClient`; no token is stored in code.
+- Applies centrally configured basic eligibility, three complete calendar-year cash-dividend aggregation by ex-date, deterministic event deduplication, continuity/latest-DPS checks, cautious industry mapping, stable sorting, UTF-8 BOM CSV output, and auditable exclusions.
+- Offline tests cover eligibility, aggregate/deduplication behavior, continuity/ratio, industry exclusion, and dynamic years. Remaining limitation: the available SW membership is current, so classifications and business-model fit remain subject to manual review.
+- Real-data validation corrected three observed implementation defects: per-symbol Tushare dividend access (rather than an unavailable unrestricted request), telecom-operator precedence over generic `通信服务`, and explicit exclusion of oil-service and B-share securities. The final read-only full run generated 86 review candidates; no database tables or stock pools were written.
+- Second-phase file-only narrowing now produces `exports/dividend/dividend_a_candidates_final.csv`: 22 included, 65 review-required, and 12 explicitly excluded steel/metal entries. It preserves the first-stage CSVs, handles the explicit China Mobile listing-age exemption, and requires manual financial/concession review for road, gas, and railway candidates.
+- Formal stable-dividend universe import completed after a matching read-only dry-run and a timestamped database backup. Migration 029 created the formal universe and annual DPS tables; 24 enabled securities and 72 annual 2023–2025 DPS summaries were written. Re-running the import remained idempotent (24/72, no duplicates); the pool contains 21 `stable_monopoly` and 3 `resource_monopoly_cyclical` securities.
+
 ## 2026-08-02：候选列表评分链路修复（已实现，待提交）
 
 - 一键首板尾盘流程与 API/CLI 默认值统一使用修正后的 `first_limit_candidate_score_v2`，并删除旧策略版本兼容入口。

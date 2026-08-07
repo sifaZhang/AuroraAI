@@ -37,6 +37,7 @@ INDUSTRY_DAILY_SCORES_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" 
 FIRST_LIMIT_INDUSTRY_CONTEXT_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "026_first_limit_industry_context.sql"
 FIRST_LIMIT_CANDIDATE_SCORING_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "027_first_limit_candidate_scoring.sql"
 FIRST_LIMIT_CLOSE_CONFIRMATION_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "028_first_limit_close_confirmation.sql"
+DIVIDEND_STABLE_UNIVERSE_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "029_dividend_stable_universe.sql"
 MIGRATION_LOCK = threading.RLock()
 WRITE_JOB_LOCK = threading.RLock()
 SQLITE_TIMEOUT_SECONDS = 30
@@ -145,6 +146,7 @@ def _migrate_unlocked(connection: sqlite3.Connection) -> None:
     connection.executescript(CURRENT_SW_INDUSTRY_SNAPSHOT_MIGRATION_PATH.read_text(encoding="utf-8"))
     connection.executescript(INDUSTRY_DAILY_SNAPSHOTS_MIGRATION_PATH.read_text(encoding="utf-8"))
     connection.executescript(INDUSTRY_DAILY_SCORES_MIGRATION_PATH.read_text(encoding="utf-8"))
+    connection.executescript(DIVIDEND_STABLE_UNIVERSE_MIGRATION_PATH.read_text(encoding="utf-8"))
     candidate_columns = {row[1] for row in connection.execute("PRAGMA table_info(daily_candidate_snapshots)")}
     if "effective_industry_code" not in candidate_columns:
         connection.executescript(FIRST_LIMIT_INDUSTRY_CONTEXT_MIGRATION_PATH.read_text(encoding="utf-8"))
