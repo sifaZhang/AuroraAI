@@ -76,8 +76,10 @@ def candidate_score(shape, first_limit, industry, capital, leader, market,
     components={"shape_pullback":_clamp(shape,0,35),"first_limit":_clamp(first_limit,0,20),
         "industry_environment":_clamp(industry,0,15),"capital_activity":_clamp(capital,0,10),
         "leader":_clamp(leader,0,10),"market_risk":_clamp(market,0,10)}
-    total=round(min(100,sum(components.values())),2); caps=() if industry_available else ("industry_unavailable_max_B",)
+    # Missing industry *minute* coverage is not a negative industry fact.  The
+    # caller records reduced confidence, while formal previous-close industry
+    # data remains usable and must never cap an otherwise valid S/A candidate.
+    total=round(min(100,sum(components.values())),2); caps=()
     grade=None if hard_exclusions or total<65 else "S" if total>=85 else "A" if total>=75 else "B"
-    if caps and grade in {"S","A"}: grade="B"
     buy="重点候选" if grade=="S" else "可小仓位" if grade=="A" else None
     return CandidateScore(VERSION,components,total,grade,buy,tuple(hard_exclusions),caps,())

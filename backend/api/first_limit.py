@@ -133,6 +133,7 @@ def pipeline_steps(
     return {"job_id": job_id, "items": [
         {
             **dict(row),
+            "status": ("completed_with_incomplete_data" if row["status"] == "partial" and pipeline_repo.load(row["output_summary_json"], {}).get("status") == "completed_with_incomplete_data" else row["status"]),
             "input_summary": pipeline_repo.load(
                 row["input_summary_json"], {}
             ),

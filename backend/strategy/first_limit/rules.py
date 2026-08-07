@@ -148,11 +148,18 @@ def calculate_limit_prices(pre_close: Decimal | float | int | str | None, rule: 
 def resolve_limit_prices(pre_close: Decimal | float | int | str | None, rule: PriceLimitRule,
                          *, source_upper_limit: Decimal | float | int | str | None = None,
                          source_lower_limit: Decimal | float | int | str | None = None,
+                         tushare_upper_limit: Decimal | float | int | str | None = None,
+                         tushare_lower_limit: Decimal | float | int | str | None = None,
                          tick_size: Decimal | float | str = TICK_SIZE) -> LimitPrices:
     previous = _decimal(pre_close, "pre_close")
     source_upper, source_lower = _decimal(source_upper_limit, "source_upper_limit"), _decimal(source_lower_limit, "source_lower_limit")
+    tushare_upper, tushare_lower = _decimal(tushare_upper_limit, "tushare_upper_limit"), _decimal(tushare_lower_limit, "tushare_lower_limit")
     calculated_upper, calculated_lower, flags = calculate_limit_prices(previous, rule, tick_size)
     flags = set(flags)
+    if tushare_upper is not None and tushare_lower is not None:
+        conflict = (source_upper is not None and (source_upper != tushare_upper or source_lower != tushare_lower)) or (calculated_upper is not None and (calculated_upper != tushare_upper or calculated_lower != tushare_lower))
+        if conflict: flags.update({QualityFlag.SOURCE_CALCULATION_MISMATCH, QualityFlag.DATA_SOURCE_CONFLICT})
+        return LimitPrices(previous,rule.limit_rate,calculated_upper,calculated_lower,tushare_upper,tushare_lower,tushare_upper,tushare_lower,"tushare_stk_limit","conflict" if conflict else "authoritative",True,frozenset(flags))
     source_complete = source_upper is not None and source_lower is not None
     calculated_complete = calculated_upper is not None and calculated_lower is not None
     if source_complete and calculated_complete and (source_upper != calculated_upper or source_lower != calculated_lower):

@@ -7,6 +7,7 @@ from backend.expectation_gap.database import connect,connect_readonly,migrate
 from .rules import normalize_symbol
 from .quality import pre_position,volume_expansion,amount,turnover,candle_shape,industry_resonance,industry_strength,aggregate
 from . import quality_repository as repo
+from backend.industry.service import IndustryService
 
 MAX_DAYS=31
 def parser():
@@ -17,10 +18,19 @@ def _components(connection,event):
  prior,target=repo.daily_inputs(connection,event)
  if target is None: raise LookupError('missing target daily bar')
  closes=[r['close'] for r in prior]; volumes=[r['volume'] for r in prior[-5:]]
- mapping=repo.current_industry_mapping(connection,event['symbol'])
- mapping_payload=None if mapping is None else {'classification_system':mapping['classification_system'],'sector_code':mapping['sector_code'],'snapshot_date':mapping['snapshot_date'],'warning':mapping['lookahead_bias_warning']}
- trend=repo.same_day_trend_score(connection,mapping,event['trade_date'])
- return [pre_position(closes),volume_expansion(volumes,target['volume']),amount(target['amount']),turnover(None),candle_shape(target['open'],target['high'],target['low'],target['close'],event['pre_close']),industry_resonance(None,mapping=mapping_payload),industry_strength(None if trend is None else trend['trend_score'],approximate=mapping is not None,mapping=mapping_payload,score_date=event['trade_date'])]
+ # The quality score is a T0 fact.  Do not use the legacy sector membership
+ # tables here: IndustryService applies the formal 3 -> 2 -> 1 fallback.
+ effective=IndustryService(connection).get_effective_industry_context(event['symbol'],event['trade_date'])
+ snapshot=(IndustryService(connection).get_industry_snapshot(event['trade_date'],effective.effective_industry_code)
+           if effective.effective_industry_code else None)
+ mapping_payload={'effective_industry_level':effective.effective_level,
+  'effective_industry_code':effective.effective_industry_code,
+  'industry_score_date':event['trade_date'],'industry_score':effective.effective_score,
+  'industry_rank':effective.effective_rank,'industry_score_version':'industry_score_v1',
+  'membership_mode':'industry_memberships_current','fallback_reason':effective.fallback_reason,
+  'status':effective.status}
+ count=None if snapshot is None else snapshot.get('first_limit_count')
+ return [pre_position(closes),volume_expansion(volumes,target['volume']),amount(target['amount']),turnover(None),candle_shape(target['open'],target['high'],target['low'],target['close'],event['pre_close']),industry_resonance(count,mapping=mapping_payload),industry_strength(effective.effective_score,approximate=False,mapping=mapping_payload,score_date=event['trade_date'])]
 def score_first_limit_quality(con, *, start, end, symbols=None,
                               detection_version='first_limit_v1',
                               scoring_version='first_limit_quality_v1',

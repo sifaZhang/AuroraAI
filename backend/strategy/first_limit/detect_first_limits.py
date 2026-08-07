@@ -18,7 +18,7 @@ def parser():
  p.add_argument('--end-date'); p.add_argument('--codes'); p.add_argument('--detection-version',default='first_limit_v1'); p.add_argument('--dry-run',action='store_true'); p.add_argument('--resume',action='store_true'); p.add_argument('--run-id'); p.add_argument('--max-symbols',type=int); p.add_argument('--force',action='store_true'); return p
 def _date(x): return date.fromisoformat(x)
 def detect_first_limits(con, *, start, end, codes, detection_version='first_limit_v1',
-                        run_id=None, resume=False, force=False, dry_run=False):
+                        run_id=None, resume=False, force=False, dry_run=False, price_limits=None):
  days=[r[0] for r in con.execute("SELECT trade_date FROM a_share_trading_calendar WHERE market='CN' AND is_open=1 AND trade_date BETWEEN ? AND ?",(str(start),str(end)))]
  if not days: raise LookupError('no covered open trade dates')
  symbols=sorted(normalize_symbol(x).canonical for x in codes)
@@ -43,6 +43,10 @@ def detect_first_limits(con, *, start, end, codes, detection_version='first_limi
  metadata={(row['symbol'],row['trade_date']):row for row in con.execute(
   """SELECT * FROM first_limit_daily_metadata
      WHERE trade_date BETWEEN ? AND ?""",(history_start,str(end))
+ ) if row['symbol'] in symbol_set}
+ tushare_limits={(row['symbol'],row['trade_date']):row for row in con.execute(
+  """SELECT * FROM a_share_daily_price_limits WHERE trade_date BETWEEN ? AND ?
+     AND data_source='tushare_stk_limit'""",(history_start,str(end))
  ) if row['symbol'] in symbol_set}
  statuses={symbol:[] for symbol in symbols}
  for row in con.execute(
@@ -82,10 +86,17 @@ def detect_first_limits(con, *, start, end, codes, detection_version='first_limi
    )
   target=rows[-1]
   def b(r): return Bar(_date(r['trade_date']),*(Decimal(str(r[x])) if r[x] is not None else None for x in ('open','high','low','close','volume','amount')),r['adjustment'])
-  def md(d): return Metadata(*(Decimal(str(d[x])) if d and d[x] is not None else None for x in ('pre_close','source_upper_limit','source_lower_limit')))
+  def md(d,day):
+   source=Metadata(*(Decimal(str(d[x])) if d and d[x] is not None else None for x in ('pre_close','source_upper_limit','source_lower_limit')))
+   ts=(price_limits or {}).get((symbol,_date(str(day)))) or tushare_limits.get((symbol,str(day)))
+   upper = getattr(ts,'upper_limit',None) if ts else None
+   lower = getattr(ts,'lower_limit',None) if ts else None
+   if ts is not None and not hasattr(ts,'upper_limit'): upper,lower=ts['upper_limit'],ts['lower_limit']
+   return Metadata(source.pre_close,source.source_upper_limit,source.source_lower_limit,
+    Decimal(str(upper)) if upper is not None else None,Decimal(str(lower)) if lower is not None else None)
   def fetch(d): return metadata.get((symbol,str(d)))
   target_meta=fetch(day)
-  decision=classify(symbol,b(target),md(target_meta),status_asof(symbol,day),[(b(r),md(fetch(r['trade_date'])),status_asof(symbol,r['trade_date'])) for r in rows[:-1]])
+  decision=classify(symbol,b(target),md(target_meta,day),status_asof(symbol,day),[(b(r),md(fetch(r['trade_date']),r['trade_date']),status_asof(symbol,r['trade_date'])) for r in rows[:-1]])
   return (symbol,day,detection_version,decision,target['open'],target['high'],target['low'],target['close'],target_meta['pre_close'] if target_meta else None,str(decision.upper_limit) if decision.upper_limit else None,None)
  return run_detection(con,items,params,decide,run_id=run_id,resume=resume,force=force,dry_run=dry_run)
 

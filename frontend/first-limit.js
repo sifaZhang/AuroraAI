@@ -15,7 +15,7 @@
     eliminated: "已淘汰", expired: "已过期", indeterminate: "无法确定",
   };
   const STAGE_NAMES = {tail_preview: "尾盘预警", close_confirmed: "收盘确认"};
-  const RUN_STATUS_NAMES = {running: "运行中", success: "成功", partial: "部分完成", failed: "失败"};
+  const RUN_STATUS_NAMES = {running: "运行中", success: "成功", partial: "部分完成", completed_with_incomplete_data: "完成但数据不完整", failed: "失败"};
   const ITEM_STATUS_NAMES = {
     pending: "未决", success: "成功", indeterminate: "无法确定",
     skipped: "跳过", failed: "失败",
@@ -621,7 +621,7 @@
       candidate_generation: "生成候选", coverage_validation: "验证数据覆盖",
     };
     const PIPELINE_TERMINAL = new Set([
-      "success", "partial", "failed", "cancelled", "interrupted",
+      "success", "partial", "completed_with_incomplete_data", "failed", "cancelled", "interrupted",
     ]);
 
     function formatDuration(seconds) {
@@ -651,9 +651,11 @@
       clear(elements["pipeline-step-list"]);
       steps.forEach(step => {
         const duration = formatDuration(step.duration_seconds);
+        const incomplete = step.output_summary?.incomplete_data;
+        const suffix = incomplete ? `，但${incomplete.count}项${incomplete.label}` : "";
         const node = text(
           elements["pipeline-step-list"], "span",
-          `${PIPELINE_STEP_NAMES[step.step_code] || step.step_code}：${RUN_STATUS_NAMES[step.status] || step.status}${duration ? ` · ${duration}` : ""}`,
+          `${PIPELINE_STEP_NAMES[step.step_code] || step.step_code}：${RUN_STATUS_NAMES[step.status] || step.status}${suffix}${duration ? ` · ${duration}` : ""}`,
           step.status,
         );
         node.title = step.error_message || "";

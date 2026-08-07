@@ -66,5 +66,8 @@ def rhythm(closes):
  returns=[vals[i]/vals[i-1]-1 for i in range(1,len(vals))]
  return comp('pullback_rhythm',3 if all(r>=Decimal('-.05') for r in returns) else 0,3,{'returns':[str(r) for r in returns]})
 def aggregate(parts):
- ok=[p for p in parts if p.status in {'scored','zero_score'}]; earned=sum((p.score or 0 for p in ok),Decimal(0)); maxi=sum((p.maximum for p in ok),Decimal(0)); incomplete=len(ok)!=len(parts)
+ # Gate checks deliberately have no numeric score.  A pass/fail is still a
+ # determinate observation; only missing/indeterminate input makes coverage
+ # incomplete.
+ ok=[p for p in parts if p.status in {'scored','zero_score','pass','fail'}]; earned=sum((p.score or 0 for p in ok),Decimal(0)); maxi=sum((p.maximum for p in ok),Decimal(0)); incomplete=len(ok)!=len(parts)
  return {'earned_score':earned,'theoretical_max_score':MAX,'determinable_max_score':maxi,'coverage_ratio':maxi/MAX,'is_complete':not incomplete,'status':'indeterminate' if incomplete else 'pass' if earned else 'fail','reasons':tuple(sorted({x for p in parts for x in p.reasons}))}

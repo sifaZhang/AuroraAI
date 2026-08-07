@@ -90,6 +90,15 @@ def _audit_output(value):
         return [_audit_output(item) for item in value]
     return value
 
+def _incomplete_completion(output, code):
+    """A partial data set is not a failed execution."""
+    if not isinstance(output, dict) or output.get("status") != "partial": return output
+    if int(output.get("failed", output.get("failed_count", 0)) or 0): return output
+    count=sum(int(output.get(key, 0) or 0) for key in ("indeterminate", "missing", "approximate"))
+    if not count: return output
+    labels={"limit_detection":"无法确定是否首板","quality_scoring":"存在缺失分项","pullback_observation":"存在无法计算的观察项"}
+    return {**output,"status":"completed_with_incomplete_data","incomplete_data":{"count":count,"label":labels.get(code,"数据不完整")}}
+
 
 def _heartbeat_worker(database_path, job_id, stop):
     while not stop.wait(5):
@@ -293,32 +302,35 @@ def local_calendar_plan(connection, trade_date):
 
 
 def minute_scope_symbols(connection, events, trade_date):
-    """Return prior-limit stocks whose optimistic final score can reach B."""
+    """Return only daily-prequalified stocks whose optimistic score reaches B.
+
+    This intentionally consumes the T0 quality and D1-D5 pullback records,
+    never the retired first_limit_context_v1/sector context.  Components that
+    need target-day minutes (industry, capital, leader) and market data that is
+    not yet available are given their theoretical maxima for this *prefilter*.
+    """
     symbols = set()
     for event in events:
-        context = candidate_repo.context_for_event(
-            connection, event["id"], str(trade_date),
-            "first_limit_v1", "first_limit_pullback_v1",
-            "first_limit_context_v1", exact_date=False,
-        )
-        if context is None or event["is_one_word_limit"]:
+        if event["is_one_word_limit"]:
             continue
-        if context["first_limit_score"] is None or context["pullback_score"] is None:
+        quality = connection.execute(
+            """SELECT earned_score FROM first_limit_quality_scores
+               WHERE event_id=? AND scoring_version='first_limit_quality_v1'
+               ORDER BY id DESC LIMIT 1""", (event["id"],)
+        ).fetchone()
+        pullback = connection.execute(
+            """SELECT earned_score,is_eliminated FROM first_limit_pullback_observations
+               WHERE event_id=? AND observation_date<=?
+               ORDER BY observation_date DESC,id DESC LIMIT 1""",
+            (event["id"], str(trade_date)),
+        ).fetchone()
+        if quality is None or pullback is None or pullback["is_eliminated"]:
             continue
-        if context["is_eliminated"]:
-            continue
-        shape = max(
-            0.0,
-            min(35.0, float(context["pullback_score"]) / 30.0 * 35.0),
-        )
-        known_score = (
-            shape
-            + max(0.0, min(20.0, float(context["first_limit_score"])))
-            + max(0.0, min(10.0, float(context["market_score"] or 0)))
-        )
-        # Industry, capital and leader components contribute at most 35.
-        # Below this optimistic bound the final score cannot reach B (65).
-        if known_score + 35.0 < 65.0:
+        shape = max(0.0, min(35.0, float(pullback["earned_score"] or 0) / 30.0 * 35.0))
+        first = max(0.0, min(20.0, float(quality["earned_score"] or 0)))
+        # Unknown target-day industry/capital/leader (35) and market (10) are
+        # deliberately optimistic rather than silently treated as zero.
+        if shape + first + 35.0 + 10.0 < 65.0:
             continue
         symbols.add(event["symbol"])
     return [normalize_symbol(symbol) for symbol in sorted(symbols)]
@@ -434,11 +446,17 @@ class DefaultExecutor:
                 ),
             ).__dict__
         if code == "limit_detection":
+            from backend.data_sources.settings import DataSourceSettings
+            from backend.data_sources.tushare import TushareClient
+            from .tushare_price_limits import load_price_limits
+            settings=DataSourceSettings.from_env()
+            limits, failures = ({}, {}) if not settings.tushare_token else load_price_limits(TushareClient(settings.tushare_token), [date.fromisoformat(day) for day in plan["d0_dates"]])
             result = detect_first_limits(
                 con, start=d0_start, end=target,
                 codes=[item.canonical for item in symbols],
+                price_limits=limits,
             )
-            return {**result, "planned": len(symbols) * len(plan["d0_dates"])}
+            return {**result, "planned": len(symbols) * len(plan["d0_dates"]), "requested_dates":plan["d0_dates"], "loaded_dates":sorted({str(day) for _,day in limits}), "loaded_rows":len(limits), "failed_dates":{str(day):reason for day,reason in failures.items()}}
         if code == "quality_scoring":
             result = score_first_limit_quality(
                 con, start=d0_start, end=target,
@@ -457,16 +475,9 @@ class DefaultExecutor:
                 symbols=[item.canonical for item in symbols],
             )
         if code == "market_context":
-            result = score_first_limit_context(
-                con, start=d0_start, end=target,
-                symbols=[item.canonical for item in symbols],
-            )
-            return {
-                **result,
-                "planned": sum(result.get(key, 0) for key in (
-                    "success", "failed", "skipped"
-                )),
-            }
+            # Retained as a visible historical step only.  New candidates use
+            # formal IndustryService context and never first_limit_context_v1.
+            return {"status": "skipped", "reason": "legacy_context_excluded", "planned": 0}
         if code == "minute_bars":
             if params["stage"] != "tail_preview":
                 return {"status": "skipped", "reason": "close_confirmed"}
@@ -494,7 +505,7 @@ class DefaultExecutor:
                 con, api, minute_symbols, target, target, allow_large_run=True
             ).__dict__
         if code == "candidate_generation":
-            return run_daily_candidates(
+            result = run_daily_candidates(
                 con, trade_date=target, stage=params["stage"],
                 as_of=params["as_of"], data_cutoff=params["data_cutoff"],
                 symbols=[item.canonical for item in symbols],
@@ -503,6 +514,18 @@ class DefaultExecutor:
                 execution_key=f"pipeline:{context.job_id}",
                 detect_missing_events=False,
             )
+            if params["stage"] == "close_confirmed":
+                # Formal close scores are already materialized by the industry
+                # pipeline; replace the preview fallback with target-day formal
+                # 3 -> 2 -> 1 scoring for every preview snapshot.
+                from .close_confirmation import CloseConfirmationService
+                rows = con.execute("""SELECT id FROM daily_candidate_snapshots
+                    WHERE trade_date=? AND stage='tail_preview'
+                      AND scoring_version=? ORDER BY id""", (str(target), CANDIDATE_VERSION)).fetchall()
+                service = CloseConfirmationService(con)
+                confirmed = [service.confirm_snapshot(row["id"])["status"] for row in rows]
+                result["official_close_confirmation"] = {"count": len(confirmed), "statuses": confirmed}
+            return result
         if code == "coverage_validation":
             return validate_coverage(context)
         raise ValueError(f"unknown pipeline step: {code}")
@@ -626,19 +649,11 @@ def validate_coverage(context):
         + (f" AND symbol IN ({placeholders})" if symbols else ""),
         [d0_dates[0], d0_dates[-1], params["trade_date"], *symbols],
     ).fetchone()[0]
-    contexts = con.execute(
-        """SELECT COUNT(*) FROM first_limit_context_scores c
-           JOIN first_limit_pullback_observations o ON o.id=c.observation_id
-           WHERE o.first_limit_date BETWEEN ? AND ? AND o.observation_date<=?"""
-        + (f" AND o.symbol IN ({placeholders})" if symbols else ""),
-        [d0_dates[0], d0_dates[-1], params["trade_date"], *symbols],
-    ).fetchone()[0]
     checks["pullback"] = _domain(
         context, "pullback_observation", expected_observations, observations, plan
     )
-    checks["context"] = _domain(
-        context, "market_context", expected_observations, contexts, plan
-    )
+    checks["context"] = _domain(context, "market_context", 0, 0, plan,
+        {"status": "skipped", "reason": "legacy_context_excluded"})
     if params["stage"] == "tail_preview":
         minute_symbols = minute_scope_symbols(con, events, context.day)
         cutoff = _timestamp(params["data_cutoff"], "data_cutoff")
@@ -767,7 +782,7 @@ def _execute_job(connection, job_id, executor=None):
                 )
                 heartbeat.start()
             try:
-                output = execution.run_step(code, context)
+                output = _incomplete_completion(execution.run_step(code, context), code)
                 if repo.job(connection, job_id)["status"] == "cancelled":
                     return dict(repo.job(connection, job_id))
                 failures = output.get("failures") or ()
@@ -789,7 +804,7 @@ def _execute_job(connection, job_id, executor=None):
                     )
                 step_status = (
                     "skipped" if output.get("status") == "skipped" else
-                    "partial" if output.get("status") == "partial" else "success"
+                    "partial" if output.get("status") in {"partial", "completed_with_incomplete_data"} else "success"
                 )
                 with connection:
                     total = output.get(
@@ -924,6 +939,8 @@ def serialize_job(row):
     value["coverage_complete"] = bool(value["coverage_complete"])
     value["parameters"] = repo.load(value.pop("parameter_json"), {})
     value.pop("parameter_hash", None)
+    if value["status"] == "partial" and not value.get("error_code"):
+        value["status"] = "completed_with_incomplete_data"
     return value
 
 

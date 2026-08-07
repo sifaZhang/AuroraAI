@@ -11,15 +11,15 @@ from .rules import detect_price_anomalies, resolve_limit_prices, resolve_price_l
 class DetectionStatus(str, Enum):
     DETECTED='detected'; NOT_FIRST_LIMIT='not_first_limit'; EXCLUDED='excluded'; INDETERMINATE='indeterminate'; FAILED='failed'
 class Reason(str, Enum):
-    NOT_LIMIT_UP_CLOSE='not_limit_up_close'; PREVIOUS_LIMIT_UP='previous_limit_up_within_20_days'; CONSECUTIVE='consecutive_limit_up'; ONE_WORD='one_word_limit'; HISTORICAL_INCOMPLETE='historical_window_incomplete'; MISSING_DAILY_BAR='missing_daily_bar'; INVALID_OHLC='invalid_ohlc'; SUSPENDED='suspended'; UNKNOWN_RULE='unknown_price_limit_rule'; UNRELIABLE_LIMIT='unreliable_upper_limit'; MISSING_STATUS='missing_security_status'; NON_STOCK='non_stock_security'; DATA_CONFLICT='data_source_conflict'; PRE_CLOSE_DISCONTINUITY='pre_close_discontinuity'; INELIGIBLE_SECURITY='ineligible_security'
+    NOT_LIMIT_UP_CLOSE='not_limit_up_close'; PREVIOUS_LIMIT_UP='previous_limit_up_within_20_days'; CONSECUTIVE='consecutive_limit_up'; ONE_WORD='one_word_limit'; HISTORICAL_INCOMPLETE='historical_window_incomplete'; MISSING_DAILY_BAR='missing_daily_bar'; INVALID_OHLC='invalid_ohlc'; SUSPENDED='suspended'; UNKNOWN_RULE='unknown_price_limit_rule'; UNRELIABLE_LIMIT='unreliable_upper_limit'; PRICE_LIMIT_MISSING='price_limit_missing'; PRICE_LIMIT_INVALID='price_limit_invalid'; NO_PRICE_LIMIT_REGIME='no_price_limit_regime'; MISSING_STATUS='missing_security_status'; NON_STOCK='non_stock_security'; DATA_CONFLICT='data_source_conflict'; PRE_CLOSE_DISCONTINUITY='pre_close_discontinuity'; INELIGIBLE_SECURITY='ineligible_security'
 
 @dataclass(frozen=True)
 class Bar: trade_date: date; open: Decimal|None; high: Decimal|None; low: Decimal|None; close: Decimal|None; volume: Decimal|None; amount: Decimal|None; adjustment: str='none'
 @dataclass(frozen=True)
-class Metadata: pre_close: Decimal|None; source_upper_limit: Decimal|None; source_lower_limit: Decimal|None; quality_flags: frozenset[QualityFlag]=frozenset()
+class Metadata: pre_close: Decimal|None; source_upper_limit: Decimal|None; source_lower_limit: Decimal|None; tushare_upper_limit: Decimal|None=None; tushare_lower_limit: Decimal|None=None; quality_flags: frozenset[QualityFlag]=frozenset()
 @dataclass(frozen=True)
 class EventDecision:
-    status: DetectionStatus; is_limit_up_close: bool|None; touched_upper_limit: bool|None; is_first_limit: bool|None; is_one_word_limit: bool|None; is_consecutive_limit: bool|None; consecutive_limit_days: int|None; observed_lookback_days: int; previous_limit_up_date: date|None; upper_limit: Decimal|None; upper_limit_source: str|None; reasons: frozenset[Reason]; quality_flags: frozenset[str]
+    status: DetectionStatus; is_limit_up_close: bool|None; touched_upper_limit: bool|None; is_first_limit: bool|None; is_one_word_limit: bool|None; is_consecutive_limit: bool|None; consecutive_limit_days: int|None; observed_lookback_days: int; previous_limit_up_date: date|None; upper_limit: Decimal|None; upper_limit_source: str|None; reasons: frozenset[Reason]; quality_flags: frozenset[str]; price_limit_evidence: dict|None=None
 
 def _valid(bar: Bar) -> bool:
     return all(x is not None and x > 0 for x in (bar.open,bar.high,bar.low,bar.close)) and bar.low <= min(bar.open,bar.close) <= max(bar.open,bar.close) <= bar.high
@@ -27,15 +27,21 @@ def classify(symbol, target: Bar, metadata: Metadata|None, status: SecurityStatu
     reasons:set[Reason]=set(); flags:set[str]=set()
     if not _valid(target): return EventDecision(DetectionStatus.INDETERMINATE,None,None,None,None,None,None,0,None,None,None,frozenset({Reason.INVALID_OHLC}),frozenset())
     if metadata is None: return EventDecision(DetectionStatus.INDETERMINATE,None,None,None,None,None,None,0,None,None,None,frozenset({Reason.MISSING_DAILY_BAR}),frozenset())
-    rule=resolve_price_limit_rule(symbol,target.trade_date,status); limits=resolve_limit_prices(metadata.pre_close,rule,source_upper_limit=metadata.source_upper_limit,source_lower_limit=metadata.source_lower_limit)
+    rule=resolve_price_limit_rule(symbol,target.trade_date,status); limits=resolve_limit_prices(metadata.pre_close,rule,source_upper_limit=metadata.source_upper_limit,source_lower_limit=metadata.source_lower_limit,tushare_upper_limit=metadata.tushare_upper_limit,tushare_lower_limit=metadata.tushare_lower_limit)
     flags.update(x.value for x in limits.quality_flags|metadata.quality_flags|detect_price_anomalies(adjustment=target.adjustment,pre_close=metadata.pre_close,previous_close=None))
     if status is None: reasons.add(Reason.MISSING_STATUS)
     elif status.is_st is True or (status.listed_date is not None and target.trade_date < status.listed_date) or (status.delisted_date is not None and target.trade_date >= status.delisted_date): reasons.add(Reason.INELIGIBLE_SECURITY)
-    if not limits.reliable or limits.upper_limit is None: reasons.add(Reason.UNRELIABLE_LIMIT)
+    if not limits.reliable or limits.upper_limit is None:
+        reasons.add(Reason.NO_PRICE_LIMIT_REGIME if rule.status.value == 'no_limit' else Reason.PRICE_LIMIT_MISSING)
+    elif limits.selection_basis == 'tushare_stk_limit': flags.add('tushare_limit_confirmed')
+    elif limits.selection_basis.startswith('source_'): flags.add('gm_limit_fallback')
+    elif limits.selection_basis == 'calculated_fallback': flags.add('calculated_limit_fallback')
+    if QualityFlag.DATA_SOURCE_CONFLICT.value in flags: flags.add('price_limit_source_conflict')
     if QualityFlag.SUSPENDED.value in flags: reasons.add(Reason.SUSPENDED)
     if QualityFlag.DATA_SOURCE_CONFLICT.value in flags: reasons.add(Reason.DATA_CONFLICT)
     if QualityFlag.PRE_CLOSE_DISCONTINUITY.value in flags: reasons.add(Reason.PRE_CLOSE_DISCONTINUITY)
-    if reasons: return EventDecision(DetectionStatus.EXCLUDED if reasons & {Reason.SUSPENDED,Reason.INELIGIBLE_SECURITY} else DetectionStatus.INDETERMINATE,None,None,None,None,None,None,0,None,limits.upper_limit,limits.selection_basis,frozenset(reasons),frozenset(flags))
+    evidence={'pre_close':str(metadata.pre_close) if metadata.pre_close else None,'tushare_upper_limit':str(metadata.tushare_upper_limit) if metadata.tushare_upper_limit else None,'tushare_lower_limit':str(metadata.tushare_lower_limit) if metadata.tushare_lower_limit else None,'gm_upper_limit':str(metadata.source_upper_limit) if metadata.source_upper_limit else None,'gm_lower_limit':str(metadata.source_lower_limit) if metadata.source_lower_limit else None,'calculated_upper_limit':str(limits.calculated_upper_limit) if limits.calculated_upper_limit else None,'calculated_lower_limit':str(limits.calculated_lower_limit) if limits.calculated_lower_limit else None,'effective_upper_limit':str(limits.upper_limit) if limits.upper_limit else None,'effective_lower_limit':str(limits.lower_limit) if limits.lower_limit else None,'effective_source':limits.selection_basis,'quality_status':limits.consistency_status,'source_conflict':'data_source_conflict' in flags,'quality_flags':sorted(flags),'close':str(target.close) if target.close else None}
+    if reasons: return EventDecision(DetectionStatus.EXCLUDED if reasons & {Reason.SUSPENDED,Reason.INELIGIBLE_SECURITY} else DetectionStatus.INDETERMINATE,None,None,None,None,None,None,0,None,limits.upper_limit,limits.selection_basis,frozenset(reasons),frozenset(flags),evidence)
     close_up=target.close >= limits.upper_limit; touched=target.high >= limits.upper_limit
     if not close_up: return EventDecision(DetectionStatus.NOT_FIRST_LIMIT,False,touched,False,False,False,0,0,None,limits.upper_limit,limits.selection_basis,frozenset({Reason.NOT_LIMIT_UP_CLOSE}),frozenset(flags))
     one_word=target.open==target.high==target.low==target.close and (target.volume or Decimal(0))>0
@@ -44,7 +50,7 @@ def classify(symbol, target: Bar, metadata: Metadata|None, status: SecurityStatu
     previous_limit=None
     for old, oldmeta, oldstatus in prior:
         if oldmeta is None or not _valid(old): return EventDecision(DetectionStatus.INDETERMINATE,True,touched,None,one_word,None,None,len(prior),None,limits.upper_limit,limits.selection_basis,frozenset({Reason.MISSING_DAILY_BAR}),frozenset(flags))
-        oldlimits=resolve_limit_prices(oldmeta.pre_close,resolve_price_limit_rule(symbol,old.trade_date,oldstatus),source_upper_limit=oldmeta.source_upper_limit,source_lower_limit=oldmeta.source_lower_limit)
+        oldlimits=resolve_limit_prices(oldmeta.pre_close,resolve_price_limit_rule(symbol,old.trade_date,oldstatus),source_upper_limit=oldmeta.source_upper_limit,source_lower_limit=oldmeta.source_lower_limit,tushare_upper_limit=oldmeta.tushare_upper_limit,tushare_lower_limit=oldmeta.tushare_lower_limit)
         if not oldlimits.reliable or oldlimits.upper_limit is None: return EventDecision(DetectionStatus.INDETERMINATE,True,touched,None,one_word,None,None,len(prior),None,limits.upper_limit,limits.selection_basis,frozenset({Reason.UNRELIABLE_LIMIT}),frozenset(flags))
         if old.close >= oldlimits.upper_limit: previous_limit=old.trade_date
     consecutive=previous_limit == prior[-1][0].trade_date

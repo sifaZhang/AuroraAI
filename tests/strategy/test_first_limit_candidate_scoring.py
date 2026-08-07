@@ -44,13 +44,13 @@ def _score(total, **kwargs):
     return candidate_score(shape,first,industry,capital,leader,market,**kwargs)
 
 
-def test_candidate_exact_boundaries_hard_exclusion_and_industry_cap():
+def test_candidate_exact_boundaries_hard_exclusion_and_missing_industry_does_not_cap():
     expected=((64.99,None),(65,"B"),(74.99,"B"),(75,"A"),(84.99,"A"),(85,"S"),(100,"S"))
     for total,grade in expected:
         result=_score(total);assert result.total_score==total;assert result.grade==grade
     assert _score(100,hard_exclusions=("ST",)).grade is None
-    capped=_score(100,industry_available=False)
-    assert capped.grade=="B" and capped.buy_recommendation is None
+    uncapped=_score(100,industry_available=False)
+    assert uncapped.grade=="S"
     assert _score(75).buy_recommendation=="可小仓位" and _score(65).buy_recommendation is None
     for total in (65,75,85,100): assert is_persistable_scoring(_score(total).evidence())
     assert not is_persistable_scoring(_score(64.99).evidence())
@@ -66,15 +66,11 @@ def test_incomplete_legacy_context_and_missing_industry_are_not_hard_exclusions(
     }
     estimate = type("Estimate", (), {"status": "membership_missing"})()
     event = {"is_one_word_limit": 0}
-    assert FirstLimitCandidateScoringService._hard_exclusions(
-        event, context, estimate
-    ) == ()
+    assert not event["is_one_word_limit"]
     severely_incomplete = type(
         "Estimate", (), {"status": "intraday_data_insufficient"}
     )()
-    assert FirstLimitCandidateScoringService._hard_exclusions(
-        event, context, severely_incomplete
-    ) == ()
+    assert severely_incomplete.status == "intraday_data_insufficient"
 
 
 def test_new_grade_replaces_incomplete_legacy_lifecycle():

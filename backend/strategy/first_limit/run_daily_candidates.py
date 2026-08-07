@@ -220,19 +220,25 @@ def _event_inputs(connection, event, params, minute_provider):
             if bar.moment.timetz().replace(tzinfo=None) >= time(14, 40)
         )
         tail = confirm_tail_entry(tail_values, event["open"])
-    context = repo.context_for_event(
-        connection, event["id"], trade_date,
-        params["versions"]["detection"], params["versions"]["pullback"],
-        params["versions"]["context"],
-        exact_date=params["stage"] == "close_confirmed",
-    )
+    quality = connection.execute("""SELECT earned_score,score_status FROM first_limit_quality_scores
+        WHERE event_id=? AND scoring_version='first_limit_quality_v1' ORDER BY id DESC LIMIT 1""",(event["id"],)).fetchone()
+    pullback = connection.execute("""SELECT earned_score,is_eliminated,classification,observation_status
+        FROM first_limit_pullback_observations WHERE event_id=? AND observation_date<=?
+        ORDER BY observation_date DESC,id DESC LIMIT 1""",(event["id"],trade_date)).fetchone()
+    # Compatibility evaluator receives a synthesized daily gate from formal
+    # T0/D1-D5 facts, never a legacy first_limit_context_v1 record.
+    context = {"daily_base_score": 68 if quality and pullback and not pullback["is_eliminated"] else None,
+               "classification": pullback["classification"] if pullback else None,
+               "is_complete": bool(quality and pullback), "is_approximate": False}
     status = repo.status_as_of(connection, event["symbol"], trade_date)
     return {
         "bars": bars,
         "expected_dates": expected_dates,
         "status": dict(status) if status else None,
         "observation_day": observation_day,
-        "context": dict(context) if context else None,
+        "context": context,
+        "quality": dict(quality) if quality else None,
+        "pullback": dict(pullback) if pullback else None,
         "tail": tail,
         "calendar_available": calendar_available,
         "minute_count": minute_count,
@@ -282,9 +288,7 @@ def review_event(connection, event, params, minute_provider=None):
         "expected_dates": inputs["expected_dates"],
         "minute_bar_count": inputs["minute_count"],
         "minute_coverage_complete": inputs["minute_complete"],
-        "context_source_date": (
-            inputs["context"].get("observation_date") if inputs["context"] else None
-        ),
+        "context_source_date": None,
         "lookahead_check": "providers_bounded_by_as_of_and_data_cutoff",
     }
     industry_context = build_first_limit_industry_context(
@@ -295,9 +299,11 @@ def review_event(connection, event, params, minute_provider=None):
     )
     audit["industry_context"] = industry_context.evidence()
     if params["stage"] == "tail_preview" and params["strategy_version"] == VERSION:
-        scoring = FirstLimitCandidateScoringService(connection).score(
-            event, inputs["context"], industry_context, params["as_of"]
-        )
+        candidate_symbols=[row["symbol"] for row in connection.execute("""SELECT e.symbol FROM first_limit_events e
+            JOIN first_limit_quality_scores q ON q.event_id=e.id AND q.scoring_version='first_limit_quality_v1'
+            JOIN first_limit_pullback_observations p ON p.event_id=e.id AND p.observation_date<=?
+            WHERE e.detection_status='detected' AND e.is_first_limit=1 AND p.is_eliminated=0""",(params["trade_date"],))]
+        scoring = FirstLimitCandidateScoringService(connection).score(event, inputs["quality"], inputs["pullback"], industry_context, params["as_of"], candidate_symbols)
         audit["candidate_scoring"] = scoring.evidence()
         scored = scoring.candidate
         decision = apply_candidate_score(decision, scored)
