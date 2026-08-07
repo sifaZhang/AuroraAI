@@ -141,6 +141,13 @@
 
 ## 当前状态
 
+## 2026-08-07: PR-D1 dividend universe management (implemented, uncommitted)
+
+- Added `/dividend/universe` and its SQLite-backed API for listing, searching, manual validation/addition, enable/disable, and advisory candidate rescans.
+- Manual additions preserve the existing implemented-cash-dividend, `ex_date`-year aggregation rules and require three positive annual DPS values plus explicit warning acknowledgement.
+- Candidate rescan results are intentionally process-memory-only in D1; scans never alter the formal universe automatically.
+- No prices, yields, mail, Hong Kong shares, first-limit behavior, or database schema changes are included.
+
 本次形成一个可回退的稳定检查点，重点修复并优化了 A 股预期差刷新和首板尾盘预警数据链路。
 
 ### 已完成

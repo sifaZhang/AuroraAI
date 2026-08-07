@@ -18,12 +18,14 @@ from backend.api.data_source_health import router as data_source_health_router
 from backend.api.first_limit import router as first_limit_router
 from backend.api.market_pulse import router as market_pulse_router
 from backend.api.industry import router as industry_router
+from backend.api.dividend_universe import router as dividend_universe_router
 from backend.strategy.first_limit.api_service import FirstLimitAPIError
 
 app = FastAPI(title="AuroraAI")
 app.include_router(data_source_health_router)
 app.include_router(market_pulse_router)
 app.include_router(industry_router)
+app.include_router(dividend_universe_router)
 app.include_router(first_limit_router)
 FRONTEND = PROJECT_ROOT / "frontend"
 
@@ -166,6 +168,9 @@ def data_source_health_page():
 @app.get("/first-limit")
 def first_limit_page():
     return FileResponse(FRONTEND / "first-limit.html")
+
+@app.get('/dividend/universe')
+def dividend_universe_page(): return FileResponse(FRONTEND / 'dividend-universe.html')
 
 
 app.mount("/", StaticFiles(directory=FRONTEND, html=True), name="frontend")
