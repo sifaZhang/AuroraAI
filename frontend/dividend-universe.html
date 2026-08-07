@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>AuroraAI - Dividend Universe</title>
-  <link rel="stylesheet" href="/styles.css">
-  <link rel="stylesheet" href="/expectation-gap.css">
-  <link rel="stylesheet" href="/first-limit.css">
-  <link rel="stylesheet" href="/dividend-universe.css">
+  <link rel="stylesheet" href="/styles.css?v=d3-universe-yields-3">
+  <link rel="stylesheet" href="/expectation-gap.css?v=d3-universe-yields-3">
+  <link rel="stylesheet" href="/first-limit.css?v=d3-universe-yields-3">
+  <link rel="stylesheet" href="/dividend-universe.css?v=d3-universe-yields-3">
 </head>
 <body>
   <main class="app-shell first-limit-shell dividend-universe-shell">
@@ -16,7 +16,7 @@
     </nav>
     <header class="topbar first-limit-header">
       <div><p class="eyebrow">AuroraAI Research</p><h1>&#20998;&#32418;&#32929;&#31080;&#27744;</h1><p class="subtitle">&#31649;&#29702;&#38271;&#26399;&#35266;&#23519;&#30340;&#31283;&#23450;&#20998;&#32418;&#20844;&#21496;&#12290;&#37325;&#26032;&#31639;&#36873;&#21482;&#29983;&#25104;&#20505;&#36873;&#24314;&#35758;&#65292;&#19981;&#20250;&#33258;&#21160;&#20462;&#25913;&#27491;&#24335;&#32929;&#31080;&#27744;&#12290;</p></div>
-      <div class="run-actions dividend-header-actions"><button id="rescan" type="button" class="secondary-button">&#37325;&#26032;&#31639;&#36873;&#20505;&#36873;&#27744;</button><button id="add" type="button">&#65291; &#25163;&#21160;&#28155;&#21152;&#20844;&#21496;</button></div>
+      <div class="run-actions dividend-header-actions"><button id="rescan" type="button" class="secondary-button">&#37325;&#26032;&#31639;&#36873;&#20505;&#36873;&#27744;</button><button id="refresh-yields" type="button" class="secondary-button">&#21047;&#26032;&#32929;&#24687;&#29575;</button><button id="add" type="button" class="secondary-button">&#65291; &#25163;&#21160;&#28155;&#21152;&#20844;&#21496;</button></div>
     </header>
     <section class="dashboard-card overview-card" aria-label="&#32929;&#31080;&#27744;&#32479;&#35745;"><div id="overview-grid" class="overview-grid dividend-overview"><div class="loading-card">&#27491;&#22312;&#21152;&#36733;&#20998;&#32418;&#32929;&#31080;&#27744;...</div></div></section>
     <section class="dashboard-card run-controls">
@@ -29,10 +29,10 @@
     <div id="message" class="state-note" aria-live="polite"></div>
     <section id="load-error" class="api-error" role="alert" hidden><strong>&#32929;&#31080;&#27744;&#21152;&#36733;&#22833;&#36133;</strong><p id="load-error-detail"></p><button id="retry" type="button" class="secondary-button">&#37325;&#26032;&#21152;&#36733;</button></section>
     <section id="empty-state" class="dashboard-card dividend-empty" hidden><h2>&#32929;&#31080;&#27744;&#26242;&#26080;&#20844;&#21496;</h2><button id="empty-add" type="button">&#25163;&#21160;&#28155;&#21152;&#20844;&#21496;</button></section>
-    <section id="universe-table-card" class="dashboard-card tab-card"><div class="table-region dividend-table-wrap"><table class="first-limit-table dividend-table"><thead id="head"></thead><tbody id="rows"><tr><td colspan="10" class="empty-state">&#27491;&#22312;&#21152;&#36733;&#20998;&#32418;&#32929;&#31080;&#27744;...</td></tr></tbody></table></div></section>
+    <section id="universe-table-card" class="dashboard-card tab-card"><div id="dividend-top-scroll" class="dividend-top-scroll" hidden><div id="dividend-top-scroll-content"></div></div><div id="dividend-table-wrap" class="table-region dividend-table-wrap"><table id="dividend-table" class="first-limit-table dividend-table"><thead id="head"></thead><tbody id="rows"><tr><td colspan="13" class="empty-state">&#27491;&#22312;&#21152;&#36733;&#20998;&#32418;&#32929;&#31080;&#27744;...</td></tr></tbody></table></div></section>
     <section id="scan-results" class="dashboard-card tab-card" hidden></section>
-    <dialog id="dialog" class="dividend-dialog"><form method="dialog"><button class="close" aria-label="&#20851;&#38381;">&times;</button><h2>&#25163;&#21160;&#28155;&#21152;&#20844;&#21496;</h2><label>&#25628;&#32034; <input id="query" placeholder="&#32929;&#31080;&#20195;&#30721;&#25110;&#21517;&#31216;"></label><button id="find" type="button" class="secondary-button">&#25628;&#32034;</button><div id="results"></div><div id="validation" class="state-note"></div><label>&#31867;&#22411; <select id="add-subtype"><option value="stable_monopoly">&#31283;&#23450;&#22404;&#26029;&#22411;</option><option value="resource_monopoly_cyclical">&#36164;&#28304;&#21608;&#26399;&#22411;</option></select></label><label>&#22404;&#26029;/&#22721;&#22418;&#31867;&#22411; <input id="add-monopoly" required></label><label>&#21152;&#20837;&#21407;&#22240; <textarea id="reason" required></textarea></label><label class="checkbox-field"><input id="ack" type="checkbox"> <span>&#25105;&#24050;&#20102;&#35299;&#39118;&#38505;&#25552;&#31034;&#65292;&#20173;&#35201;&#21152;&#20837;&#32929;&#31080;&#27744;</span></label><button id="confirm" type="button" disabled>&#30830;&#35748;&#21152;&#20837;</button></form></dialog>
+    <dialog id="dialog" class="dividend-dialog"><form method="dialog"><button id="dialog-close" class="close" type="button" aria-label="&#20851;&#38381;">&times;</button><h2>&#25163;&#21160;&#28155;&#21152;&#20844;&#21496;</h2><label>&#25628;&#32034; <input id="query" placeholder="&#32929;&#31080;&#20195;&#30721;&#25110;&#21517;&#31216;"></label><button id="find" type="button" class="secondary-button">&#25628;&#32034;</button><div id="results"></div><div id="validation" class="state-note"></div><label>&#31867;&#22411; <select id="add-subtype"><option value="stable_monopoly">&#31283;&#23450;&#22404;&#26029;&#22411;</option><option value="resource_monopoly_cyclical">&#36164;&#28304;&#21608;&#26399;&#22411;</option></select></label><label>&#22404;&#26029;/&#22721;&#22418;&#31867;&#22411; <input id="add-monopoly" required></label><label>&#21152;&#20837;&#21407;&#22240; <textarea id="reason" required></textarea></label><label class="checkbox-field"><input id="ack" type="checkbox"> <span>&#25105;&#24050;&#20102;&#35299;&#39118;&#38505;&#25552;&#31034;&#65292;&#20173;&#35201;&#21152;&#20837;&#32929;&#31080;&#27744;</span></label><button id="confirm" type="button" disabled>&#30830;&#35748;&#21152;&#20837;</button></form></dialog>
   </main>
-  <script src="/dividend-universe.js"></script>
+  <script src="/dividend-universe.js?v=d3-universe-yields-3"></script>
 </body>
 </html>

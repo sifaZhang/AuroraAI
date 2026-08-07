@@ -17,7 +17,15 @@ def listing(calculation_date:date|None=None,include_disabled:bool=False,stabilit
   if not include_disabled:q+=' AND u.is_enabled=1'
   if stability_subtype:q+=' AND u.stability_subtype=?';args.append(stability_subtype)
   rows=[dict(x) for x in c.execute(q+' ORDER BY s.three_year_average_yield DESC NULLS LAST,s.symbol',args)]
-  return {'calculation_date':day.isoformat(),'target_years':list(target_years(day)),'total':len(rows),'items':rows}
+  years=target_years(day)
+  symbols=[row['symbol'] for row in rows]
+  dps={symbol:{str(year):None for year in years} for symbol in symbols}
+  if symbols:
+   placeholders=','.join('?'*len(symbols))
+   for value in c.execute(f"SELECT symbol,calendar_year,cash_dividend_per_share FROM annual_cash_dividend_summaries WHERE market='CN' AND symbol IN ({placeholders}) AND calendar_year IN (?,?,?)",(*symbols,*years)):
+    dps[value['symbol']][str(value['calendar_year'])]=value['cash_dividend_per_share']
+  for row in rows: row['annual_dps']=dps[row['symbol']]
+  return {'calculation_date':day.isoformat(),'target_years':list(years),'total':len(rows),'items':rows}
  finally:c.close()
 @router.post('/refresh')
 def refresh(payload:Refresh):

@@ -1,24 +1,40 @@
 .dividend-universe-shell { width: min(1440px, calc(100vw - 32px)); }
 .dividend-header-actions { margin: 0; flex-wrap: wrap; justify-content: flex-end; }
-.dividend-header-actions button { white-space: nowrap; }
+.dividend-header-actions button { min-height: 40px; padding: 8px 15px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+.dividend-header-actions button:hover:not(:disabled) { border-color: var(--accent); background: #f0fdfa; }
+.dividend-header-actions button:disabled { opacity: .55; cursor: wait; }
 .dividend-overview { grid-template-columns: repeat(4, minmax(120px, 1fr)); }
 .dividend-filter-grid { grid-template-columns: minmax(260px, 1.5fr) minmax(180px, .8fr) auto; align-items: end; margin: 0; }
 .dividend-filter-grid input, .dividend-filter-grid select { width: 100%; min-height: 39px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: inherit; font: inherit; }
 .checkbox-field { display: flex; align-items: center; min-height: 39px; gap: 7px; color: var(--muted); cursor: pointer; }
 .checkbox-field span { margin: 0 !important; font-size: 14px !important; }
+.dividend-top-scroll { overflow-x: auto; overflow-y: hidden; height: 15px; margin: 0 0 5px; }
+.dividend-top-scroll > div { height: 1px; }
 .dividend-table-wrap { overflow-x: auto; }
-.dividend-table { min-width: 1220px; width: 1220px; table-layout: fixed; }
+.dividend-table { min-width: 1325px; width: 1325px; table-layout: fixed; }
+.dividend-table th, .dividend-table td { padding: 7px 8px; white-space: nowrap; }
+.dividend-table th { padding-top: 8px; padding-bottom: 8px; }
 .dividend-table th, .dividend-table td { text-align: left; }
-.dividend-table th:nth-child(1), .dividend-table td:nth-child(1) { width: 155px; }
-.dividend-table th:nth-child(2), .dividend-table td:nth-child(2) { width: 160px; }
-.dividend-table th:nth-child(3), .dividend-table td:nth-child(3) { width: 120px; }
-.dividend-table th:nth-child(4), .dividend-table td:nth-child(4), .dividend-table th:nth-child(5), .dividend-table td:nth-child(5), .dividend-table th:nth-child(6), .dividend-table td:nth-child(6), .dividend-table th:nth-child(7), .dividend-table td:nth-child(7) { width: 108px; text-align: right; font-variant-numeric: tabular-nums; }
-.dividend-table th:nth-child(8), .dividend-table td:nth-child(8) { width: 94px; }
-.dividend-table th:nth-child(9), .dividend-table td:nth-child(9), .dividend-table th:nth-child(10), .dividend-table td:nth-child(10) { width: 78px; text-align: center; }
-.dividend-table td.dps { text-align: right; font-variant-numeric: tabular-nums; }
+.dividend-table th:nth-child(1), .dividend-table td:nth-child(1) { width: 130px; }
+.dividend-table th:nth-child(2), .dividend-table td:nth-child(2) { width: 145px; }
+.dividend-table th:nth-child(3), .dividend-table td:nth-child(3) { width: 105px; }
+.dividend-table th:nth-child(3), .dividend-table td:nth-child(3) { text-align: center; }
+.dividend-table th:nth-child(4), .dividend-table td:nth-child(4) { width: 80px; }
+.dividend-table th:nth-child(5), .dividend-table td:nth-child(5) { width: 90px; }
+.dividend-table th:nth-child(n+4):nth-child(-n+11), .dividend-table td:nth-child(n+4):nth-child(-n+11), .dividend-table td.dps, .dividend-table td.number-cell { text-align: right; font-variant-numeric: tabular-nums; }
+.dividend-table th:nth-child(6), .dividend-table td:nth-child(6), .dividend-table th:nth-child(7), .dividend-table td:nth-child(7), .dividend-table th:nth-child(8), .dividend-table td:nth-child(8) { width: 80px; }
+.dividend-table th:nth-child(9), .dividend-table td:nth-child(9) { width: 100px; }
+.dividend-table th:nth-child(10), .dividend-table td:nth-child(10) { width: 95px; }
+.dividend-table th:nth-child(11), .dividend-table td:nth-child(11) { width: 115px; }
+.dividend-table th:nth-child(12), .dividend-table td:nth-child(12), .dividend-table th:nth-child(13), .dividend-table td:nth-child(13) { width: 70px; text-align: center; white-space: nowrap; }
+.dividend-table td.price-date { white-space: nowrap; }
+.dividend-table .yield-sort { cursor: pointer; user-select: none; }
+.dividend-table .yield-sort:hover { color: var(--accent-strong); background: #f0fdfa; }
+.industry-cell { overflow: hidden; text-overflow: ellipsis; }
+.industry-cell small { display: block; overflow: hidden; text-overflow: ellipsis; }
 .stock-cell strong, .stock-cell small { display: block; }.stock-cell small { margin-top: 2px; color: var(--muted); }
 .dividend-tag, .source-tag, .status-chip { display: inline-flex; align-items: center; }
-.dividend-tag { padding: 3px 7px; border-radius: 999px; background: #e5f2ef; color: var(--accent-strong); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.dividend-tag { padding: 2px 5px; border-radius: 999px; background: #e5f2ef; color: var(--accent-strong); font-size: 12px; font-weight: 700; white-space: nowrap; }
 .dividend-tag.cyclical { background: #eef2f8; color: #475569; }
 .dividend-empty { padding: 34px; text-align: center; }.dividend-empty h2 { margin: 0 0 14px; font-size: 18px; }.dividend-empty button, .dividend-dialog #confirm { min-height: 39px; padding: 7px 14px; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
 .dividend-dialog { width: min(640px, 92vw); border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface); box-shadow: 0 24px 60px rgba(0,0,0,.2); }.dividend-dialog form { padding: 20px; }.dividend-dialog label { display: block; margin: 12px 0; }.dividend-dialog input:not([type="checkbox"]), .dividend-dialog textarea, .dividend-dialog select { width: 100%; min-height: 38px; margin-top: 5px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }.dividend-dialog textarea { min-height: 78px; }.dividend-dialog .close { float: right; border: 0; background: transparent; font-size: 24px; cursor: pointer; }.dividend-dialog #results button { margin: 7px 7px 0 0; }.dividend-dialog #confirm:disabled { opacity: .5; cursor: not-allowed; }

@@ -96,8 +96,9 @@ def test_universe_page_and_navigation_are_registered():
     client = TestClient(app)
     page = client.get('/dividend/universe')
     assert page.status_code == 200
-    assert 'src="/dividend-universe.js"' in page.text
-    assert 'href="/styles.css"' in page.text
+    assert page.headers['cache-control'] == 'no-store'
+    assert 'src="/dividend-universe.js?v=d3-universe-yields-3"' in page.text
+    assert 'href="/styles.css?v=d3-universe-yields-3"' in page.text
     assert 'dividend/universe' in client.get('/').text
 
 
@@ -110,3 +111,27 @@ def test_frontend_distinguishes_loading_empty_and_error_states():
     assert "$('add-monopoly').value = ''" in script
     assert 'id="load-error"' in page
     assert 'id="retry"' in page
+
+
+def test_universe_frontend_left_joins_yield_snapshots_and_keeps_d1_actions_separate():
+    script = (Path(__file__).parents[1] / 'frontend' / 'dividend-universe.js').read_text(encoding='utf-8')
+    page = (Path(__file__).parents[1] / 'frontend' / 'dividend-universe.html').read_text(encoding='utf-8')
+    assert "'/api/dividend/universe?' + params" in script
+    assert "api('/api/dividend/yields')" in script
+    assert "`${item.market || 'CN'}:${item.symbol}`" in script
+    assert 'yieldByKey[yieldKey(item)]' in script
+    assert 'snapshot?.latest_price' in script
+    assert 'snapshot?.latest_year_yield' in script
+    assert 'snapshot?.three_year_average_yield' in script
+    assert "api('/api/dividend/yields/refresh'" in script
+    assert "api('/api/dividend/universe/rescan'" in script
+    assert 'id="refresh-yields"' in page
+    assert 'id="dialog-close"' in page
+    assert "$('dialog-close').onclick" in script
+    assert "$('dialog').addEventListener('click'" in script
+    assert 'data-sort-key="${key}"' in script
+    assert "sortDirection === 'desc' ? 'asc' : 'desc'" in script
+    assert "if (a == null) return b == null ? 0 : 1" in script
+    assert "id=\"dividend-top-scroll\"" in page
+    assert "$('dividend-top-scroll').addEventListener('scroll'" in script
+    assert "window.addEventListener('resize', syncScrollbars)" in script

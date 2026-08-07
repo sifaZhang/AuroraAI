@@ -172,7 +172,12 @@ def first_limit_page():
     return FileResponse(FRONTEND / "first-limit.html")
 
 @app.get('/dividend/universe')
-def dividend_universe_page(): return FileResponse(FRONTEND / 'dividend-universe.html')
+def dividend_universe_page():
+    return FileResponse(FRONTEND / 'dividend-universe.html', headers={'Cache-Control': 'no-store'})
+@app.get('/dividend/yield/{view}')
+def dividend_yield_page(view: str):
+    if view not in {'latest','three-year'}: raise HTTPException(404)
+    return FileResponse(FRONTEND / 'dividend-yield.html')
 
 
 app.mount("/", StaticFiles(directory=FRONTEND, html=True), name="frontend")
