@@ -77,6 +77,7 @@ def _load_scan_result() -> dict[str, object]:
             item: dict[str, object] = dict(raw)
             for year in (2023, 2024, 2025):
                 item[f"{year}_dps"] = _number(raw.get(f"{year}_dps"))
+                item[f"{year}_current_basis_dps"] = _number(raw.get(f"{year}_current_basis_dps"))
                 item[f"{year}_historical_yield"] = _number(raw.get(f"{year}_historical_yield"))
                 item[f"{year}_reference_price"] = _number(raw.get(f"{year}_reference_price"))
                 count = raw.get(f"{year}_event_count")
@@ -84,6 +85,7 @@ def _load_scan_result() -> dict[str, object]:
             for key in (
                 "three_year_historical_average_yield", "three_year_average_dps",
                 "latest_price", "latest_year_yield", "three_year_average_yield",
+                "conservative_three_year_current_yield", "dividend_variation_ratio",
             ):
                 item[key] = _number(raw.get(key))
             items.append(item)
@@ -333,16 +335,12 @@ def add_scanned_candidate(symbol: str, payload: CandidateAddRequest):
                     candidate.get("industry_level_2"), monopoly_type, subtype, "manual_review", now, now,
                 ),
             )
+            annual_columns = {row[1] for row in connection.execute("PRAGMA table_info(annual_cash_dividend_summaries)")}
             for year in (2023, 2024, 2025):
-                connection.execute(
-                    """INSERT INTO annual_cash_dividend_summaries(
-                           market,symbol,calendar_year,cash_dividend_per_share,dividend_event_count,
-                           calculation_method,source,data_quality_status,calculated_at,updated_at
-                       ) VALUES('CN',?,?,?,?,?,'tushare','complete',?,?)""",
-                    (
-                        symbol_value, year, candidate[f"{year}_dps"], counts[year], METHOD, now, now,
-                    ),
-                )
+                if "current_basis_dps" in annual_columns:
+                    connection.execute("""INSERT INTO annual_cash_dividend_summaries(market,symbol,calendar_year,cash_dividend_per_share,dividend_event_count,calculation_method,source,data_quality_status,calculated_at,updated_at,current_basis_dps,share_basis_as_of) VALUES('CN',?,?,?,?,?,'tushare','complete',?,?,?,?)""", (symbol_value, year, candidate[f"{year}_dps"], counts[year], METHOD, now, now, candidate.get(f"{year}_current_basis_dps"), candidate.get("share_basis_as_of")))
+                else:
+                    connection.execute("""INSERT INTO annual_cash_dividend_summaries(market,symbol,calendar_year,cash_dividend_per_share,dividend_event_count,calculation_method,source,data_quality_status,calculated_at,updated_at) VALUES('CN',?,?,?,?,?,'tushare','complete',?,?)""", (symbol_value, year, candidate[f"{year}_dps"], counts[year], METHOD, now, now))
         return {"status": "added", "symbol": symbol_value, "stability_subtype": subtype}
     finally:
         connection.close()

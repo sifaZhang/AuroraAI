@@ -103,7 +103,7 @@
   function renderCandidates() {
     const query = $('candidate-search').value.trim().toLowerCase();
     const subtype = $('candidate-subtype').value;
-    const visible = candidateItems.filter(item => (!query || `${item.symbol} ${item.company_name}`.toLowerCase().includes(query)) && (!subtype || item.suggested_stability_subtype === subtype)).sort((a, b) => {
+      const visible = candidateItems.filter(item => (!query || `${item.symbol} ${item.company_name}`.toLowerCase().includes(query)) && (!subtype || item.suggested_stability_subtype === subtype)).sort((a, b) => {
       const left = a[candidateSortKey]; const right = b[candidateSortKey];
       if (left == null) return right == null ? 0 : 1;
       if (right == null) return -1;
@@ -171,13 +171,13 @@
   $('search').oninput = () => { clearTimeout(window.dividendSearchTimer); window.dividendSearchTimer = setTimeout(load, 250); };
   ['candidate-search', 'candidate-subtype'].forEach(id => $(id).oninput = renderCandidates);
   $('candidate-sort').oninput = () => {
-    candidateSortKey = {'latest-current': 'latest_year_yield', 'average-current': 'three_year_average_yield'}[$('candidate-sort').value] || 'three_year_historical_average_yield';
+    candidateSortKey = {'latest-current': 'latest_year_yield', 'average-current': 'three_year_average_yield', 'conservative-current': 'conservative_three_year_current_yield'}[$('candidate-sort').value] || 'three_year_historical_average_yield';
     candidateSortDirection = 'desc'; renderCandidates();
   };
   document.querySelectorAll('[data-candidate-sort-key]').forEach(header => header.onclick = () => {
     candidateSortDirection = candidateSortKey === header.dataset.candidateSortKey && candidateSortDirection === 'desc' ? 'asc' : 'desc';
     candidateSortKey = header.dataset.candidateSortKey;
-    $('candidate-sort').value = candidateSortKey === 'latest_year_yield' ? 'latest-current' : 'average-current';
+    $('candidate-sort').value = candidateSortKey === 'latest_year_yield' ? 'latest-current' : candidateSortKey === 'conservative_three_year_current_yield' ? 'conservative-current' : 'average-current';
     renderCandidates();
   });
   load();
