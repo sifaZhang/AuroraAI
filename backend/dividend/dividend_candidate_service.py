@@ -32,14 +32,19 @@ class TushareDividendProvider:
 
     def fetch_events(self, symbols: Iterable[str]) -> list[DividendEvent]:
         events: list[DividendEvent] = []
-        fields = "ts_code,ann_date,end_date,ex_date,cash_div_tax,div_proc"
+        fields = "ts_code,ann_date,end_date,ex_date,cash_div_tax,div_proc,record_date,pay_date,imp_ann_date,base_date"
         for requested_symbol in symbols:
             raw = self.client.call("dividend", ts_code=requested_symbol, fields=fields)
             if raw is None or raw.empty:
                 continue
             for row in raw.to_dict("records"):
                 symbol = str(row.get("ts_code") or requested_symbol).upper()
-                events.append(DividendEvent(symbol, _parse_date(row.get("ann_date")), _parse_date(row.get("ex_date")), _float(row.get("cash_div_tax")), _text(row.get("div_proc")), _parse_date(row.get("end_date"))))
+                events.append(DividendEvent(
+                    symbol, _parse_date(row.get("ann_date")), _parse_date(row.get("ex_date")),
+                    _float(row.get("cash_div_tax")), _text(row.get("div_proc")), _parse_date(row.get("end_date")),
+                    _parse_date(row.get("record_date")), _parse_date(row.get("pay_date")),
+                    _parse_date(row.get("imp_ann_date")), _parse_date(row.get("base_date")),
+                ))
         return events
 
 

@@ -12,6 +12,10 @@ class DividendEvent:
     cash_div_tax: float | None
     div_proc: str | None
     end_date: date | None = None
+    record_date: date | None = None
+    pay_date: date | None = None
+    imp_ann_date: date | None = None
+    base_date: date | None = None
 
 
 @dataclass(frozen=True)
