@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 pytest-cache-files-*/
+.tmp/
 .venv/
 venv/
 
@@ -12,6 +13,7 @@ data/*.sqlite
 data/*.sqlite3
 data/dividend_*.csv
 exports/dividend/*.csv
+exports/dividend/*.summary.json
 data/pytest-temp/
 data/audits/
 *.db
