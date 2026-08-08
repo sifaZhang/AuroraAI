@@ -2,10 +2,13 @@
 from __future__ import annotations
 
 import re
+import csv
+import json
 import sqlite3
 import threading
 import uuid
 from datetime import date, datetime, timezone
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -20,13 +23,17 @@ from backend.dividend.dividend_candidate_service import (
     _unique_valid_events,
 )
 from backend.dividend.annual_dps import METHOD
+from backend.dividend.run_high_dividend_watch_full_dryrun import run as run_high_dividend_dryrun
 from backend.dividend.universe_repository import DividendUniverseRepository
-from backend.expectation_gap.database import connect, migrate
+from backend.expectation_gap.database import PROJECT_ROOT, connect, connect_readonly, migrate
 
 
 router = APIRouter(prefix="/api/dividend/universe", tags=["dividend"])
 _runs: dict[str, dict[str, object]] = {}
 _run_lock = threading.Lock()
+SCAN_OUTPUT = PROJECT_ROOT / "exports" / "dividend" / "high_dividend_watch_full_dryrun.csv"
+SCAN_SUMMARY = SCAN_OUTPUT.with_suffix(".summary.json")
+ALLOWED_SCAN_SUBTYPES = {"stable_monopoly", "resource_monopoly_cyclical", "high_dividend_watch"}
 
 
 class ValidateRequest(BaseModel):
@@ -47,6 +54,52 @@ class StatusRequest(BaseModel):
 
 class RescanRequest(BaseModel):
     calculation_date: date | None = None
+
+
+class CandidateAddRequest(BaseModel):
+    confirm: bool = False
+
+
+def _number(value: str | None) -> float | None:
+    if value in (None, ""):
+        return None
+    return float(value)
+
+
+def _load_scan_result() -> dict[str, object]:
+    if not SCAN_OUTPUT.exists() or not SCAN_SUMMARY.exists():
+        return {"status": "never_run", "summary": {}, "items": []}
+    payload = json.loads(SCAN_SUMMARY.read_text(encoding="utf-8"))
+    summary = dict(payload.get("summary") or {})
+    items = []
+    with SCAN_OUTPUT.open("r", encoding="utf-8-sig", newline="") as handle:
+        for raw in csv.DictReader(handle):
+            item: dict[str, object] = dict(raw)
+            for year in (2023, 2024, 2025):
+                item[f"{year}_dps"] = _number(raw.get(f"{year}_dps"))
+                item[f"{year}_historical_yield"] = _number(raw.get(f"{year}_historical_yield"))
+                item[f"{year}_reference_price"] = _number(raw.get(f"{year}_reference_price"))
+                count = raw.get(f"{year}_event_count")
+                item[f"{year}_event_count"] = int(count) if count not in (None, "") else None
+            for key in (
+                "three_year_historical_average_yield", "three_year_average_dps",
+                "latest_price", "latest_year_yield", "three_year_average_yield",
+            ):
+                item[key] = _number(raw.get(key))
+            items.append(item)
+    connection = connect_readonly()
+    try:
+        existing = {row[0] for row in connection.execute(
+            "SELECT symbol FROM dividend_stable_universe WHERE market='CN'"
+        )}
+    finally:
+        connection.close()
+    for item in items:
+        item["already_in_universe"] = item["symbol"] in existing
+    summary["qualified_count"] = len(items)
+    summary["already_in_universe_count"] = sum(bool(item["already_in_universe"]) for item in items)
+    summary["new_candidate_count"] = len(items) - int(summary["already_in_universe_count"])
+    return {"status": "completed", "summary": summary, "items": items}
 
 
 def _symbol(value: str) -> str:
@@ -207,24 +260,18 @@ def status(symbol: str, payload: StatusRequest):
 
 
 def _scan_worker(run_id: str, calculation_date: date) -> None:
-    connection = connect()
     try:
-        migrate(connection)
-        provider = TushareDividendProvider(TushareClient(DataSourceSettings.from_env().tushare_token))
-        candidates, exclusions, summary = DividendCandidateService(connection, provider).generate(calculation_date)
-        existing = {row[0]: {"company_name": row[1], "stability_subtype": row[2], "monopoly_type": row[3]} for row in connection.execute("SELECT symbol,company_name,stability_subtype,monopoly_type FROM dividend_stable_universe WHERE market='CN'")}
-        candidate_rows = candidates.to_dict("records")
-        candidate_symbols = {row["symbol"] for row in candidate_rows}
-        results = [{"classification": "still_qualified" if symbol in candidate_symbols else "no_longer_qualified", "symbol": symbol, **details} for symbol, details in existing.items()]
-        results.extend({"classification": "new_candidate", **row} for row in candidate_rows if row["symbol"] not in existing)
-        results.sort(key=lambda item: (item["classification"], item["symbol"]))
+        run_high_dividend_dryrun(SCAN_OUTPUT, calculation_date)
+        result = _load_scan_result()
         with _run_lock:
-            _runs[run_id].update({"status": "completed", "completed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "summary": summary, "items": results, "exclusion_count": len(exclusions)})
+            _runs[run_id].update({
+                "status": "completed",
+                "completed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                "summary": result["summary"], "items": result["items"],
+            })
     except Exception as exc:  # surfaced to the UI; no database mutation occurs
         with _run_lock:
             _runs[run_id].update({"status": "failed", "completed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "error": f"{type(exc).__name__}: {exc}"})
-    finally:
-        connection.close()
 
 
 @router.post("/rescan")
@@ -237,6 +284,68 @@ def rescan(payload: RescanRequest):
         _runs[run_id] = {"run_id": run_id, "status": "running", "calculation_date": calculation_date.isoformat(), "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
     threading.Thread(target=_scan_worker, args=(run_id, calculation_date), daemon=True).start()
     return _runs[run_id]
+
+
+@router.get("/rescan/latest")
+def latest_rescan():
+    return _load_scan_result()
+
+
+@router.post("/rescan/candidates/{symbol}/add")
+def add_scanned_candidate(symbol: str, payload: CandidateAddRequest):
+    if not payload.confirm:
+        raise HTTPException(422, "必须确认后才能加入正式股票池")
+    symbol_value = _symbol(symbol)
+    result = _load_scan_result()
+    candidate = next((item for item in result["items"] if item["symbol"] == symbol_value), None)
+    if candidate is None:
+        raise HTTPException(404, "上一次成功扫描中没有该候选")
+    subtype = str(candidate["suggested_stability_subtype"])
+    if subtype not in ALLOWED_SCAN_SUBTYPES:
+        raise HTTPException(422, "候选建议类型无效")
+    counts = {year: candidate.get(f"{year}_event_count") for year in (2023, 2024, 2025)}
+    if any(not isinstance(value, int) or value <= 0 for value in counts.values()):
+        raise HTTPException(422, "候选缺少DPS事件计数，请重新筛选候选池后再加入")
+
+    connection = connect()
+    try:
+        migrate(connection)
+        existing = connection.execute(
+            "SELECT 1 FROM dividend_stable_universe WHERE market='CN' AND symbol=?", (symbol_value,)
+        ).fetchone()
+        if existing:
+            return {"status": "already_exists", "symbol": symbol_value}
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        monopoly_type = {
+            "stable_monopoly": "high_dividend_scan_stable",
+            "resource_monopoly_cyclical": "high_dividend_scan_resource",
+            "high_dividend_watch": "high_dividend_watch",
+        }[subtype]
+        with connection:
+            connection.execute(
+                """INSERT INTO dividend_stable_universe(
+                       market,symbol,company_name,industry_level_1,industry_level_2,
+                       monopoly_type,stability_subtype,inclusion_source,inclusion_reason,
+                       risk_note,is_enabled,included_at,updated_at
+                   ) VALUES('CN',?,?,?,?,?,?,?,'高股息观察池候选人工确认','',1,?,?)""",
+                (
+                    symbol_value, candidate["company_name"], candidate.get("industry_level_1"),
+                    candidate.get("industry_level_2"), monopoly_type, subtype, "manual_review", now, now,
+                ),
+            )
+            for year in (2023, 2024, 2025):
+                connection.execute(
+                    """INSERT INTO annual_cash_dividend_summaries(
+                           market,symbol,calendar_year,cash_dividend_per_share,dividend_event_count,
+                           calculation_method,source,data_quality_status,calculated_at,updated_at
+                       ) VALUES('CN',?,?,?,?,?,'tushare','complete',?,?)""",
+                    (
+                        symbol_value, year, candidate[f"{year}_dps"], counts[year], METHOD, now, now,
+                    ),
+                )
+        return {"status": "added", "symbol": symbol_value, "stability_subtype": subtype}
+    finally:
+        connection.close()
 
 
 @router.get("/rescan/{run_id}")

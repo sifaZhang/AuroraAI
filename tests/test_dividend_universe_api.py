@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import sqlite3
+import csv
+import json
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -35,7 +37,7 @@ def _database():
     CREATE TABLE a_share_security_master(symbol TEXT PRIMARY KEY, security_name TEXT, listed_date TEXT, is_active INTEGER, delisted_date TEXT, exchange TEXT);
     CREATE TABLE a_share_security_status_history(symbol TEXT, effective_date TEXT, is_st INTEGER);
     CREATE TABLE industry_memberships_current(symbol TEXT PRIMARY KEY, level1_name TEXT, level2_name TEXT, level3_name TEXT, source TEXT);
-    CREATE TABLE dividend_stable_universe (market TEXT, symbol TEXT, company_name TEXT, industry_level_1 TEXT, industry_level_2 TEXT, monopoly_type TEXT, stability_subtype TEXT, inclusion_source TEXT CHECK(inclusion_source IN ('automatic_rule','manual_addition','manual_review')), inclusion_reason TEXT, risk_note TEXT, is_enabled INTEGER DEFAULT 1, included_at TEXT, updated_at TEXT, PRIMARY KEY(market,symbol));
+    CREATE TABLE dividend_stable_universe (market TEXT, symbol TEXT, company_name TEXT, industry_level_1 TEXT, industry_level_2 TEXT, monopoly_type TEXT, stability_subtype TEXT CHECK(stability_subtype IN ('stable_monopoly','resource_monopoly_cyclical','high_dividend_watch')), inclusion_source TEXT CHECK(inclusion_source IN ('automatic_rule','manual_addition','manual_review')), inclusion_reason TEXT, risk_note TEXT, is_enabled INTEGER DEFAULT 1, included_at TEXT, updated_at TEXT, PRIMARY KEY(market,symbol));
     CREATE TABLE annual_cash_dividend_summaries (market TEXT, symbol TEXT, calendar_year INTEGER, cash_dividend_per_share REAL, dividend_event_count INTEGER, calculation_method TEXT, source TEXT, data_quality_status TEXT, calculated_at TEXT, updated_at TEXT, PRIMARY KEY(market,symbol,calendar_year));
     INSERT INTO a_share_security_master VALUES ('600001.SH','Test Hydro','2010-01-01',1,NULL,'SH');
     INSERT INTO a_share_security_master VALUES ('200001.SZ','B Share','2010-01-01',1,NULL,'SZ');
@@ -97,7 +99,7 @@ def test_universe_page_and_navigation_are_registered():
     page = client.get('/dividend/universe')
     assert page.status_code == 200
     assert page.headers['cache-control'] == 'no-store'
-    assert 'src="/dividend-universe.js?v=d3-universe-yields-3"' in page.text
+    assert 'src="/dividend-universe.js?v=high-watch-page-1"' in page.text
     assert 'href="/styles.css?v=d3-universe-yields-3"' in page.text
     assert 'dividend/universe' in client.get('/').text
 
@@ -135,3 +137,74 @@ def test_universe_frontend_left_joins_yield_snapshots_and_keeps_d1_actions_separ
     assert "id=\"dividend-top-scroll\"" in page
     assert "$('dividend-top-scroll').addEventListener('scroll'" in script
     assert "window.addEventListener('resize', syncScrollbars)" in script
+
+
+def _scan_files(tmp_path):
+    csv_path = tmp_path / "scan.csv"
+    fields = [
+        "symbol", "company_name", "industry", "industry_level_1", "industry_level_2",
+        "suggested_stability_subtype", "2023_event_count", "2024_event_count", "2025_event_count",
+        "2023_dps", "2023_reference_date", "2023_reference_price", "2023_historical_yield",
+        "2024_dps", "2024_reference_date", "2024_reference_price", "2024_historical_yield",
+        "2025_dps", "2025_reference_date", "2025_reference_price", "2025_historical_yield",
+        "three_year_historical_average_yield", "three_year_average_dps", "latest_price",
+        "price_date", "latest_year_yield", "three_year_average_yield", "already_in_universe",
+    ]
+    row = {
+        "symbol": "600002.SH", "company_name": "Watch Co", "industry": "Consumer",
+        "industry_level_1": "Consumer", "industry_level_2": "Food",
+        "suggested_stability_subtype": "high_dividend_watch",
+        "2023_event_count": 1, "2024_event_count": 2, "2025_event_count": 1,
+        "2023_dps": 1, "2024_dps": 1.1, "2025_dps": 1.2,
+        "2023_reference_date": "2023-12-29", "2024_reference_date": "2024-12-31", "2025_reference_date": "2025-12-31",
+        "2023_reference_price": 10, "2024_reference_price": 10, "2025_reference_price": 10,
+        "2023_historical_yield": .1, "2024_historical_yield": .11, "2025_historical_yield": .12,
+        "three_year_historical_average_yield": .11, "three_year_average_dps": 1.1,
+        "latest_price": 11, "price_date": "2026-08-07", "latest_year_yield": .109,
+        "three_year_average_yield": .1, "already_in_universe": False,
+    }
+    with csv_path.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields); writer.writeheader(); writer.writerow(row)
+    summary_path = csv_path.with_suffix(".summary.json")
+    summary_path.write_text(json.dumps({"summary": {
+        "qualified_count": 1, "high_dividend_watch_count": 1,
+        "stable_monopoly_count": 0, "resource_monopoly_cyclical_count": 0,
+        "already_in_universe_count": 0, "new_candidate_count": 1,
+        "elapsed_seconds": 111, "completed_at": "2026-08-08T00:00:00+00:00",
+    }}), encoding="utf-8")
+    return csv_path, summary_path
+
+
+def test_latest_scan_is_file_backed_and_high_watch_add_requires_confirmation(monkeypatch, tmp_path):
+    connection, client = _client(monkeypatch)
+    connection.execute("INSERT INTO a_share_security_master VALUES ('600002.SH','Watch Co','2010-01-01',1,NULL,'SH')")
+    connection.execute("INSERT INTO a_share_security_status_history VALUES ('600002.SH','2026-01-01',0)")
+    connection.execute("INSERT INTO industry_memberships_current VALUES ('600002.SH','Consumer','Food','Food','test')")
+    connection.commit()
+    csv_path, summary_path = _scan_files(tmp_path)
+    monkeypatch.setattr(universe_api, "SCAN_OUTPUT", csv_path)
+    monkeypatch.setattr(universe_api, "SCAN_SUMMARY", summary_path)
+    monkeypatch.setattr(universe_api, "connect_readonly", lambda: SharedConnection(connection))
+
+    latest = client.get("/api/dividend/universe/rescan/latest")
+    assert latest.status_code == 200
+    assert latest.json()["items"][0]["suggested_stability_subtype"] == "high_dividend_watch"
+    assert client.post("/api/dividend/universe/rescan/candidates/600002.SH/add", json={"confirm": False}).status_code == 422
+    added = client.post("/api/dividend/universe/rescan/candidates/600002.SH/add", json={"confirm": True})
+    assert added.status_code == 200 and added.json()["status"] == "added"
+    stored = connection.execute("SELECT stability_subtype,inclusion_source FROM dividend_stable_universe WHERE symbol='600002.SH'").fetchone()
+    assert tuple(stored) == ("high_dividend_watch", "manual_review")
+    assert connection.execute("SELECT COUNT(*) FROM annual_cash_dividend_summaries WHERE symbol='600002.SH'").fetchone()[0] == 3
+    assert client.post("/api/dividend/universe/rescan/candidates/600002.SH/add", json={"confirm": True}).json()["status"] == "already_exists"
+
+
+def test_page_loads_latest_candidates_but_only_button_posts_rescan():
+    script = (Path(__file__).parents[1] / "frontend" / "dividend-universe.js").read_text(encoding="utf-8")
+    page = (Path(__file__).parents[1] / "frontend" / "dividend-universe.html").read_text(encoding="utf-8")
+    assert "api('/api/dividend/universe/rescan/latest')" in script
+    assert "$('rescan').onclick" in script
+    assert "api('/api/dividend/universe/rescan', {method: 'POST'" in script
+    assert "正在重新筛选…" in script
+    assert "api('/api/dividend/yields/refresh'" in script
+    assert "high_dividend_watch: '普通高股息观察型'" in script
+    assert 'id="candidate-search"' in page and 'id="candidate-subtype"' in page and 'id="candidate-sort"' in page

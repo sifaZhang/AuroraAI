@@ -1,5 +1,31 @@
 # AuroraAI 项目状态
 
+## 2026-08-08: High-dividend watch page integration (completed, uncommitted)
+
+- Added migration 031 to extend only `dividend_stable_universe.stability_subtype` with `high_dividend_watch`. It was first validated on a formal-database copy, then applied to `data/aurora.db` after a size- and SHA256-verified backup. All 27 universe rows, 27 enabled flags, the 24 stable/3 resource subtype distribution, and all 81 annual DPS rows remained byte-for-byte equivalent at the SQL-row level; foreign-key validation returned zero errors.
+- 031 migration 已正式应用到 `data/aurora.db`；迁移前备份位于 `backups/database/aurora_before_migration_031_20260808_150635.db`，正式库与备份在迁移前均为 475,758,592 字节且 SHA256 均为 `1577D45AF327940C593D42FC937E4BF3EA573584095CBDAFA3DA59A095258445`。
+- The dividend page now reads the formal pool and the last completed candidate CSV/summary on open; it never starts a scan automatically. Price/yield refresh and full-market rescan remain separate explicit actions.
+- Successful rescans atomically persist review candidates to the existing CSV/summary artifacts. Candidates never enter the formal universe automatically; confirmed additions preserve the scanner subtype and use `inclusion_source=manual_review`.
+- Added three-type Chinese display, candidate summary/search/filter/sorting, existing 6%/8% yield coloring, duplicate-safe add controls, disabled running state, elapsed/completion metadata, and failure isolation from the formal pool.
+- Real page-API acceptance completed in 115.419 seconds with 129 candidates: 37 stable monopoly, 20 resource cyclical, and 72 ordinary high-dividend watch. Headless Edge rendered the 27 formal rows and 129 candidates without page JavaScript failure.
+- Acceptance job `37643256ccb14bfb92b16a8e0b9ca688` completed once; it used 43 paged dividend requests in 85.713 seconds. The small increase from the 81.617-second baseline was provider latency variation, not per-symbol fallback or duplicate scanning. Its temporary Uvicorn and scan processes were stopped.
+- The focused dividend/migration/API suite passed 36 tests; Python compileall, JavaScript syntax, and diff whitespace checks passed. The complete repository pytest run was attempted but exceeded the 600-second command limit without producing a final result.
+- Current `all_a=4995` and `normal_non_st=4995` is a valid latest-status result: 205 symbols have historical ST observations, while the latest snapshot and current names contain no ST/*ST/退 securities. No ST module expansion was made.
+
+## 2026-08-08: High-dividend watch full-market batch dry-run (completed, uncommitted)
+
+- Replaced impractical per-symbol/per-calendar-day dividend collection in the dry-run runner with twelve report-period `end_date` queries and 2,000-row offset pagination; exact duplicates feed the existing D2.6 lifecycle aggregation.
+- Year-end and latest raw closes are collected by full-market trading-date batches with at most ten prior-session fallbacks, never per symbol. No income, cashflow, or financial-quality provider is called.
+- Read-only validation scanned 4,995 normal non-ST A-shares in 111.199 seconds: 43 dividend requests (81.617 seconds), 30 year-end daily requests, 6 latest daily requests, 2,908 complete-DPS symbols, 129 qualified symbols, and zero failures.
+- Output is `exports/dividend/high_dividend_watch_full_dryrun.csv` with UTF-8 BOM plus an audit summary JSON. No production database, universe, DPS summary, yield snapshot, page/API, migration, commit, or push was changed.
+
+## 2026-08-08: D2.6 annual DPS lifecycle normalization (completed, uncommitted)
+
+- Annual DPS now normalizes Tushare proposal, shareholder-approval, and implementation rows into dividend-plan lifecycles before aggregation. Formal DPS accepts positive `实施`, `实施方案`, and `股东大会通过` rows; proposals alone and cancelled/stopped/rejected plans remain excluded.
+- The lifecycle uses report period plus chronology and payout anchors instead of amount-only deduplication. It preserves multiple distributions in one report period, including equal-amount implemented batches, and handles amount revisions before implementation.
+- Targeted real-data verification produced Gree DPS of 2.38/3.00/3.00 for 2023–2025, Yangtze Power 2025 DPS of 1.00, and Sinopec 2025 DPS of 0.20. Gree's 2025 year-end unadjusted close was 40.22, giving a 7.459% yield at DPS 3.00.
+- Read-only dry-run over the 27 enabled formal-pool symbols found zero stored 2023–2025 DPS changes. No production database write, scanner change/run, full-market scan, migration, commit, or push was performed.
+
 ## 2026-08-07: A-class stable dividend candidate generator (completed, uncommitted)
 
 - Added a read-only, repeatable CLI at `backend.dividend.generate_dividend_a_candidates`; it exports review-only candidate and exclusion CSV files and never writes the production SQLite database or stock pool.
