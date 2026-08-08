@@ -1,5 +1,11 @@
 # AuroraAI 项目状态
 
+## 2026-08-09: PR-D2.7 current-basis dividend safety cushion (implemented, uncommitted)
+
+- Added an isolated current-share-basis conversion for implemented Tushare stock dividends and capitalisation ratios. Raw annual DPS and the 128-candidate historical qualification rule remain unchanged.
+- Migration 032 minimally adds `current_basis_dps` and `share_basis_as_of`; it is verified only against temporary SQLite databases. `data/aurora.db` was not migrated or written.
+- Current-yield refresh reads persisted basis DPS; conservative yield and stability are display-only service/API metrics.
+
 ## 2026-08-08: Dividend candidate current-yield sorting (completed, uncommitted)
 
 - Added candidate-list sorting by latest-year current yield and three-year average current yield through both the existing selector and clickable table headers. Header clicks start descending and toggle ascending/descending with direction arrows; the selector and headers stay synchronized. Formal-universe clickable yield-header sorting remains unchanged.
