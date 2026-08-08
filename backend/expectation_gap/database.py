@@ -39,6 +39,7 @@ FIRST_LIMIT_CANDIDATE_SCORING_MIGRATION_PATH = PROJECT_ROOT / "database" / "migr
 FIRST_LIMIT_CLOSE_CONFIRMATION_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "028_first_limit_close_confirmation.sql"
 DIVIDEND_STABLE_UNIVERSE_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "029_dividend_stable_universe.sql"
 DIVIDEND_YIELD_SNAPSHOTS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "030_dividend_yield_snapshots.sql"
+DIVIDEND_HIGH_WATCH_SUBTYPE_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "031_dividend_high_watch_subtype.sql"
 MIGRATION_LOCK = threading.RLock()
 WRITE_JOB_LOCK = threading.RLock()
 SQLITE_TIMEOUT_SECONDS = 30
@@ -149,6 +150,11 @@ def _migrate_unlocked(connection: sqlite3.Connection) -> None:
     connection.executescript(INDUSTRY_DAILY_SCORES_MIGRATION_PATH.read_text(encoding="utf-8"))
     connection.executescript(DIVIDEND_STABLE_UNIVERSE_MIGRATION_PATH.read_text(encoding="utf-8"))
     connection.executescript(DIVIDEND_YIELD_SNAPSHOTS_MIGRATION_PATH.read_text(encoding="utf-8"))
+    universe_sql_row = connection.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='dividend_stable_universe'"
+    ).fetchone()
+    if universe_sql_row is not None and "high_dividend_watch" not in universe_sql_row[0]:
+        connection.executescript(DIVIDEND_HIGH_WATCH_SUBTYPE_MIGRATION_PATH.read_text(encoding="utf-8"))
     candidate_columns = {row[1] for row in connection.execute("PRAGMA table_info(daily_candidate_snapshots)")}
     if "effective_industry_code" not in candidate_columns:
         connection.executescript(FIRST_LIMIT_INDUSTRY_CONTEXT_MIGRATION_PATH.read_text(encoding="utf-8"))
