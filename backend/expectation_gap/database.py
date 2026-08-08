@@ -40,6 +40,7 @@ FIRST_LIMIT_CLOSE_CONFIRMATION_MIGRATION_PATH = PROJECT_ROOT / "database" / "mig
 DIVIDEND_STABLE_UNIVERSE_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "029_dividend_stable_universe.sql"
 DIVIDEND_YIELD_SNAPSHOTS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "030_dividend_yield_snapshots.sql"
 DIVIDEND_HIGH_WATCH_SUBTYPE_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "031_dividend_high_watch_subtype.sql"
+DIVIDEND_CURRENT_BASIS_DPS_MIGRATION_PATH = PROJECT_ROOT / "database" / "migrations" / "032_dividend_current_basis_dps.sql"
 MIGRATION_LOCK = threading.RLock()
 WRITE_JOB_LOCK = threading.RLock()
 SQLITE_TIMEOUT_SECONDS = 30
@@ -155,6 +156,9 @@ def _migrate_unlocked(connection: sqlite3.Connection) -> None:
     ).fetchone()
     if universe_sql_row is not None and "high_dividend_watch" not in universe_sql_row[0]:
         connection.executescript(DIVIDEND_HIGH_WATCH_SUBTYPE_MIGRATION_PATH.read_text(encoding="utf-8"))
+    annual_dps_columns = {row[1] for row in connection.execute("PRAGMA table_info(annual_cash_dividend_summaries)")}
+    if "current_basis_dps" not in annual_dps_columns:
+        connection.executescript(DIVIDEND_CURRENT_BASIS_DPS_MIGRATION_PATH.read_text(encoding="utf-8"))
     candidate_columns = {row[1] for row in connection.execute("PRAGMA table_info(daily_candidate_snapshots)")}
     if "effective_industry_code" not in candidate_columns:
         connection.executescript(FIRST_LIMIT_INDUSTRY_CONTEXT_MIGRATION_PATH.read_text(encoding="utf-8"))
