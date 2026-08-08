@@ -16,6 +16,9 @@ class DividendEvent:
     pay_date: date | None = None
     imp_ann_date: date | None = None
     base_date: date | None = None
+    stk_div: float | None = None
+    stk_bo_rate: float | None = None
+    stk_co_rate: float | None = None
 
 
 @dataclass(frozen=True)

@@ -15,21 +15,23 @@ from backend.dividend.annual_dps import aggregate_events, event_key
 from backend.dividend.dividend_candidate_service import _float, _parse_date, _text
 from backend.dividend.high_dividend_watch_service import classify_industry, qualify_historical_dividend
 from backend.dividend.models import DividendEvent
+from backend.dividend.share_basis_adjustment import current_basis_dps, current_yield_metrics, target_years
 from backend.expectation_gap.database import connect_readonly
 
 
-YEARS = (2023, 2024, 2025)
-PERIODS = tuple(f"{year}{suffix}" for year in YEARS for suffix in ("0331", "0630", "0930", "1231"))
 PAGE_SIZE = 2000
 MAX_PRICE_LOOKBACK_DAYS = 10
+PERIODS = tuple(f"{year}{suffix}" for year in target_years(date.today()) for suffix in ("0331", "0630", "0930", "1231"))
 CSV_FIELDS = [
     "symbol", "company_name", "industry", "industry_level_1", "industry_level_2", "suggested_stability_subtype",
     "2023_event_count", "2024_event_count", "2025_event_count",
-    "2023_dps", "2023_reference_date", "2023_reference_price", "2023_historical_yield",
-    "2024_dps", "2024_reference_date", "2024_reference_price", "2024_historical_yield",
-    "2025_dps", "2025_reference_date", "2025_reference_price", "2025_historical_yield",
+    "2023_dps", "2023_current_basis_dps", "2023_reference_date", "2023_reference_price", "2023_historical_yield",
+    "2024_dps", "2024_current_basis_dps", "2024_reference_date", "2024_reference_price", "2024_historical_yield",
+    "2025_dps", "2025_current_basis_dps", "2025_reference_date", "2025_reference_price", "2025_historical_yield",
     "three_year_historical_average_yield", "three_year_average_dps",
-    "latest_price", "price_date", "latest_year_yield", "three_year_average_yield",
+    "share_basis_as_of", "latest_price", "price_date", "latest_year_yield", "three_year_average_yield",
+    "latest_year_current_yield", "three_year_average_current_yield",
+    "conservative_three_year_current_yield", "dividend_variation_ratio", "dividend_stability",
     "already_in_universe",
 ]
 ORDINARY_A_SHARE_SYMBOL = re.compile(r"^(?:60\d{4}|688\d{3})\.SH$|^(?:00\d{4}|30\d{4})\.SZ$")
@@ -86,14 +88,14 @@ def _format_api_date(value: str) -> str:
     return f"{value[:4]}-{value[4:6]}-{value[6:]}"
 
 
-def _batch_dividend_events(client: TushareClient):
-    fields = "ts_code,ann_date,end_date,ex_date,cash_div_tax,div_proc,record_date,pay_date,imp_ann_date,base_date"
+def _batch_dividend_events(client: TushareClient, periods: tuple[str, ...] = PERIODS):
+    fields = "ts_code,ann_date,end_date,ex_date,cash_div_tax,div_proc,record_date,pay_date,imp_ann_date,base_date,stk_div,stk_bo_rate,stk_co_rate"
     events = []
     failures = []
     period_stats = []
     request_count = 0
     started = time.monotonic()
-    for period in PERIODS:
+    for period in periods:
         offset = 0
         raw_rows = 0
         pages = 0
@@ -110,6 +112,7 @@ def _batch_dividend_events(client: TushareClient):
                         _text(row.get("div_proc")), _parse_date(row.get("end_date")),
                         _parse_date(row.get("record_date")), _parse_date(row.get("pay_date")),
                         _parse_date(row.get("imp_ann_date")), _parse_date(row.get("base_date")),
+                        _float(row.get("stk_div")), _float(row.get("stk_bo_rate")), _float(row.get("stk_co_rate")),
                     ))
             except Exception as exc:
                 failures.append({"period": period, "offset": offset, "error": f"{type(exc).__name__}: {exc}"})
@@ -149,22 +152,25 @@ def run(output: Path, calculation_date: date) -> dict[str, object]:
                 "SELECT symbol FROM a_share_security_master WHERE exchange IN ('SH','SZ')"
             )
         )
+        years = target_years(calculation_date)
+        periods = tuple(f"{year}{suffix}" for year in years for suffix in ("0331", "0630", "0930", "1231"))
         securities = _normal_a_shares(connection, calculation_date)
-        events, request_failures, period_stats, dividend_requests, dividend_seconds = _batch_dividend_events(client)
+        events, request_failures, period_stats, dividend_requests, dividend_seconds = _batch_dividend_events(client, periods)
         failures = [
             {"symbol": "*", "company_name": "", "error": f"{item['period']} offset={item['offset']}: {item['error']}"}
             for item in request_failures
         ]
 
-        totals, event_counts = aggregate_events(events, YEARS)
+        totals, event_counts = aggregate_events(events, years)
+        basis_totals, basis_warnings = current_basis_dps(events, years, calculation_date)
         complete_symbols = {
             symbol for symbol, *_ in securities
-            if all(totals.get(symbol, {}).get(year, 0) > 0 for year in YEARS)
+            if all(totals.get(symbol, {}).get(year, 0) > 0 for year in years)
         }
         normal_symbols = {symbol for symbol, *_ in securities}
         reference_points = {}
         year_end_daily_requests = 0
-        for year in YEARS:
+        for year in years:
             trade_dates = _trade_dates(client, date(year, 12, 1), date(year, 12, 31))
             reference_points[year], requests = _batch_prices_with_fallback(client, trade_dates, normal_symbols)
             year_end_daily_requests += requests
@@ -180,17 +186,16 @@ def run(output: Path, calculation_date: date) -> dict[str, object]:
         for symbol, company_name, level1, level2 in securities:
             if symbol not in complete_symbols:
                 continue
-            dps = {year: totals[symbol][year] for year in YEARS}
+            dps = {year: totals[symbol][year] for year in years}
             prices = {
-                year: (reference_points[year][symbol][1] if symbol in reference_points[year] else None)
-                for year in YEARS
+                year: (reference_points[year][symbol][1] if symbol in reference_points[year] else None) for year in years
             }
             yields, qualification_failures = qualify_historical_dividend(dps, prices)
             if qualification_failures:
                 continue
             latest = latest_prices.get(symbol)
-            average_dps = sum(dps.values()) / len(YEARS)
-            average_historical_yield = sum(yields.values()) / len(YEARS)
+            average_dps = sum(dps.values()) / len(years)
+            average_historical_yield = sum(yields.values()) / len(years)
             latest_price = latest[1] if latest else None
             industry = " ".join(filter(None, (level1, level2)))
             row = {
@@ -199,13 +204,17 @@ def run(output: Path, calculation_date: date) -> dict[str, object]:
                 "suggested_stability_subtype": classify_industry(industry),
                 "three_year_historical_average_yield": average_historical_yield,
                 "three_year_average_dps": average_dps,
-                "latest_price": latest_price, "price_date": _format_api_date(latest[0]) if latest else None,
-                "latest_year_yield": dps[2025] / latest_price if latest_price else None,
-                "three_year_average_yield": average_dps / latest_price if latest_price else None,
+                "share_basis_as_of": calculation_date.isoformat(), "latest_price": latest_price,
+                "price_date": _format_api_date(latest[0]) if latest else None,
                 "already_in_universe": symbol in universe,
             }
-            for year in YEARS:
+            basis = {year: basis_totals.get(symbol, {}).get(year, dps[year]) for year in years}
+            row.update(current_yield_metrics(basis, years, latest_price))
+            row["latest_year_yield"] = row["latest_year_current_yield"]
+            row["three_year_average_yield"] = row["three_year_average_current_yield"]
+            for year in years:
                 row[f"{year}_dps"] = dps[year]
+                row[f"{year}_current_basis_dps"] = basis[year]
                 row[f"{year}_event_count"] = event_counts[symbol][year]
                 point = reference_points[year].get(symbol)
                 row[f"{year}_reference_date"] = _format_api_date(point[0]) if point else None
@@ -235,7 +244,8 @@ def run(output: Path, calculation_date: date) -> dict[str, object]:
             "new_candidate_count": sum(not row["already_in_universe"] for row in candidates),
             "failure_count": len(failures),
             "successful_scan_count": len(securities) if not failures else 0,
-            "dividend_period_count": len(PERIODS),
+            "dividend_period_count": len(periods), "share_basis_as_of": calculation_date.isoformat(),
+            "share_basis_warning_count": len(basis_warnings),
             "dividend_request_count": dividend_requests,
             "dividend_elapsed_seconds": round(dividend_seconds, 3),
             "dividend_period_stats": period_stats,
@@ -255,22 +265,23 @@ def run(output: Path, calculation_date: date) -> dict[str, object]:
         for symbol, company_name, level1, level2 in securities:
             if symbol not in audit_symbols:
                 continue
-            dps = {year: totals.get(symbol, {}).get(year) for year in YEARS}
-            prices = {year: (reference_points[year][symbol][1] if symbol in reference_points[year] else None) for year in YEARS}
+            dps = {year: totals.get(symbol, {}).get(year) for year in years}
+            prices = {year: (reference_points[year][symbol][1] if symbol in reference_points[year] else None) for year in years}
             historical_yields, qualification_failures = qualify_historical_dividend(dps, prices)
             latest = latest_prices.get(symbol)
-            average_dps = sum(dps.values()) / 3 if all(value is not None for value in dps.values()) else None
+            average_dps = sum(dps.values()) / len(years) if all(value is not None for value in dps.values()) else None
+            basis = {year: basis_totals.get(symbol, {}).get(year, dps[year] or 0) for year in years}
             audit.append({
                 "symbol": symbol, "company_name": company_name,
                 "suggested_stability_subtype": classify_industry(" ".join(filter(None, (level1, level2)))) if not qualification_failures else None,
                 "annual_dps": dps, "reference_prices": prices,
-                "reference_dates": {year: (_format_api_date(reference_points[year][symbol][0]) if symbol in reference_points[year] else None) for year in YEARS},
+                "reference_dates": {year: (_format_api_date(reference_points[year][symbol][0]) if symbol in reference_points[year] else None) for year in years},
                 "historical_yields": historical_yields, "qualified": not qualification_failures,
                 "qualification_failures": qualification_failures,
                 "latest_price": latest[1] if latest else None,
                 "price_date": _format_api_date(latest[0]) if latest else None,
-                "latest_year_yield": dps[2025] / latest[1] if latest and dps[2025] else None,
-                "three_year_average_yield": average_dps / latest[1] if latest and average_dps else None,
+                "current_basis_dps": basis,
+                **current_yield_metrics(basis, years, latest[1] if latest else None),
             })
         audit_path = output.with_suffix(".summary.json")
         temporary_audit_path = audit_path.with_suffix(audit_path.suffix + ".tmp")

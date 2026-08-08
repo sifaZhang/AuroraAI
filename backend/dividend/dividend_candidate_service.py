@@ -32,7 +32,7 @@ class TushareDividendProvider:
 
     def fetch_events(self, symbols: Iterable[str]) -> list[DividendEvent]:
         events: list[DividendEvent] = []
-        fields = "ts_code,ann_date,end_date,ex_date,cash_div_tax,div_proc,record_date,pay_date,imp_ann_date,base_date"
+        fields = "ts_code,ann_date,end_date,ex_date,cash_div_tax,div_proc,record_date,pay_date,imp_ann_date,base_date,stk_div,stk_bo_rate,stk_co_rate"
         for requested_symbol in symbols:
             raw = self.client.call("dividend", ts_code=requested_symbol, fields=fields)
             if raw is None or raw.empty:
@@ -44,6 +44,7 @@ class TushareDividendProvider:
                     _float(row.get("cash_div_tax")), _text(row.get("div_proc")), _parse_date(row.get("end_date")),
                     _parse_date(row.get("record_date")), _parse_date(row.get("pay_date")),
                     _parse_date(row.get("imp_ann_date")), _parse_date(row.get("base_date")),
+                    _float(row.get("stk_div")), _float(row.get("stk_bo_rate")), _float(row.get("stk_co_rate")),
                 ))
         return events
 
