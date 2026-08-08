@@ -99,7 +99,8 @@ def test_universe_page_and_navigation_are_registered():
     page = client.get('/dividend/universe')
     assert page.status_code == 200
     assert page.headers['cache-control'] == 'no-store'
-    assert 'src="/dividend-universe.js?v=high-watch-page-1"' in page.text
+    assert 'src="/dividend-universe.js?v=yield-sort-3"' in page.text
+    assert 'href="/dividend-universe.css?v=candidate-widths-2"' in page.text
     assert 'href="/styles.css?v=d3-universe-yields-3"' in page.text
     assert 'dividend/universe' in client.get('/').text
 
@@ -208,3 +209,10 @@ def test_page_loads_latest_candidates_but_only_button_posts_rescan():
     assert "api('/api/dividend/yields/refresh'" in script
     assert "high_dividend_watch: '普通高股息观察型'" in script
     assert 'id="candidate-search"' in page and 'id="candidate-subtype"' in page and 'id="candidate-sort"' in page
+    assert 'value="latest-current"' in page and 'value="average-current"' in page
+    assert "'latest-current': 'latest_year_yield'" in script
+    assert "'average-current': 'three_year_average_yield'" in script
+    assert 'data-candidate-sort-key="latest_year_yield"' in page
+    assert 'data-candidate-sort-key="three_year_average_yield"' in page
+    assert "candidateSortDirection === 'desc' ? 'asc' : 'desc'" in script
+    assert "2023 DPS /" not in page and "2024 DPS /" not in page and "2025 DPS /" not in page

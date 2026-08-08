@@ -47,6 +47,14 @@
 .candidate-summary small, .candidate-summary strong { display: block; }.candidate-summary small { color: var(--muted); }.candidate-summary strong { margin-top: 2px; font-size: 17px; }
 .candidate-filter-grid { grid-template-columns: minmax(230px, 1.4fr) minmax(190px, .8fr) minmax(220px, .9fr); margin-bottom: 14px; }
 .candidate-filter-grid input, .candidate-filter-grid select { width: 100%; min-height: 39px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: inherit; font: inherit; }
-.candidate-table-wrap { overflow-x: auto; }.candidate-table { min-width: 1620px; }.candidate-table th, .candidate-table td { padding: 7px 8px; white-space: nowrap; }
+.candidate-table-wrap { overflow-x: visible; }
+.candidate-table { width: 100%; min-width: 0; table-layout: fixed; font-size: 13px; }
+.candidate-table th, .candidate-table td { padding: 6px 5px; white-space: nowrap; }
+.candidate-table th:nth-child(1) { width: 8%; }.candidate-table th:nth-child(2) { width: 12%; }.candidate-table th:nth-child(3) { width: 8%; }
+.candidate-table th:nth-child(4), .candidate-table th:nth-child(5), .candidate-table th:nth-child(6) { width: 7%; }
+.candidate-table th:nth-child(7) { width: 8%; }.candidate-table th:nth-child(8) { width: 6%; }
+.candidate-table th:nth-child(9), .candidate-table th:nth-child(10) { width: 10%; white-space: normal; line-height: 1.25; }
+.candidate-table th:nth-child(11) { width: 7%; white-space: normal; line-height: 1.25; }.candidate-table th:nth-child(12) { width: 5%; }
+.candidate-table td:nth-child(2) { overflow: hidden; text-overflow: ellipsis; }
 .candidate-table td.number-cell { text-align: right; font-variant-numeric: tabular-nums; }.candidate-table td.number-cell small { display: block; color: var(--muted); }
 @media (max-width: 700px) { .dividend-universe-shell { width: min(100vw - 20px, 1440px); }.dividend-header-actions { justify-content: flex-start; }.dividend-overview, .dividend-filter-grid { grid-template-columns: 1fr; }.dividend-header-actions button { width: 100%; } }

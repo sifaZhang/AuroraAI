@@ -14,6 +14,8 @@
   let sortDirection = 'desc';
   let candidateItems = [];
   let candidateSummary = {};
+  let candidateSortKey = 'three_year_historical_average_yield';
+  let candidateSortDirection = 'desc';
   let syncingScroll = false;
 
   const api = async (url, options) => {
@@ -101,8 +103,15 @@
   function renderCandidates() {
     const query = $('candidate-search').value.trim().toLowerCase();
     const subtype = $('candidate-subtype').value;
-    const sort = $('candidate-sort').value === 'current' ? 'three_year_average_yield' : 'three_year_historical_average_yield';
-    const visible = candidateItems.filter(item => (!query || `${item.symbol} ${item.company_name}`.toLowerCase().includes(query)) && (!subtype || item.suggested_stability_subtype === subtype)).sort((a, b) => (Number(b[sort]) || -1) - (Number(a[sort]) || -1));
+    const visible = candidateItems.filter(item => (!query || `${item.symbol} ${item.company_name}`.toLowerCase().includes(query)) && (!subtype || item.suggested_stability_subtype === subtype)).sort((a, b) => {
+      const left = a[candidateSortKey]; const right = b[candidateSortKey];
+      if (left == null) return right == null ? 0 : 1;
+      if (right == null) return -1;
+      return candidateSortDirection === 'desc' ? Number(right) - Number(left) : Number(left) - Number(right);
+    });
+    document.querySelectorAll('[data-candidate-sort-arrow]').forEach(arrow => {
+      arrow.textContent = arrow.dataset.candidateSortArrow === candidateSortKey ? (candidateSortDirection === 'desc' ? '↓' : '↑') : '↕';
+    });
     $('candidate-summary').innerHTML = candidateStats(candidateSummary).map(([label, value]) => `<span><small>${label}</small><strong>${value}</strong></span>`).join('');
     $('candidate-rows').innerHTML = visible.map(item => `<tr><td class="stock-cell"><strong>${item.company_name}</strong><small>${item.symbol}</small></td><td>${cell(item.industry)}</td><td><span class="dividend-tag ${item.suggested_stability_subtype === 'resource_monopoly_cyclical' ? 'cyclical' : ''}">${labels[item.suggested_stability_subtype]}</span></td>${[2023, 2024, 2025].map(year => `<td class="number-cell"><strong>${dps(item[`${year}_dps`])}</strong><small>${percentage(item[`${year}_historical_yield`])}</small></td>`).join('')}<td class="number-cell">${percentage(item.three_year_historical_average_yield)}</td><td class="number-cell">${price(item.latest_price)}<small>${cell(item.price_date)}</small></td><td class="number-cell ${getYieldClass(item.latest_year_yield)}">${percentage(item.latest_year_yield)}</td><td class="number-cell ${getYieldClass(item.three_year_average_yield)}">${percentage(item.three_year_average_yield)}</td><td>${item.already_in_universe ? '<span class="status-chip eligible">已在股票池</span>' : '<span class="status-chip neutral">新候选</span>'}</td><td>${item.already_in_universe ? '—' : `<button class="detail-button" data-add-candidate="${item.symbol}">加入股票池</button>`}</td></tr>`).join('') || '<tr><td colspan="12" class="empty-state">没有符合当前筛选的候选</td></tr>';
     document.querySelectorAll('[data-add-candidate]').forEach(button => button.onclick = () => addCandidate(button.dataset.addCandidate));
@@ -160,7 +169,17 @@
   window.addEventListener('resize', syncScrollbars);
   ['disabled', 'subtype'].forEach(id => $(id).onchange = load);
   $('search').oninput = () => { clearTimeout(window.dividendSearchTimer); window.dividendSearchTimer = setTimeout(load, 250); };
-  ['candidate-search', 'candidate-subtype', 'candidate-sort'].forEach(id => $(id).oninput = renderCandidates);
+  ['candidate-search', 'candidate-subtype'].forEach(id => $(id).oninput = renderCandidates);
+  $('candidate-sort').oninput = () => {
+    candidateSortKey = {'latest-current': 'latest_year_yield', 'average-current': 'three_year_average_yield'}[$('candidate-sort').value] || 'three_year_historical_average_yield';
+    candidateSortDirection = 'desc'; renderCandidates();
+  };
+  document.querySelectorAll('[data-candidate-sort-key]').forEach(header => header.onclick = () => {
+    candidateSortDirection = candidateSortKey === header.dataset.candidateSortKey && candidateSortDirection === 'desc' ? 'asc' : 'desc';
+    candidateSortKey = header.dataset.candidateSortKey;
+    $('candidate-sort').value = candidateSortKey === 'latest_year_yield' ? 'latest-current' : 'average-current';
+    renderCandidates();
+  });
   load();
   loadCandidates();
 })();

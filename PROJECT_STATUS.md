@@ -1,5 +1,11 @@
 # AuroraAI 项目状态
 
+## 2026-08-08: Dividend candidate current-yield sorting (completed, uncommitted)
+
+- Added candidate-list sorting by latest-year current yield and three-year average current yield through both the existing selector and clickable table headers. Header clicks start descending and toggle ascending/descending with direction arrows; the selector and headers stay synchronized. Formal-universe clickable yield-header sorting remains unchanged.
+- Shortened the three annual candidate headers to `2023 DPS`, `2024 DPS`, and `2025 DPS` while retaining DPS/yield values in each cell. The 12-column candidate table now uses a fixed, responsive width allocation with wrapped long yield headers so the full table fits the desktop content area without horizontal scrolling.
+- Dividend-universe API/page tests passed 7 tests; JavaScript syntax and diff checks passed. No scanner, calculation rule, provider, or database behavior changed.
+
 ## 2026-08-08: Ordinary-A-share scope correction for dividend candidates (completed, uncommitted)
 
 - Restricted the V1 full-market universe to ordinary RMB A-share code families (`60xxxx`/`688xxx` on Shanghai and `00xxxx`/`30xxxx` on Shenzhen). This generically excludes CDRs, B shares, and other non-ordinary instruments without a symbol-specific exception.
