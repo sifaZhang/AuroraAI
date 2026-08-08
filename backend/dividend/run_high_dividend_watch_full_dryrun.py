@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import time
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -31,6 +32,12 @@ CSV_FIELDS = [
     "latest_price", "price_date", "latest_year_yield", "three_year_average_yield",
     "already_in_universe",
 ]
+ORDINARY_A_SHARE_SYMBOL = re.compile(r"^(?:60\d{4}|688\d{3})\.SH$|^(?:00\d{4}|30\d{4})\.SZ$")
+
+
+def _is_ordinary_a_share_symbol(symbol: str) -> bool:
+    """Return whether a symbol is an exchange-listed ordinary RMB A share."""
+    return ORDINARY_A_SHARE_SYMBOL.fullmatch(symbol.upper()) is not None
 
 
 def _normal_a_shares(connection, calculation_date: date):
@@ -51,7 +58,7 @@ def _normal_a_shares(connection, calculation_date: date):
            ORDER BY m.symbol""",
         (calculation_date.isoformat(), calculation_date.isoformat()),
     ).fetchall()
-    return [tuple(row) for row in rows]
+    return [tuple(row) for row in rows if _is_ordinary_a_share_symbol(str(row[0]))]
 
 
 def _trade_dates(client: TushareClient, start: date, end: date) -> list[str]:
@@ -136,11 +143,12 @@ def run(output: Path, calculation_date: date) -> dict[str, object]:
     connection = connect_readonly()
     client = TushareClient(DataSourceSettings.from_env().tushare_token)
     try:
-        all_a_count = connection.execute(
-            """SELECT COUNT(*) FROM a_share_security_master
-               WHERE exchange IN ('SH','SZ')
-                 AND symbol NOT LIKE '20%.SZ' AND symbol NOT LIKE '900%.SH'"""
-        ).fetchone()[0]
+        all_a_count = sum(
+            _is_ordinary_a_share_symbol(str(row[0]))
+            for row in connection.execute(
+                "SELECT symbol FROM a_share_security_master WHERE exchange IN ('SH','SZ')"
+            )
+        )
         securities = _normal_a_shares(connection, calculation_date)
         events, request_failures, period_stats, dividend_requests, dividend_seconds = _batch_dividend_events(client)
         failures = [

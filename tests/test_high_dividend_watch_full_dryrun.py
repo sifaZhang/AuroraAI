@@ -1,4 +1,5 @@
 from datetime import date
+import sqlite3
 
 import pandas as pd
 
@@ -6,7 +7,45 @@ from backend.dividend.run_high_dividend_watch_full_dryrun import (
     PERIODS,
     _batch_dividend_events,
     _batch_prices_with_fallback,
+    _is_ordinary_a_share_symbol,
+    _normal_a_shares,
 )
+
+
+def test_ordinary_a_share_symbol_ranges_exclude_depository_receipts_and_b_shares():
+    assert _is_ordinary_a_share_symbol("600000.SH")
+    assert _is_ordinary_a_share_symbol("688001.SH")
+    assert _is_ordinary_a_share_symbol("000001.SZ")
+    assert _is_ordinary_a_share_symbol("301001.SZ")
+    assert not _is_ordinary_a_share_symbol("689009.SH")
+    assert not _is_ordinary_a_share_symbol("900901.SH")
+    assert not _is_ordinary_a_share_symbol("200001.SZ")
+
+
+def test_normal_a_share_universe_excludes_cdr_without_symbol_specific_rule(tmp_path):
+    connection = sqlite3.connect(tmp_path / "universe.db")
+    connection.executescript(
+        """CREATE TABLE a_share_security_master(
+               symbol TEXT,security_name TEXT,exchange TEXT,is_active INTEGER,delisted_date TEXT
+           );
+           CREATE TABLE a_share_security_status_history(
+               symbol TEXT,effective_date TEXT,is_st INTEGER
+           );
+           CREATE TABLE industry_memberships_current(
+               symbol TEXT,level1_name TEXT,level2_name TEXT
+           );"""
+    )
+    connection.executemany(
+        "INSERT INTO a_share_security_master VALUES(?,?,?,?,?)",
+        [
+            ("688001.SH", "科创普通股", "SH", 1, None),
+            ("689001.SH", "存托凭证样本", "SH", 1, None),
+            ("301001.SZ", "创业板普通股", "SZ", 1, None),
+        ],
+    )
+    symbols = {row[0] for row in _normal_a_shares(connection, date(2026, 8, 8))}
+    assert symbols == {"688001.SH", "301001.SZ"}
+    connection.close()
 
 
 class DividendClient:

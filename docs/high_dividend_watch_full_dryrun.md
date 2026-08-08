@@ -1,6 +1,6 @@
 # High-dividend watch full-market dry-run
 
-The read-only runner applies only the minimal rule: normal non-ST common A-share, positive D2.6 DPS in 2023–2025, and historical yield of at least 4% in every individual year. It does not call income, cashflow, or financial-quality APIs and does not write SQLite.
+The read-only runner applies only the minimal rule: normal non-ST ordinary RMB A-share, positive D2.6 DPS in 2023–2025, and historical yield of at least 4% in every individual year. Ordinary shares are recognized by exchange code families: Shanghai `60xxxx` and `688xxx`, Shenzhen `00xxxx` and `30xxxx`. This excludes CDRs such as the `689xxx` range, B shares, and other instruments without hard-coding an individual security. It does not call income, cashflow, or financial-quality APIs and does not write SQLite.
 
 Dividend data is fetched for the twelve standard report periods using `dividend(end_date=period, offset=..., limit=2000)`. Pages continue until fewer than 2,000 rows return. Exact duplicates are removed before the existing `annual_dps.py` lifecycle normalization; D2.6 is not reimplemented in the runner.
 
@@ -16,7 +16,7 @@ python -m backend.dividend.run_high_dividend_watch_full_dryrun `
 
 The CSV is UTF-8 BOM. A sibling `.summary.json` records request counts, timing, the ten-symbol audit, failures, and candidate symbols.
 
-The 2026-08-08 validation scanned 4,995 securities in 111.199 seconds. Dividend collection used 43 requests across twelve periods and 81.617 seconds; prices used 30 year-end and 6 latest-date requests. It found 2,908 symbols with complete positive three-year DPS and 129 meeting 4% in every year, with zero provider failures. No production database or universe row was modified.
+The corrected 2026-08-08 validation scanned 4,994 ordinary A shares in 113.902 seconds. Dividend collection used 43 requests across twelve periods and 84.132 seconds; prices used 30 year-end and 6 latest-date requests. It found 2,907 symbols with complete positive three-year DPS and 128 meeting 4% in every year, with zero provider failures. Compared with the prior 129 candidates, only `689009.SH` was removed. No remaining candidate has three-year historical average yield above 20%; the maximum is `603519.SH` at 10.7034%. No production database or universe row was modified.
 
 ## Page integration and persistence
 

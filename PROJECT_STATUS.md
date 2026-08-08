@@ -1,5 +1,12 @@
 # AuroraAI 项目状态
 
+## 2026-08-08: Ordinary-A-share scope correction for dividend candidates (completed, uncommitted)
+
+- Restricted the V1 full-market universe to ordinary RMB A-share code families (`60xxxx`/`688xxx` on Shanghai and `00xxxx`/`30xxxx` on Shenzhen). This generically excludes CDRs, B shares, and other non-ordinary instruments without a symbol-specific exception.
+- The master record for `689009.SH` is `board_type=UNKNOWN`, name `九号公司`, with no dedicated instrument-type column; the `689xxx` CDR range is outside the ordinary STAR `688xxx` range. The existing `unsupported_security` flag cannot be used because it is also present on ordinary shares.
+- The corrected batch dry-run scanned 4,994 ordinary A shares in 113.902 seconds, found 2,907 with complete DPS and 128 qualified candidates: 37 stable monopoly, 19 resource cyclical, and 72 ordinary high-dividend watch. The only removed prior candidate was `689009.SH`.
+- No corrected candidate has three-year historical average yield above 20%; the highest is `603519.SH` at 10.7034%. D2.6, the per-year 4% rule, classification, page structure, migration, and formal database were unchanged.
+
 ## 2026-08-08: High-dividend watch page integration (completed, uncommitted)
 
 - Added migration 031 to extend only `dividend_stable_universe.stability_subtype` with `high_dividend_watch`. It was first validated on a formal-database copy, then applied to `data/aurora.db` after a size- and SHA256-verified backup. All 27 universe rows, 27 enabled flags, the 24 stable/3 resource subtype distribution, and all 81 annual DPS rows remained byte-for-byte equivalent at the SQL-row level; foreign-key validation returned zero errors.
