@@ -1,5 +1,11 @@
 # AuroraAI 项目状态
 
+## 2026-08-09: Industry Radar daily coverage repair (completed, uncommitted)
+
+- Replaced the radar refresh denominator of all 5,866 current SW membership rows with the date-aware intersection of current SW members, active ordinary RMB A-share master/status data, and the authoritative full-market daily response. This excludes stale membership-only symbols, CDR/B-share/other unsupported instruments, unlisted/delisted securities, and securities absent from that day's trading feed without lowering the completeness requirement for traded shares.
+- The 2026-08-03 audit found 5,866 old expected rows and 5,154 locally covered rows; 678 missing rows had no master record, one was CDR `689009.SH`, and 33 were active ordinary A shares with no local bar. Tushare daily returned 30 of those 33, which were genuine local synchronization gaps; the other three were absent from the authoritative daily response.
+- The actual 2026-08-03..08-07 refresh completed successfully using one full-market Tushare daily response per date and writing only missing unadjusted daily bars plus the required shared CN calendar, industry snapshots, and scores. Final coverage was 100% for all five dates (4,977 / 4,978 / 4,978 / 4,979 / 4,979); snapshots and `industry_score_v1` now both reach 2026-08-07.
+
 ## 2026-08-09: PR-D2.7 current-basis dividend safety cushion (implemented, uncommitted)
 
 - Added an isolated current-share-basis conversion for implemented Tushare stock dividends and capitalisation ratios. Raw annual DPS and the 128-candidate historical qualification rule remain unchanged.
@@ -107,7 +113,8 @@
 
 - 新增统一 `IndustryRadarRefreshService`，由 CLI、API、页面自动检查和手动按钮共用；使用本地 SQLite 优先、交易日历展开断档，并按日期升序补齐快照和 `industry_score_v1` 评分。
 - 所有收盘判断使用 `Asia/Shanghai` 15:10；页面同时展示奥克兰时间，`zoneinfo` 自动处理新西兰夏令时。Task Scheduler 仅需周期性执行 `python -m backend.data_sources.cli refresh-industry-radar`，不需要硬编码本地时刻。
-- 新增刷新状态/触发 API 和页面“同步到最新交易日”状态：页面打开最多自动触发一次，运行中禁用重复请求，完成后重新加载列表。
+- 新增刷新状态/触发 API 和页面“同步到最新交易日”状态：页面只检查状态，不自动触发补齐；手动按钮会立即显示“补齐中…”，运行中禁用重复请求，成功后重新加载列表，失败时显示后台原因并恢复重试。
+- 2026-08-09 回归修复：后台刷新结果会保留实际 `failed`/`partial_success` 状态，避免将日线覆盖不足伪报为成功。正式库实测 2026-08-03 覆盖为 5154/5866，现有补齐流程因此明确失败且不写行业快照/评分；该原始行情覆盖问题未在本次按钮链路修复中扩展处理。
 - dry-run 只读，不写行业归属、快照或评分；正式刷新只在本地日线覆盖不足时委托既有增量采集器补缺。首次评分为空时默认检查最近 30 个交易日。
 - 修正为每次刷新通过统一 Tushare Provider 一次调用 `trade_cal(exchange="SSE")` 并只在内存中复用开放日；不维护本地交易日历表、不新增迁移。空响应、字段异常和 Provider 故障分别显式报告，状态接口使用短时进程内缓存。
 - 离线专项测试覆盖 Tushare 日历解析、空响应、一次范围调用、时区、目标日期和断档检测。正式库联网 dry-run 已通过：目标/最新完整日期均为 2026-07-31，返回 `no_work`；未写正式业务数据库。

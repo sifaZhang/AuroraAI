@@ -80,3 +80,43 @@ def test_dry_run_uses_one_calendar_range_for_all_missing_dates():
     result = service.refresh(dry_run=True)
     assert result.missing_trade_dates == (date(2026, 7, 31), date(2026, 8, 3))
     assert provider.calls == 1
+
+
+def test_five_missing_trade_days_keep_the_level_three_path():
+    connection = database()
+    complete_day(connection, date(2026, 7, 30))
+    days = tuple(date.fromisoformat(item) for item in (
+        "2026-07-30", "2026-07-31", "2026-08-03", "2026-08-04", "2026-08-05",
+        "2026-08-06", "2026-08-07",
+    ))
+    service = IndustryRadarRefreshService(connection)
+
+    assert service.find_missing_industry_dates(
+        target_trade_date=date(2026, 8, 7), open_trade_dates=days,
+    ) == list(days[1:])
+    status = service.get_industry_date_status(trade_date=date(2026, 7, 30))
+    assert status.complete
+    assert status.node_counts[3] == status.snapshot_counts[3] == status.score_counts[3] == 1
+
+
+def test_existing_complete_date_does_not_write_duplicate_snapshots_or_scores():
+    connection = database()
+    target = date(2026, 7, 30)
+    complete_day(connection, target)
+    before = (
+        connection.execute("SELECT COUNT(*) FROM industry_daily_snapshots WHERE trade_date=?", (str(target),)).fetchone()[0],
+        connection.execute("SELECT COUNT(*) FROM industry_daily_scores WHERE trade_date=?", (str(target),)).fetchone()[0],
+    )
+    provider = CalendarProvider([TradingDay(target, True, None, "test")])
+    result = IndustryRadarRefreshService(
+        connection, calendar_provider=provider,
+        now_factory=lambda: datetime(2026, 7, 30, 15, 11, tzinfo=ZoneInfo("Asia/Shanghai")),
+        daily_syncer=lambda _day: (_ for _ in ()).throw(AssertionError("must not sync complete date")),
+    ).refresh(target_trade_date=target)
+
+    after = (
+        connection.execute("SELECT COUNT(*) FROM industry_daily_snapshots WHERE trade_date=?", (str(target),)).fetchone()[0],
+        connection.execute("SELECT COUNT(*) FROM industry_daily_scores WHERE trade_date=?", (str(target),)).fetchone()[0],
+    )
+    assert result.status == "no_work"
+    assert after == before == (3, 3)

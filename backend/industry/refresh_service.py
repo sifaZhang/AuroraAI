@@ -11,6 +11,12 @@ from backend.data_sources.industry_snapshots import build_industry_daily_snapsho
 from backend.data_sources.industry_sync import IndustryRepository, sync_current_industries
 from backend.data_sources.registry import build_industry_provider
 from backend.collector.sync_a_share_daily_history import build_sync_plans, execute_sync, load_stock_pool
+from backend.data_sources.settings import DataSourceSettings
+from backend.data_sources.tushare import TushareClient
+from backend.market_data.a_share_daily_repository import DailyBar, upsert_daily_bars
+from backend.strategy.first_limit.contracts import DataSource
+from backend.strategy.first_limit.repository import CalendarDay, upsert_calendar_days
+from .daily_coverage import expected_industry_symbols
 from backend.data_sources.errors import ProviderEmptyDataError, ProviderSchemaError
 from .models import SCORE_VERSION
 from .score_service import build_industry_scores
@@ -143,11 +149,36 @@ class IndustryRadarRefreshService:
         return [day for day in open_trade_dates if start_date <= day <= target_trade_date
                 if not self.get_industry_date_status(trade_date=day, score_version=score_version).complete]
 
-    def _coverage(self, trade_date: date) -> tuple[int, int]:
-        row = self.connection.execute("""SELECT COUNT(DISTINCT m.symbol),COUNT(DISTINCT b.stock_code)
-            FROM industry_memberships_current m LEFT JOIN a_share_daily_bars b
-            ON b.stock_code=substr(m.symbol,1,6) AND b.trade_date=? AND b.adjustment='none'""", (str(trade_date),)).fetchone()
-        return int(row[0]), int(row[1])
+    def _market_daily_bars(self, trade_date: date) -> dict[str, DailyBar]:
+        """Fetch one full-market Tushare daily response and normalize it for local cache use."""
+        client = TushareClient(DataSourceSettings.from_env().tushare_token)
+        frame = client.call("daily", trade_date=trade_date.strftime("%Y%m%d"),
+                            fields="ts_code,open,high,low,close,vol,amount")
+        stamp = datetime.now().astimezone().isoformat()
+        result: dict[str, DailyBar] = {}
+        for item in frame.to_dict("records"):
+            try:
+                symbol = str(item["ts_code"]).upper()
+                values = [float(item[key]) for key in ("open", "high", "low", "close")]
+                if min(values) <= 0 or values[1] < max(values[0], values[2], values[3]) or values[2] > min(values[0], values[1], values[3]):
+                    continue
+                result[symbol] = DailyBar(symbol[:6], trade_date, values[0], values[1], values[2], values[3],
+                                          float(item.get("vol") or 0), float(item.get("amount") or 0),
+                                          "tushare_daily", "none", stamp)
+            except (KeyError, TypeError, ValueError):
+                continue
+        return result
+
+    def _coverage(self, trade_date: date, traded_symbols: set[str]) -> tuple[set[str], int]:
+        expected = expected_industry_symbols(self.connection, trade_date, traded_symbols)
+        if not expected:
+            return expected, 0
+        placeholders = ",".join("?" for _ in expected)
+        covered = self.connection.execute(
+            f"SELECT COUNT(DISTINCT stock_code) FROM a_share_daily_bars WHERE trade_date=? AND adjustment='none' AND close IS NOT NULL AND stock_code IN ({placeholders})",
+            (str(trade_date), *(symbol[:6] for symbol in expected)),
+        ).fetchone()[0]
+        return expected, int(covered)
 
     def _sync_missing_daily_data(self, trade_date: date):
         """Delegate incremental collection to the established local-cache collector."""
@@ -167,6 +198,18 @@ class IndustryRadarRefreshService:
             now = self.now_factory()
             calendar_start, calendar_end = self._calendar_range(now, start_date)
             open_days = self._calendar_days(calendar_start, calendar_end)
+            # Snapshot construction uses the shared local CN calendar.  Keep it
+            # in step with the same authoritative calendar response used here.
+            has_local_calendar = self.connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='a_share_trading_calendar'"
+            ).fetchone() is not None
+            if not dry_run and has_local_calendar:
+                all_calendar_days = self.calendar_provider or build_industry_provider(provider="tushare")
+                calendar_result = all_calendar_days.list_calendar_days(start_date=calendar_start, end_date=calendar_end)
+                upsert_calendar_days(self.connection, [
+                    CalendarDay("CN", item.trade_date, item.is_open, DataSource.CALCULATED)
+                    for item in calendar_result.data
+                ])
             target = target_trade_date or resolve_target_trade_date_from_calendar(now=now, open_trade_dates=open_days)
             if target is None:
                 return IndustryRadarRefreshResult(None, None, None, (), (), (), (), (), False, 0, 0, 0, 0, "no_work", dry_run, force)
@@ -193,11 +236,22 @@ class IndustryRadarRefreshService:
             snapshots_written = scores_written = bars_fetched = 0
             for day in missing:
                 with _STATE_LOCK: _STATE["current_step"] = f"check_daily_data:{day}"
-                expected, covered = self._coverage(day)
+                market_bars = self._market_daily_bars(day)
+                expected_symbols, covered = self._coverage(day, set(market_bars))
+                expected = len(expected_symbols)
                 if expected and covered < expected:
-                    sync = (self.daily_syncer or self._sync_missing_daily_data)(day)
-                    bars_fetched += int(getattr(sync, "affected_rows", 0))
-                    expected, covered = self._coverage(day)
+                    missing_codes = {symbol[:6] for symbol in expected_symbols} - {
+                        row[0] for row in self.connection.execute(
+                            "SELECT stock_code FROM a_share_daily_bars WHERE trade_date=? AND adjustment='none'", (str(day),)
+                        )
+                    }
+                    if self.daily_syncer:
+                        sync = self.daily_syncer(day)
+                        bars_fetched += int(getattr(sync, "affected_rows", 0))
+                    else:
+                        write = upsert_daily_bars(self.connection, [market_bars[symbol] for symbol in expected_symbols if symbol[:6] in missing_codes])
+                        bars_fetched += write.affected_count
+                    expected_symbols, covered = self._coverage(day, set(market_bars)); expected = len(expected_symbols)
                 if expected and covered < expected:
                     failed.append(day); warnings.append(f"{day}: daily_data_coverage_insufficient {covered}/{expected}")
                     if not continue_on_error: break
