@@ -163,7 +163,7 @@ class IndustryRadarRefreshService:
                 if min(values) <= 0 or values[1] < max(values[0], values[2], values[3]) or values[2] > min(values[0], values[1], values[3]):
                     continue
                 result[symbol] = DailyBar(symbol[:6], trade_date, values[0], values[1], values[2], values[3],
-                                          float(item.get("vol") or 0), float(item.get("amount") or 0),
+                                          float(item.get("vol") or 0), float(item.get("amount") or 0) * 1000,
                                           "tushare_daily", "none", stamp)
             except (KeyError, TypeError, ValueError):
                 continue

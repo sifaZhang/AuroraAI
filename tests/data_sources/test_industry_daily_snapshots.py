@@ -148,6 +148,20 @@ def test_small_return_sample_is_insufficient_without_division_error():
     assert item.equal_weight_return is None and item.median_return is None
 
 
+def test_snapshot_uses_previous_daily_close_when_new_day_has_no_first_limit_metadata():
+    connection = database(); seed(connection)
+    now = "2026-08-03T10:00:00+00:00"
+    connection.executemany(
+        """INSERT INTO a_share_daily_bars VALUES(
+             ?,'2026-08-03',11,12,10,12,100,1000,'tushare_daily','none',?)""",
+        [(code, now) for code in ("600001", "600002", "600003")],
+    )
+    build_industry_daily_snapshots(connection=connection, trade_date=date(2026, 8, 3))
+    item = IndustrySnapshotRepository(connection).get_snapshot(date(2026, 8, 3), "850111")
+    assert item.equal_weight_return == pytest.approx(((12 / 11 - 1) + (12 / 9 - 1) + (12 / 10 - 1)) / 3 * 100)
+    assert item.median_return == pytest.approx(20.0)
+
+
 def test_idempotency_force_query_and_date_range_calendar():
     connection = database(); seed(connection)
     first = build_industry_daily_snapshots(connection=connection, trade_date=date(2026, 7, 31))

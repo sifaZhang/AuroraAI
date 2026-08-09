@@ -80,6 +80,14 @@ def _load_inputs(connection: sqlite3.Connection, target: date):
     bars = {row["stock_code"]: row for row in connection.execute(
         "SELECT * FROM a_share_daily_bars WHERE trade_date=? AND adjustment='none'", (day,),
     )}
+    previous_bars = {row["stock_code"]: row for row in connection.execute(
+        """SELECT b.stock_code,b.close FROM a_share_daily_bars b
+           JOIN (SELECT stock_code,MAX(trade_date) AS trade_date
+                 FROM a_share_daily_bars WHERE trade_date<? AND adjustment='none'
+                 GROUP BY stock_code) p
+             ON p.stock_code=b.stock_code AND p.trade_date=b.trade_date
+           WHERE b.adjustment='none'""", (day,),
+    )}
     metadata = {row["symbol"]: row for row in connection.execute(
         "SELECT * FROM first_limit_daily_metadata WHERE trade_date=?", (day,),
     )}
@@ -90,7 +98,7 @@ def _load_inputs(connection: sqlite3.Connection, target: date):
     events = {}
     for row in event_rows:
         events.setdefault(row["symbol"], row)
-    return nodes, memberships, masters, statuses, bars, metadata, events
+    return nodes, memberships, masters, statuses, bars, previous_bars, metadata, events
 
 
 def _members_by_industry(memberships: Sequence[sqlite3.Row]) -> dict[tuple[int, str], set[str]]:
@@ -111,7 +119,7 @@ def _data_status(*, eligible_count: int, valid_bar_count: int,
 
 
 def _snapshot(node: sqlite3.Row, symbols: set[str], target: date, masters, statuses,
-              bars, metadata, events) -> IndustryDailySnapshot:
+              bars, previous_bars, metadata, events) -> IndustryDailySnapshot:
     eligible = [symbol for symbol in symbols if _eligible(
         masters.get(symbol), statuses.get(symbol), target,
     )]
@@ -125,7 +133,10 @@ def _snapshot(node: sqlite3.Row, symbols: set[str], target: date, masters, statu
         if bar["amount"] is not None:
             amounts.append(float(bar["amount"]))
         meta = metadata.get(symbol)
-        pre_close = meta["pre_close"] if meta else None
+        pre_close = meta["pre_close"] if meta and meta["pre_close"] is not None else (
+            previous_bars.get(symbol.split(".")[0])["close"]
+            if symbol.split(".")[0] in previous_bars else None
+        )
         if pre_close is not None and float(pre_close) > 0:
             returns.append((float(bar["close"]) / float(pre_close) - 1.0) * 100.0)
         status = statuses.get(symbol)
@@ -200,7 +211,7 @@ def build_industry_daily_snapshots(
     if not TradingCalendarService(connection).is_trading_day(trade_date):
         return IndustrySnapshotBuildResult(trade_date, 0, 0, 0, 0, 1, 0,
                                            dry_run, force, False, ("non_trading_day",))
-    nodes, memberships, masters, statuses, bars, metadata, events = _load_inputs(connection, trade_date)
+    nodes, memberships, masters, statuses, bars, previous_bars, metadata, events = _load_inputs(connection, trade_date)
     selected_nodes = [node for node in nodes if node["industry_level"] in selected_levels]
     if not nodes or not memberships:
         return IndustrySnapshotBuildResult(
@@ -215,7 +226,7 @@ def build_industry_daily_snapshots(
         try:
             snapshots.append(_snapshot(
                 node, members.get((node["industry_level"], node["industry_code"]), set()),
-                trade_date, masters, statuses, bars, metadata, events,
+                trade_date, masters, statuses, bars, previous_bars, metadata, events,
             ))
         except (ArithmeticError, TypeError, ValueError) as exc:
             failed += 1
