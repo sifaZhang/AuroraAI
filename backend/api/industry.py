@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from threading import Thread
 from backend.expectation_gap.database import connect
 from backend.industry.service import IndustryService
-from backend.industry.refresh_service import IndustryRadarRefreshService
+from backend.industry.refresh_service import IndustryRadarRefreshService, _STATE, _STATE_LOCK
 
 router=APIRouter(prefix="/api/industry",tags=["industry"])
 def run(callback):
@@ -46,7 +46,9 @@ def refresh_status():
 def _run_refresh(payload: RefreshRequest):
  c=connect()
  try:
-  IndustryRadarRefreshService(c).refresh(target_trade_date=payload.target_date,force=payload.force,refresh_memberships=payload.refresh_memberships)
+  result=IndustryRadarRefreshService(c).refresh(target_trade_date=payload.target_date,force=payload.force,refresh_memberships=payload.refresh_memberships)
+  with _STATE_LOCK:
+   _STATE.update(run_status=result.status,current_step=None,last_error="; ".join(result.warnings) if result.warnings else None)
  finally:c.close()
 
 @router.post("/refresh",status_code=202)

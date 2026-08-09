@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 from backend.api.app import app
 from backend.api import industry as api
+from backend.industry.refresh_service import IndustryRadarRefreshResult
 from backend.industry.score_service import build_industry_scores
 
 class Shared:
@@ -26,3 +27,24 @@ def test_industry_api_local_queries_and_null_preservation(monkeypatch):
  context=client.get('/api/industry/context?symbol=600519.SH&trade_date=2026-07-30').json();assert context['level2_score'] is not None
  assert client.get('/api/industry/constituents?industry_code=801010&level=2').json()['items'][0]['symbol']=='600519.SH'
  assert client.get('/api/industry/list?level=4').status_code==422
+
+
+def test_refresh_route_is_registered():
+ routes={(route.path,tuple(sorted(route.methods or ()))) for route in api.router.routes}
+ assert ('/api/industry/refresh',('POST',)) in routes
+
+
+def test_background_refresh_exposes_failure_to_status(monkeypatch):
+ class Connection:
+  def close(self):pass
+ class FailedRefresh:
+  def __init__(self,_connection):pass
+  def refresh(self,**_kwargs):
+   return IndustryRadarRefreshResult(None,None,None,(),(),(),(),(),False,0,0,0,0,'failed',False,False,('daily_data_coverage_insufficient',))
+ monkeypatch.setattr(api,'connect',lambda:Connection())
+ monkeypatch.setattr(api,'IndustryRadarRefreshService',FailedRefresh)
+ monkeypatch.setitem(api._STATE,'run_status','running')
+ monkeypatch.setitem(api._STATE,'last_error',None)
+ api._run_refresh(api.RefreshRequest())
+ assert api._STATE['run_status']=='failed'
+ assert api._STATE['last_error']=='daily_data_coverage_insufficient'
