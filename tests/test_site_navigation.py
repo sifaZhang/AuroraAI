@@ -24,7 +24,7 @@ def test_primary_pages_share_the_reorganized_navigation():
         assert '<summary>分红</summary>' in text
         assert 'href="/dividend/universe">A股历史分红' in text
         assert 'href="/">最近分红' in text
-        expectation_href = '/expectation-gap' if active == "expectation" else '/expectation-gap?nav=20260809'
+        expectation_href = '/expectation-gap?nav=20260809'
         assert f'href="{expectation_href}">预期差' in text
         assert '<summary>战法</summary>' in text
         assert 'href="/first-limit">首板回调战法' in text
@@ -34,7 +34,7 @@ def test_primary_pages_share_the_reorganized_navigation():
         elif active == "dividend":
             assert '<details class="nav-dropdown active"><summary>分红</summary>' in text
         elif active == "expectation":
-            assert '<a class="active" href="/expectation-gap">预期差' in text
+            assert '<a class="active" href="/expectation-gap?nav=20260809">预期差' in text
         elif active == "strategy":
             assert '<details class="nav-dropdown active"><summary>战法</summary>' in text
         else:
