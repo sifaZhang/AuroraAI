@@ -3,14 +3,9 @@ from __future__ import annotations
 import sqlite3
 import threading
 from collections import Counter
-from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Iterable
 
-from backend.collector.dividend_collector import (
-    fetch_latest_prices_akshare_by_codes, normalize_stock_code,
-)
-from backend.collector import sync_first_limit_data as gm_sync
 from backend.collector.import_manual_a_share_valuations import import_file
 from backend.collector.init_hk_expectations import is_due
 from backend.expectation_gap.database import (
@@ -18,11 +13,11 @@ from backend.expectation_gap.database import (
     release_write_job,
 )
 from backend.expectation_gap.futu_client import CollectionResult, FutuResearchClient, utc_now
+from backend.data_sources.market_price_provider import MarketPriceProvider, UnifiedMarketPriceProvider
 from backend.expectation_gap.quality import refresh_quality
 from backend.expectation_gap.repository import patch_analyst, patch_morningstar, patch_price
 from backend.collector.dividend_collector import get_akshare
 from backend.sector_radar.service import refresh_source, sources_for
-from backend.strategy.first_limit.rules import normalize_symbol
 
 JOB_TYPES = {"refresh_a_share", "refresh_hk_prices", "refresh_hk_ratings", "refresh_market_pulse"}
 ACTIVE_STATUSES = {"pending", "running"}
@@ -114,40 +109,8 @@ def _validate_manual_csv(path: Path) -> list[str]:
         temporary.close()
 
 
-def fetch_latest_prices_gm_by_codes(stock_codes: Iterable[str]) -> dict[str, dict]:
-    """Return latest GM daily closes keyed by normalized six-digit code."""
-    api = gm_sync._load_api("GM_TOKEN")
-    start = datetime.now() - timedelta(days=14)
-    end = datetime.now()
-    prices: dict[str, dict] = {}
-    for raw_symbol in stock_codes:
-        security = normalize_symbol(raw_symbol)
-        frame = api.history(
-            symbol=security.gm_symbol, frequency="1d",
-            start_time=f"{start.date().isoformat()}T09:30:00+08:00",
-            end_time=f"{end.date().isoformat()}T15:00:00+08:00",
-            fields="eob,close", adjust=0, df=True,
-        )
-        rows = gm_sync._records(frame)
-        if not rows:
-            continue
-        latest = rows[-1]
-        value = gm_sync._field(latest, "close")
-        try:
-            price = float(value)
-        except (TypeError, ValueError):
-            continue
-        if price > 0:
-            prices[security.code] = {
-                "current_price": price,
-                "price_time": str(gm_sync._field(latest, "eob", "bob", "trade_date", "date") or ""),
-            }
-    return prices
-
-
 def refresh_a_share_job(connection, job_id: int, *, csv_path: Path | None = None,
-                        price_fetcher: Callable = fetch_latest_prices_akshare_by_codes,
-                        gm_price_fetcher: Callable = fetch_latest_prices_gm_by_codes) -> None:
+                        price_provider: MarketPriceProvider | None = None) -> None:
     path = csv_path or PROJECT_ROOT / "data" / "manual_a_share_valuations.csv"
     errors = _validate_manual_csv(path)
     if errors:
@@ -159,25 +122,18 @@ def refresh_a_share_job(connection, job_id: int, *, csv_path: Path | None = None
     total = len(stocks)
     _update(connection, job_id, total=total, message=f"已导入{imported}条手工估值，正在刷新A股股价")
     symbols = [row["symbol"] for row in stocks]
-    source = "eastmoney"
-    try:
-        frame = price_fetcher(symbols, retries=2) if stocks else None
-        prices = {
-            normalize_stock_code(row["stock_code"]): {
-                "current_price": row["current_price"], "price_time": None,
-            }
-            for _, row in frame.iterrows()
-        } if frame is not None else {}
-    except RuntimeError:
-        gm_symbols = [str(row["futu_code"]).replace(".", "") for row in stocks]
-        prices = gm_price_fetcher(gm_symbols) if stocks else {}
-        source = "gm_api_history"
+    provider = price_provider or UnifiedMarketPriceProvider()
+    prices = provider.fetch_a_share_latest(
+        symbols,
+        progress=lambda message: _update(connection, job_id, message=message),
+    ) if stocks else {}
     counts = Counter()
     for stock in stocks:
-        value = prices.get(normalize_stock_code(stock["symbol"]))
-        result = CollectionResult("success", {"last_price": value["current_price"], "price_time": value.get("price_time") or utc_now()}) if value is not None else CollectionResult("no_data")
+        value = prices.get(str(stock["symbol"])[:6])
+        result = (CollectionResult("success", {"last_price": value.price, "price_time": value.price_time or utc_now()})
+                  if value is not None and value.status == "success" else CollectionResult("no_data"))
         with connection:
-            patch_price(connection, stock["id"], result, source)
+            patch_price(connection, stock["id"], result, value.source if value and value.source else "auto")
         counts["processed"] += 1; counts["success" if result.status == "success" else "no_data"] += 1
         _progress(connection, job_id, counts, total, stock["futu_code"], "正在刷新A股股价")
     with connection:
@@ -191,26 +147,28 @@ def refresh_a_share_job(connection, job_id: int, *, csv_path: Path | None = None
 
 
 def refresh_hk_prices_job(connection, job_id: int, *, codes: list[str] | None = None,
-                          client_factory=FutuResearchClient, batch_size: int = 200) -> None:
+                          price_provider: MarketPriceProvider | None = None, batch_size: int = 200) -> None:
     stocks = _hk_stocks(connection, codes)
     total, counts, errors = len(stocks), Counter(), []
     _update(connection, job_id, total=total, message="正在批量刷新港股股价")
-    with client_factory() as client:
-        for start in range(0, total, batch_size):
-            batch = stocks[start:start + batch_size]
-            try:
-                results = client.batch_snapshots([row["futu_code"] for row in batch], batch_size=batch_size)
-            except Exception as exc:
-                results = {row["futu_code"]: CollectionResult("connection_error", error=str(exc)) for row in batch}
-                errors.append(str(exc))
-            with connection:
-                for stock in batch:
-                    result = results.get(stock["futu_code"], CollectionResult("no_data"))
-                    patch_price(connection, stock["id"], result, "futu_opend")
-                    counts["processed"] += 1
-                    if result.status == "success": counts["success"] += 1
-                    elif result.status == "no_data": counts["no_data"] += 1
-                    else: counts["failure"] += 1; errors.append(f"{stock['futu_code']}: {result.status} {result.error or ''}")
+    provider = price_provider or UnifiedMarketPriceProvider()
+    for start in range(0, total, batch_size):
+        batch = stocks[start:start + batch_size]
+        outcomes = provider.fetch_hk_latest(
+            [row["futu_code"] for row in batch], batch_size=batch_size,
+            progress=lambda message: _update(connection, job_id, message=message),
+        )
+        with connection:
+            for stock in batch:
+                outcome = outcomes.get(stock["futu_code"])
+                result = (CollectionResult("success", {"last_price": outcome.price, "price_time": outcome.price_time or utc_now()})
+                          if outcome is not None and outcome.status == "success"
+                          else CollectionResult(outcome.status, error=outcome.error) if outcome is not None else CollectionResult("no_data"))
+                patch_price(connection, stock["id"], result, outcome.source if outcome and outcome.source else "auto")
+                counts["processed"] += 1
+                if result.status == "success": counts["success"] += 1
+                elif result.status == "no_data": counts["no_data"] += 1
+                else: counts["failure"] += 1; errors.append(f"{stock['futu_code']}: {result.status} {result.error or ''}")
             if batch:
                 _progress(connection, job_id, counts, total, batch[-1]["futu_code"], "正在批量刷新港股股价")
     with connection:

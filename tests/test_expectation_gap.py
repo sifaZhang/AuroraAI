@@ -215,3 +215,24 @@ def test_specific_futu_error_classification():
     assert FutuResearchClient._classify_error("permission denied") == "permission_denied"
     assert FutuResearchClient._classify_error("rate limit exceeded") == "rate_limited"
     assert FutuResearchClient._classify_error("connection timeout") == "connection_error"
+
+
+def test_futu_snapshot_batch_retries_remaining_codes_after_stale_symbol():
+    import pandas as pd
+    from backend.expectation_gap.futu_client import FutuResearchClient
+
+    class Context:
+        def __init__(self): self.calls = []
+        def get_market_snapshot(self, codes):
+            self.calls.append(codes)
+            if "HK.00431" in codes:
+                return 1, "未知股票 00431"
+            return 0, pd.DataFrame([{"code": code, "last_price": 10, "update_time": "2026-08-09"} for code in codes])
+
+    context = Context()
+    client = FutuResearchClient(); client._context = context; client.max_retries = 0
+    result = client.batch_snapshots(["HK.00239", "HK.00431", "HK.00700"])
+
+    assert result["HK.00431"].status == "no_data"
+    assert result["HK.00239"].status == result["HK.00700"].status == "success"
+    assert context.calls == [["HK.00239", "HK.00431", "HK.00700"], ["HK.00239", "HK.00700"]]

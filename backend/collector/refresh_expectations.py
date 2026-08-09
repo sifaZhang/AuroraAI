@@ -2,29 +2,30 @@ from __future__ import annotations
 
 import argparse
 
-from backend.collector.dividend_collector import fetch_latest_prices_akshare_by_codes
+from backend.data_sources.market_price_provider import MarketPriceProvider, UnifiedMarketPriceProvider
 from backend.expectation_gap.database import connect, migrate
 from backend.expectation_gap.futu_client import CollectionResult, FutuResearchClient, utc_now
 from backend.expectation_gap.repository import patch_analyst, patch_morningstar, patch_price
 
 
-def refresh_a_prices(connection) -> list[dict]:
+def refresh_a_prices(connection, *, price_provider: MarketPriceProvider | None = None) -> list[dict]:
     stocks = connection.execute("SELECT id,futu_code,symbol FROM stocks WHERE market='A' AND is_active=1").fetchall()
     if not stocks:
         return []
-    frame = fetch_latest_prices_akshare_by_codes([row["symbol"] for row in stocks], retries=2)
-    prices = {row["stock_code"]: row["current_price"] for _, row in frame.iterrows()}
+    provider = price_provider or UnifiedMarketPriceProvider()
+    prices = provider.fetch_a_share_latest([row["symbol"] for row in stocks])
     results = []
     for stock in stocks:
-        value = prices.get(stock["symbol"])
-        result = CollectionResult("success", {"last_price": value, "price_time": utc_now()}) if value else CollectionResult("no_data")
+        value = prices.get(stock["symbol"][:6])
+        result = (CollectionResult("success", {"last_price": value.price, "price_time": value.price_time or utc_now()})
+                  if value is not None and value.status == "success" else CollectionResult("no_data"))
         with connection:
-            patch_price(connection, stock["id"], result, "eastmoney")
+            patch_price(connection, stock["id"], result, value.source if value and value.source else "auto")
         results.append({"code": stock["futu_code"], "price_status": result.status})
     return results
 
 
-def refresh_hk(connection, codes: list[str] | None = None) -> list[dict]:
+def refresh_hk(connection, codes: list[str] | None = None, *, price_provider: MarketPriceProvider | None = None) -> list[dict]:
     if codes:
         placeholders = ",".join("?" for _ in codes)
         stocks = connection.execute(f"SELECT id,futu_code FROM stocks WHERE market='HK' AND futu_code IN ({placeholders})", codes).fetchall()
@@ -32,10 +33,16 @@ def refresh_hk(connection, codes: list[str] | None = None) -> list[dict]:
         stocks = connection.execute("SELECT id,futu_code FROM stocks WHERE market='HK' AND is_active=1").fetchall()
     if not stocks:
         return []
+    provider = price_provider or UnifiedMarketPriceProvider()
+    prices = provider.fetch_hk_latest([stock["futu_code"] for stock in stocks])
     results = []
     with FutuResearchClient() as client:
         for stock in stocks:
-            price, morningstar, analyst = client.snapshot(stock["futu_code"]), client.morningstar(stock["futu_code"]), client.analyst(stock["futu_code"])
+            value = prices.get(stock["futu_code"])
+            price = (CollectionResult("success", {"last_price": value.price, "price_time": value.price_time or utc_now()})
+                     if value is not None and value.status == "success"
+                     else CollectionResult(value.status, error=value.error) if value else CollectionResult("no_data"))
+            morningstar, analyst = client.morningstar(stock["futu_code"]), client.analyst(stock["futu_code"])
             with connection:
                 patch_price(connection, stock["id"], price, "futu_opend")
                 patch_morningstar(connection, stock["id"], morningstar, "futu_opend")

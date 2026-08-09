@@ -4,12 +4,12 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 
 from backend.expectation_gap.database import migrate
 from backend.expectation_gap.futu_client import CollectionResult
+from backend.data_sources.market_price_provider import MarketPriceResult
 from backend.expectation_gap.refresh_jobs import (
     JobConflictError, RUNNERS, create_job, get_job, recover_interrupted_jobs,
     refresh_a_share_job, refresh_hk_prices_job, refresh_hk_ratings_job, run_job,
@@ -45,17 +45,36 @@ def write_csv(path: Path, row: str):
     path.write_text("futu_code,name,morningstar_fair_value,morningstar_star_rating,analyst_average_target,analyst_count,data_date,source,note\n" + row + "\n", encoding="utf-8-sig")
 
 
+class PriceProvider:
+    def __init__(self, *, a=None, hk=None):
+        self.a = a or {}
+        self.hk = hk or {}
+        self.a_calls = self.hk_calls = 0
+
+    def fetch_a_share_latest(self, symbols, *, progress=None):
+        self.a_calls += 1
+        if progress is not None:
+            progress("fake A-share batch")
+        return self.a
+
+    def fetch_hk_latest(self, codes, *, batch_size=200, progress=None):
+        self.hk_calls += 1
+        if progress is not None:
+            progress("fake HK batch")
+        return self.hk
+
+
 def test_a_share_imports_csv_then_refreshes_price_and_keeps_empty_fields(tmp_path):
     connection = db(tmp_path); stock_id = add_stock(connection, "SH.600519", "A", price=100, fair=166, analyst=150)
     connection.execute("UPDATE stocks SET symbol='600519.SH' WHERE id=?", (stock_id,))
     connection.commit()
     csv_path = tmp_path / "a.csv"; write_csv(csv_path, "SH.600519,贵州茅台,,5,180,8,2026-07-20,manual,test")
     job_id = pending_job(connection, "refresh_a_share")
-    frame = pd.DataFrame([{"stock_code": "600519", "current_price": 120}])
-    refresh_a_share_job(connection, job_id, csv_path=csv_path, price_fetcher=lambda codes, retries: frame)
+    provider = PriceProvider(a={"600519": MarketPriceResult("success", 120, "2026-07-20", "tushare")})
+    refresh_a_share_job(connection, job_id, csv_path=csv_path, price_provider=provider)
     row = connection.execute("SELECT last_price,morningstar_fair_value,morningstar_star_rating,analyst_average_target FROM stock_expectations WHERE stock_id=?", (stock_id,)).fetchone()
     assert tuple(row) == (120, 166, 5, 180)
-    assert get_job(connection, job_id)["status"] == "success"
+    assert get_job(connection, job_id)["status"] == "success" and provider.a_calls == 1
 
 
 def test_bad_csv_fails_job_and_preserves_old_values(tmp_path, monkeypatch):
@@ -63,29 +82,19 @@ def test_bad_csv_fails_job_and_preserves_old_values(tmp_path, monkeypatch):
     csv_path = tmp_path / "bad.csv"; write_csv(csv_path, "BAD,坏数据,999,5,180,8,2026-07-20,manual,test")
     job_id = pending_job(connection, "refresh_a_share")
     monkeypatch.setenv("EXPECTATION_DB_URL", f"sqlite:///{tmp_path / 'jobs.db'}")
-    run_job(job_id, runner_kwargs={"csv_path": csv_path, "price_fetcher": lambda *_args, **_kw: pd.DataFrame()})
+    run_job(job_id, runner_kwargs={"csv_path": csv_path, "price_provider": PriceProvider()})
     assert get_job(connection, job_id)["status"] == "failed"
     assert connection.execute("SELECT morningstar_fair_value FROM stock_expectations WHERE stock_id=?", (stock_id,)).fetchone()[0] == 166
-
-
-class PriceOnlyClient:
-    morningstar_calls = analyst_calls = 0
-    def __enter__(self): return self
-    def __exit__(self, *_): pass
-    def batch_snapshots(self, codes, batch_size=200):
-        return {code: CollectionResult("success", {"last_price": 12, "price_time": "2026-07-20"}) for code in codes}
-    def morningstar(self, code): self.morningstar_calls += 1; raise AssertionError("morningstar must not be called")
-    def analyst(self, code): self.analyst_calls += 1; raise AssertionError("analyst must not be called")
 
 
 def test_hk_price_job_only_changes_prices(tmp_path):
     connection = db(tmp_path); stock_id = add_stock(connection, "HK.00700")
     before = tuple(connection.execute("SELECT morningstar_fair_value,morningstar_star_rating,morningstar_data_date,analyst_average_target,analyst_count,analyst_data_date FROM stock_expectations WHERE stock_id=?", (stock_id,)).fetchone())
     job_id = pending_job(connection, "refresh_hk_prices")
-    refresh_hk_prices_job(connection, job_id, client_factory=PriceOnlyClient)
+    provider = PriceProvider(hk={"HK.00700": MarketPriceResult("success", 12, "2026-07-20", "futu_opend")})
+    refresh_hk_prices_job(connection, job_id, price_provider=provider)
     after = connection.execute("SELECT last_price,morningstar_fair_value,morningstar_star_rating,morningstar_data_date,analyst_average_target,analyst_count,analyst_data_date FROM stock_expectations WHERE stock_id=?", (stock_id,)).fetchone()
-    assert after[0] == 12 and tuple(after[1:]) == before
-    assert PriceOnlyClient.morningstar_calls == PriceOnlyClient.analyst_calls == 0
+    assert after[0] == 12 and tuple(after[1:]) == before and provider.hk_calls == 1
 
 
 class RatingClient:

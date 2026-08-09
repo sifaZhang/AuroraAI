@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import os
+import re
 import time
 from collections import deque
 from dataclasses import dataclass
@@ -95,19 +96,38 @@ class FutuResearchClient:
         output: dict[str, CollectionResult] = {}
         for start in range(0, len(codes), batch_size):
             chunk = codes[start:start + batch_size]
-            result = self._call(lambda chunk=chunk: self._context.get_market_snapshot(chunk), rate_limited=False)
-            if result.status != "success":
-                for code in chunk:
-                    output[code] = CollectionResult(result.status, error=result.error)
-                continue
-            frame = result.raw
-            returned = {row["code"]: row for _, row in frame.iterrows()}
-            for code in chunk:
-                row = returned.get(code)
-                price = _valid_positive(row.get("last_price")) if row is not None else None
-                output[code] = (CollectionResult("success", {"last_price": price, "price_time": row.get("update_time")})
-                                if price is not None else CollectionResult("no_data"))
+            output.update(self._batch_snapshot_chunk(chunk))
         return output
+
+    def _batch_snapshot_chunk(self, chunk: list[str]) -> dict[str, CollectionResult]:
+        """Keep one stale code from turning an entire snapshot batch into a failure."""
+        result = self._call(lambda: self._context.get_market_snapshot(chunk), rate_limited=False)
+        if result.status != "success":
+            invalid = self._unknown_hk_codes(result.error, chunk)
+            if invalid:
+                remaining = [code for code in chunk if code not in invalid]
+                output = {code: CollectionResult("no_data", error=result.error) for code in invalid}
+                if remaining:
+                    output.update(self._batch_snapshot_chunk(remaining))
+                return output
+            return {code: CollectionResult(result.status, error=result.error) for code in chunk}
+        frame = result.raw
+        returned = {row["code"]: row for _, row in frame.iterrows()}
+        output: dict[str, CollectionResult] = {}
+        for code in chunk:
+            row = returned.get(code)
+            price = _valid_positive(row.get("last_price")) if row is not None else None
+            output[code] = (CollectionResult("success", {"last_price": price, "price_time": row.get("update_time")})
+                            if price is not None else CollectionResult("no_data"))
+        return output
+
+    @staticmethod
+    def _unknown_hk_codes(error: str | None, chunk: list[str]) -> set[str]:
+        message = error or ""
+        suffixes = {code.upper().removeprefix("HK.") for code in chunk
+                    if code.upper().removeprefix("HK.") in message}
+        suffixes.update(re.findall(r"unknown\\s+(?:stock\\s*)?(?:HK\\.)?(\\d{5})", message, re.IGNORECASE))
+        return {code for code in chunk if code.upper().removeprefix("HK.") in suffixes}
 
     def snapshot(self, code: str) -> CollectionResult:
         result = self._call(lambda: self._context.get_market_snapshot([code]), rate_limited=False)
