@@ -30,7 +30,7 @@ def history(industry_code:str,start_date:date,end_date:date):return run(lambda s
 @router.get("/context")
 def context(symbol:str,trade_date:date):return run(lambda s:asdict(s.get_symbol_industry_context(symbol,trade_date)))
 @router.get("/constituents")
-def constituents(industry_code:str,level:int=Query(...,ge=1,le=3),limit:int=Query(200,ge=1,le=1000)):return run(lambda s:{"items":s.list_constituents(industry_code,level,limit)})
+def constituents(industry_code:str,level:int=Query(...,ge=1,le=3),limit:int=Query(200,ge=1,le=1000),trade_date:date|None=None):return run(lambda s:{"items":s.list_constituents(industry_code,level,limit,trade_date)})
 
 class RefreshRequest(BaseModel):
  target_date: date|None=None

@@ -1,5 +1,18 @@
 # AuroraAI 项目状态
 
+## 2026-08-09: Industry Radar constituent close-limit and first-limit display (completed, uncommitted)
+
+- The level-3 industry detail now loads members through one local batch query. It joins current SW membership, security master, historical status, unadjusted daily bars, existing limit metadata, and the latest completed first-limit detection ledger; it never starts a first-limit detection run or makes per-symbol provider calls.
+- “收盘涨停” is calculated only with the existing centralized A-share price-limit rule and precision tolerance, using the recorded source limit where available and the existing prior-close fallback otherwise. The main table heading is now “收盘涨停/首板”.
+- A confirmed ledger result displays “首板”; an explicit completed non-first result displays “—”; an unavailable or indeterminate result displays “未检测”. Formal data currently has no detection results for 2026-08-03..07, so those dates correctly remain “未检测”, rather than falsely reporting zero.
+- Formal read-only checks confirmed `000506.SZ` (10%) and `300363.SZ` (20%) as close-limit-up on 2026-08-07, `000791.SZ` as non-limit, and existing `603382.SH` on 2026-07-30 as “首板”.
+
+## 2026-08-09: Industry Radar post-backfill scoring regression repair (completed, uncommitted)
+
+- Fixed new-date snapshot return calculation when first-limit metadata is not yet available: the Industry Radar now obtains the previous close from the existing unadjusted daily-bar history, rather than treating an absent `first_limit_daily_metadata.pre_close` as an unavailable return.
+- Normalized batch Tushare `daily.amount` from its documented thousand-yuan unit to the local daily-bar yuan unit. Only the 2026-08-03..08-07 rows written by the prior `tushare_daily` backfill were corrected, then only those five dates' snapshots and scores were rebuilt.
+- Historical snapshots/scores remained intact (36 dates, 2026-06-18..2026-08-07). On 2026-08-07, 323 of 336 level-3 industries now have differentiated scores; the remaining 13 have genuine insufficient member-return inputs.
+
 ## 2026-08-09: Industry Radar daily coverage repair (completed, uncommitted)
 
 - Replaced the radar refresh denominator of all 5,866 current SW membership rows with the date-aware intersection of current SW members, active ordinary RMB A-share master/status data, and the authoritative full-market daily response. This excludes stale membership-only symbols, CDR/B-share/other unsupported instruments, unlisted/delisted securities, and securities absent from that day's trading feed without lowering the completeness requirement for traded shares.
