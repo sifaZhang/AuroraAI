@@ -88,6 +88,16 @@ def _load_scan_result() -> dict[str, object]:
                 "conservative_three_year_current_yield", "dividend_variation_ratio",
             ):
                 item[key] = _number(raw.get(key))
+            current_basis_values = [
+                item[f"{year}_current_basis_dps"]
+                if item[f"{year}_current_basis_dps"] is not None
+                else item[f"{year}_dps"]
+                for year in (2023, 2024, 2025)
+            ]
+            if all(value is not None for value in current_basis_values):
+                item["three_year_current_basis_average_dps"] = sum(current_basis_values) / 3
+                item["three_year_current_basis_min_dps"] = min(current_basis_values)
+                item["three_year_current_basis_max_dps"] = max(current_basis_values)
             items.append(item)
     connection = connect_readonly()
     try:

@@ -100,7 +100,7 @@ def test_universe_page_and_navigation_are_registered():
     assert page.status_code == 200
     assert page.headers['cache-control'] == 'no-store'
     assert 'src="/dividend-universe.js?v=yield-sort-3"' in page.text
-    assert 'href="/dividend-universe.css?v=candidate-widths-2"' in page.text
+    assert 'href="/dividend-universe.css?v=candidate-readable-3"' in page.text
     assert 'href="/styles.css?v=d3-universe-yields-3"' in page.text
     assert 'dividend/universe' in client.get('/').text
 
@@ -137,7 +137,7 @@ def test_universe_frontend_left_joins_yield_snapshots_and_keeps_d1_actions_separ
     assert "if (a == null) return b == null ? 0 : 1" in script
     assert "id=\"dividend-top-scroll\"" in page
     assert "$('dividend-top-scroll').addEventListener('scroll'" in script
-    assert "window.addEventListener('resize', syncScrollbars)" in script
+    assert "syncScrollbars(); syncCandidateScrollbars()" in script
 
 
 def _scan_files(tmp_path):
@@ -145,24 +145,24 @@ def _scan_files(tmp_path):
     fields = [
         "symbol", "company_name", "industry", "industry_level_1", "industry_level_2",
         "suggested_stability_subtype", "2023_event_count", "2024_event_count", "2025_event_count",
-        "2023_dps", "2023_reference_date", "2023_reference_price", "2023_historical_yield",
-        "2024_dps", "2024_reference_date", "2024_reference_price", "2024_historical_yield",
-        "2025_dps", "2025_reference_date", "2025_reference_price", "2025_historical_yield",
+        "2023_dps", "2023_current_basis_dps", "2023_reference_date", "2023_reference_price", "2023_historical_yield",
+        "2024_dps", "2024_current_basis_dps", "2024_reference_date", "2024_reference_price", "2024_historical_yield",
+        "2025_dps", "2025_current_basis_dps", "2025_reference_date", "2025_reference_price", "2025_historical_yield",
         "three_year_historical_average_yield", "three_year_average_dps", "latest_price",
-        "price_date", "latest_year_yield", "three_year_average_yield", "already_in_universe",
+        "price_date", "latest_year_yield", "three_year_average_yield", "conservative_three_year_current_yield", "dividend_variation_ratio", "dividend_stability", "share_basis_as_of", "already_in_universe",
     ]
     row = {
         "symbol": "600002.SH", "company_name": "Watch Co", "industry": "Consumer",
         "industry_level_1": "Consumer", "industry_level_2": "Food",
         "suggested_stability_subtype": "high_dividend_watch",
         "2023_event_count": 1, "2024_event_count": 2, "2025_event_count": 1,
-        "2023_dps": 1, "2024_dps": 1.1, "2025_dps": 1.2,
+        "2023_dps": 1, "2023_current_basis_dps": .8, "2024_dps": 1.1, "2024_current_basis_dps": 1.1, "2025_dps": 1.2, "2025_current_basis_dps": 1.2,
         "2023_reference_date": "2023-12-29", "2024_reference_date": "2024-12-31", "2025_reference_date": "2025-12-31",
         "2023_reference_price": 10, "2024_reference_price": 10, "2025_reference_price": 10,
         "2023_historical_yield": .1, "2024_historical_yield": .11, "2025_historical_yield": .12,
         "three_year_historical_average_yield": .11, "three_year_average_dps": 1.1,
         "latest_price": 11, "price_date": "2026-08-07", "latest_year_yield": .109,
-        "three_year_average_yield": .1, "already_in_universe": False,
+        "three_year_average_yield": .1, "conservative_three_year_current_yield": .072, "dividend_variation_ratio": 1.5, "dividend_stability": "variable", "share_basis_as_of": "2026-08-09", "already_in_universe": False,
     }
     with csv_path.open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields); writer.writeheader(); writer.writerow(row)
@@ -190,6 +190,10 @@ def test_latest_scan_is_file_backed_and_high_watch_add_requires_confirmation(mon
     latest = client.get("/api/dividend/universe/rescan/latest")
     assert latest.status_code == 200
     assert latest.json()["items"][0]["suggested_stability_subtype"] == "high_dividend_watch"
+    item = latest.json()["items"][0]
+    assert item["three_year_current_basis_average_dps"] == 1.0333333333333334
+    assert item["three_year_current_basis_min_dps"] == .8
+    assert item["share_basis_as_of"] == "2026-08-09"
     assert client.post("/api/dividend/universe/rescan/candidates/600002.SH/add", json={"confirm": False}).status_code == 422
     added = client.post("/api/dividend/universe/rescan/candidates/600002.SH/add", json={"confirm": True})
     assert added.status_code == 200 and added.json()["status"] == "added"
@@ -216,3 +220,9 @@ def test_page_loads_latest_candidates_but_only_button_posts_rescan():
     assert 'data-candidate-sort-key="three_year_average_yield"' in page
     assert "candidateSortDirection === 'desc' ? 'asc' : 'desc'" in script
     assert "2023 DPS /" not in page and "2024 DPS /" not in page and "2025 DPS /" not in page
+    assert 'data-candidate-sort-key="conservative_three_year_current_yield"' in page
+    assert 'current_basis_dps' in script
+    assert 'stabilityLabel' in script
+    assert 'id="candidate-top-scroll"' in page
+    assert 'syncCandidateScrollbars' in script
+    assert 'data-candidate-sort-arrow="latest_year_yield"></span>' in page

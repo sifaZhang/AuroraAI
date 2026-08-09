@@ -47,14 +47,31 @@
 .candidate-summary small, .candidate-summary strong { display: block; }.candidate-summary small { color: var(--muted); }.candidate-summary strong { margin-top: 2px; font-size: 17px; }
 .candidate-filter-grid { grid-template-columns: minmax(230px, 1.4fr) minmax(190px, .8fr) minmax(220px, .9fr); margin-bottom: 14px; }
 .candidate-filter-grid input, .candidate-filter-grid select { width: 100%; min-height: 39px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: inherit; font: inherit; }
-.candidate-table-wrap { overflow-x: visible; }
-.candidate-table { width: 100%; min-width: 0; table-layout: fixed; font-size: 13px; }
+.candidate-table-wrap { overflow-x: auto; }
+.candidate-top-scroll { overflow-x: auto; overflow-y: hidden; height: 15px; margin: 0 0 5px; }
+.candidate-top-scroll > div { height: 1px; }
+.candidate-table { width: 100%; min-width: 1510px; table-layout: fixed; font-size: 13px; }
 .candidate-table th, .candidate-table td { padding: 6px 5px; white-space: nowrap; }
-.candidate-table th:nth-child(1) { width: 8%; }.candidate-table th:nth-child(2) { width: 12%; }.candidate-table th:nth-child(3) { width: 8%; }
-.candidate-table th:nth-child(4), .candidate-table th:nth-child(5), .candidate-table th:nth-child(6) { width: 7%; }
-.candidate-table th:nth-child(7) { width: 8%; }.candidate-table th:nth-child(8) { width: 6%; }
-.candidate-table th:nth-child(9), .candidate-table th:nth-child(10) { width: 10%; white-space: normal; line-height: 1.25; }
-.candidate-table th:nth-child(11) { width: 7%; white-space: normal; line-height: 1.25; }.candidate-table th:nth-child(12) { width: 5%; }
+.candidate-table thead tr:first-child th { text-align: center; color: var(--muted); font-size: 12px; }
+.candidate-table thead tr:nth-child(2) th:nth-child(n+4):nth-child(-n+11) { text-align: right; }
+.candidate-table th:nth-child(1), .candidate-table td:nth-child(1) { width: 105px; }
+.candidate-table th:nth-child(2), .candidate-table td:nth-child(2) { width: 135px; }
+.candidate-table th:nth-child(3), .candidate-table td:nth-child(3) { width: 110px; }
+.candidate-table th:nth-child(4), .candidate-table td:nth-child(4), .candidate-table th:nth-child(5), .candidate-table td:nth-child(5), .candidate-table th:nth-child(6), .candidate-table td:nth-child(6) { width: 90px; }
+.candidate-table th:nth-child(7), .candidate-table td:nth-child(7), .candidate-table th:nth-child(8), .candidate-table td:nth-child(8) { width: 78px; }
+.candidate-table th:nth-child(9), .candidate-table td:nth-child(9) { width: 80px; }
+.candidate-table th:nth-child(10), .candidate-table td:nth-child(10), .candidate-table th:nth-child(11), .candidate-table td:nth-child(11), .candidate-table th:nth-child(12), .candidate-table td:nth-child(12) { width: 78px; }
+.candidate-table th:nth-child(13), .candidate-table td:nth-child(13) { width: 62px; }.candidate-table th:nth-child(14), .candidate-table td:nth-child(14) { width: 82px; }
+.candidate-table th:nth-child(15), .candidate-table td:nth-child(15) { width: 90px; }.candidate-table th:nth-child(16), .candidate-table td:nth-child(16) { width: 70px; }.candidate-table th:nth-child(17), .candidate-table td:nth-child(17) { width: 90px; }
 .candidate-table td:nth-child(2) { overflow: hidden; text-overflow: ellipsis; }
 .candidate-table td.number-cell { text-align: right; font-variant-numeric: tabular-nums; }.candidate-table td.number-cell small { display: block; color: var(--muted); }
+.candidate-table .dps-cell em { display: block; color: var(--accent-strong); font-size: 11px; font-style: normal; }
+.stability-tag { display: inline-flex; padding: 2px 5px; border-radius: 999px; font-size: 12px; background: #e5f2ef; color: var(--accent-strong); white-space: nowrap; }
+.stability-tag.variable { background: #fff7d6; color: #9a6700; }.stability-tag.highly_variable { background: #fee2e2; color: #b42318; }.basis-date { color: var(--muted); font-size: 12px; }
+/* Candidate rows favour readable values over squeezing a wide research table. */
+.candidate-table { width: max-content; min-width: 1660px; table-layout: auto; }
+.candidate-table th, .candidate-table td { overflow: visible; text-overflow: clip; }
+.candidate-table .stock-cell, .candidate-table .industry-cell { white-space: normal; }
+.candidate-table .stock-cell { min-width: 105px; }.candidate-table .industry-cell { min-width: 135px; max-width: 145px; }
+.candidate-table .dps-cell, .candidate-table .number-cell { min-width: 78px; }
 @media (max-width: 700px) { .dividend-universe-shell { width: min(100vw - 20px, 1440px); }.dividend-header-actions { justify-content: flex-start; }.dividend-overview, .dividend-filter-grid { grid-template-columns: 1fr; }.dividend-header-actions button { width: 100%; } }

@@ -6,6 +6,11 @@
 - Migration 032 minimally adds `current_basis_dps` and `share_basis_as_of`; it is verified only against temporary SQLite databases. `data/aurora.db` was not migrated or written.
 - Current-yield refresh reads persisted basis DPS; conservative yield and stability are display-only service/API metrics.
 
+## 2026-08-09: High-dividend watch UI finalisation (implemented, uncommitted)
+
+- Candidate results now use compact grouped headers for raw annual DPS, current-basis DPS statistics, current yields, risk and other metadata. When raw DPS differs from D2.7 current-basis DPS, the adjusted per-year amount is shown beneath the raw DPS.
+- Three-year current-basis average/minimum DPS are derived in the API response only; no scanner rule, database schema, formal data or full-market scan was changed.
+
 ## 2026-08-08: Dividend candidate current-yield sorting (completed, uncommitted)
 
 - Added candidate-list sorting by latest-year current yield and three-year average current yield through both the existing selector and clickable table headers. Header clicks start descending and toggle ascending/descending with direction arrows; the selector and headers stay synchronized. Formal-universe clickable yield-header sorting remains unchanged.

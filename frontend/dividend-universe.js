@@ -40,6 +40,13 @@
     $('dividend-top-scroll').hidden = table.scrollWidth <= bottom.clientWidth;
     if (!syncingScroll) $('dividend-top-scroll').scrollLeft = bottom.scrollLeft;
   };
+  const syncCandidateScrollbars = () => {
+    const table = document.querySelector('.candidate-table'); const bottom = $('candidate-table-wrap');
+    if (!table || !bottom) return;
+    $('candidate-top-scroll-content').style.width = `${table.scrollWidth}px`;
+    $('candidate-top-scroll').hidden = table.scrollWidth <= bottom.clientWidth;
+    $('candidate-top-scroll').scrollLeft = bottom.scrollLeft;
+  };
   const sortItems = items => {
     if (!sortKey) return items;
     return [...items].sort((left, right) => {
@@ -116,6 +123,28 @@
     $('candidate-rows').innerHTML = visible.map(item => `<tr><td class="stock-cell"><strong>${item.company_name}</strong><small>${item.symbol}</small></td><td>${cell(item.industry)}</td><td><span class="dividend-tag ${item.suggested_stability_subtype === 'resource_monopoly_cyclical' ? 'cyclical' : ''}">${labels[item.suggested_stability_subtype]}</span></td>${[2023, 2024, 2025].map(year => `<td class="number-cell"><strong>${dps(item[`${year}_dps`])}</strong><small>${percentage(item[`${year}_historical_yield`])}</small></td>`).join('')}<td class="number-cell">${percentage(item.three_year_historical_average_yield)}</td><td class="number-cell">${price(item.latest_price)}<small>${cell(item.price_date)}</small></td><td class="number-cell ${getYieldClass(item.latest_year_yield)}">${percentage(item.latest_year_yield)}</td><td class="number-cell ${getYieldClass(item.three_year_average_yield)}">${percentage(item.three_year_average_yield)}</td><td>${item.already_in_universe ? '<span class="status-chip eligible">已在股票池</span>' : '<span class="status-chip neutral">新候选</span>'}</td><td>${item.already_in_universe ? '—' : `<button class="detail-button" data-add-candidate="${item.symbol}">加入股票池</button>`}</td></tr>`).join('') || '<tr><td colspan="12" class="empty-state">没有符合当前筛选的候选</td></tr>';
     document.querySelectorAll('[data-add-candidate]').forEach(button => button.onclick = () => addCandidate(button.dataset.addCandidate));
   }
+  const stabilityLabel = value => ({stable: '&#31283;&#23450;', variable: '&#26377;&#27874;&#21160;', highly_variable: '&#22823;&#24133;&#27874;&#21160;'})[value] || '-';
+  const candidateDpsCell = (item, year) => {
+    const raw = item[`${year}_dps`];
+    const basis = item[`${year}_current_basis_dps`];
+    const adjusted = raw != null && basis != null && Math.abs(Number(raw) - Number(basis)) > 0.0000001;
+    return `<td class="number-cell dps-cell"><strong>${dps(raw)}</strong><small>${percentage(item[`${year}_historical_yield`])}</small>${adjusted ? `<em>&#24403;&#21069;&#21475;&#24452; ${dps(basis)}</em>` : ''}</td>`;
+  };
+  function renderCandidates() {
+    const query = $('candidate-search').value.trim().toLowerCase();
+    const subtype = $('candidate-subtype').value;
+    const visible = candidateItems.filter(item => (!query || `${item.symbol} ${item.company_name}`.toLowerCase().includes(query)) && (!subtype || item.suggested_stability_subtype === subtype)).sort((a, b) => {
+      const left = a[candidateSortKey]; const right = b[candidateSortKey];
+      if (left == null) return right == null ? 0 : 1;
+      if (right == null) return -1;
+      return candidateSortDirection === 'desc' ? Number(right) - Number(left) : Number(left) - Number(right);
+    });
+    document.querySelectorAll('[data-candidate-sort-arrow]').forEach(arrow => { arrow.textContent = ''; });
+    $('candidate-summary').innerHTML = candidateStats(candidateSummary).map(([label, value]) => `<span><small>${label}</small><strong>${value}</strong></span>`).join('');
+    $('candidate-rows').innerHTML = visible.map(item => `<tr><td class="stock-cell"><strong>${item.company_name}</strong><small>${item.symbol}</small></td><td class="industry-cell">${cell(item.industry)}</td><td><span class="dividend-tag ${item.suggested_stability_subtype === 'resource_monopoly_cyclical' ? 'cyclical' : ''}">${labels[item.suggested_stability_subtype]}</span></td>${[2023, 2024, 2025].map(year => candidateDpsCell(item, year)).join('')}<td class="number-cell">${price(item.latest_price)}<small>${cell(item.price_date)}</small></td><td class="number-cell ${getYieldClass(item.latest_year_yield)}">${percentage(item.latest_year_yield)}</td><td class="number-cell ${getYieldClass(item.three_year_average_yield)}">${percentage(item.three_year_average_yield)}</td><td class="number-cell ${getYieldClass(item.conservative_three_year_current_yield)}">${percentage(item.conservative_three_year_current_yield)}</td><td class="number-cell">${item.dividend_variation_ratio == null ? '-' : Number(item.dividend_variation_ratio).toFixed(2)}</td><td><span class="stability-tag ${item.dividend_stability || ''}">${stabilityLabel(item.dividend_stability)}</span></td><td class="basis-date">${cell(item.share_basis_as_of)}</td><td>${item.already_in_universe ? '<span class="status-chip eligible">&#24050;&#22312;&#32929;&#31080;&#27744;</span>' : '<span class="status-chip neutral">&#26032;&#20505;&#36873;</span>'}</td><td>${item.already_in_universe ? '-' : `<button class="detail-button" data-add-candidate="${item.symbol}">&#21152;&#20837;&#32929;&#31080;&#27744;</button>`}</td></tr>`).join('') || '<tr><td colspan="14" class="empty-state">&#27809;&#26377;&#31526;&#21512;&#24403;&#21069;&#31679;&#36873;&#30340;&#20505;&#36873;</td></tr>';
+    document.querySelectorAll('[data-add-candidate]').forEach(button => button.onclick = () => addCandidate(button.dataset.addCandidate));
+    requestAnimationFrame(syncCandidateScrollbars);
+  }
   function applyCandidateResult(result) {
     if (result.status === 'never_run') { $('scan-results').hidden = true; return; }
     candidateItems = result.items || []; candidateSummary = result.summary || {};
@@ -166,7 +195,9 @@
   $('ack').onchange = updateConfirm;
   $('dividend-top-scroll').addEventListener('scroll', () => { if (syncingScroll) return; syncingScroll = true; $('dividend-table-wrap').scrollLeft = $('dividend-top-scroll').scrollLeft; syncingScroll = false; });
   $('dividend-table-wrap').addEventListener('scroll', () => { if (syncingScroll) return; syncingScroll = true; $('dividend-top-scroll').scrollLeft = $('dividend-table-wrap').scrollLeft; syncingScroll = false; });
-  window.addEventListener('resize', syncScrollbars);
+  $('candidate-top-scroll').addEventListener('scroll', () => { if (syncingScroll) return; syncingScroll = true; $('candidate-table-wrap').scrollLeft = $('candidate-top-scroll').scrollLeft; syncingScroll = false; });
+  $('candidate-table-wrap').addEventListener('scroll', () => { if (syncingScroll) return; syncingScroll = true; $('candidate-top-scroll').scrollLeft = $('candidate-table-wrap').scrollLeft; syncingScroll = false; });
+  window.addEventListener('resize', () => { syncScrollbars(); syncCandidateScrollbars(); });
   ['disabled', 'subtype'].forEach(id => $(id).onchange = load);
   $('search').oninput = () => { clearTimeout(window.dividendSearchTimer); window.dividendSearchTimer = setTimeout(load, 250); };
   ['candidate-search', 'candidate-subtype'].forEach(id => $(id).oninput = renderCandidates);
