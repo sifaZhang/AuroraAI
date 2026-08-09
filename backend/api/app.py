@@ -32,6 +32,15 @@ app.include_router(first_limit_router)
 FRONTEND = PROJECT_ROOT / "frontend"
 
 
+class FrontendStaticFiles(StaticFiles):
+    """Keep locally served UI assets from retaining obsolete page navigation."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+
 @app.exception_handler(FirstLimitAPIError)
 async def first_limit_error(_request: Request, exc: FirstLimitAPIError):
     return JSONResponse(
@@ -159,17 +168,17 @@ def refresh_job_status(job_id: int):
 
 @app.get("/expectation-gap")
 def expectation_page():
-    return FileResponse(FRONTEND / "expectation-gap.html")
+    return FileResponse(FRONTEND / "expectation-gap.html", headers={"Cache-Control": "no-store"})
 
 
 @app.get("/data-source-health")
 def data_source_health_page():
-    return FileResponse(FRONTEND / "data-source-health.html")
+    return FileResponse(FRONTEND / "data-source-health.html", headers={"Cache-Control": "no-store"})
 
 
 @app.get("/first-limit")
 def first_limit_page():
-    return FileResponse(FRONTEND / "first-limit.html")
+    return FileResponse(FRONTEND / "first-limit.html", headers={"Cache-Control": "no-store"})
 
 @app.get('/dividend/universe')
 def dividend_universe_page():
@@ -177,7 +186,7 @@ def dividend_universe_page():
 @app.get('/dividend/yield/{view}')
 def dividend_yield_page(view: str):
     if view not in {'latest','three-year'}: raise HTTPException(404)
-    return FileResponse(FRONTEND / 'dividend-yield.html')
+    return FileResponse(FRONTEND / 'dividend-yield.html', headers={'Cache-Control': 'no-store'})
 
 
-app.mount("/", StaticFiles(directory=FRONTEND, html=True), name="frontend")
+app.mount("/", FrontendStaticFiles(directory=FRONTEND, html=True), name="frontend")
