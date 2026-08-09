@@ -8,9 +8,12 @@ from datetime import datetime, timezone
 from typing import Any
 
 SOURCES = {
+    "tushare": "Tushare",
+    "futu_opend": "富途 OpenD",
     "sw_l1": "申万一级行业",
     "sw_l2": "申万二级行业",
-    "eastmoney": "东方财富行业",
+    "sw_l3": "申万三级行业",
+    "eastmoney": "东方财富行业行情",
     "benchmark_csi300": "沪深300基准",
 }
 ERROR_LIMIT = 1000
@@ -55,7 +58,10 @@ def list_statuses(connection: sqlite3.Connection) -> list[dict[str, Any]]:
     for source in SOURCES:
         ensure_source(connection, source)
     rows = connection.execute(
-        "SELECT * FROM sector_source_status ORDER BY CASE source WHEN 'sw_l1' THEN 1 WHEN 'sw_l2' THEN 2 WHEN 'eastmoney' THEN 3 ELSE 4 END"
+        """SELECT * FROM sector_source_status ORDER BY CASE source
+           WHEN 'tushare' THEN 1 WHEN 'futu_opend' THEN 2
+           WHEN 'eastmoney' THEN 3 WHEN 'sw_l1' THEN 4 WHEN 'sw_l2' THEN 5
+           WHEN 'sw_l3' THEN 6 ELSE 7 END"""
     ).fetchall()
     return [_row(row) for row in rows]
 

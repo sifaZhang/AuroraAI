@@ -247,16 +247,24 @@ def _migrate_sector_source_status(connection: sqlite3.Connection) -> None:
         "SELECT sql FROM sqlite_master WHERE type='table' AND name='sector_source_status'"
     ).fetchone()
     table_sql = table_row[0] if table_row else ""
-    if required.issubset(columns) and "healthy" in table_sql and "unknown" in table_sql and "benchmark_csi300" in table_sql:
+    required_sources = ("tushare", "futu_opend", "sw_l1", "sw_l2", "sw_l3", "eastmoney", "benchmark_csi300")
+    if (required.issubset(columns) and "healthy" in table_sql and "unknown" in table_sql
+            and all(source in table_sql for source in required_sources)):
         return
 
     existing = [dict(row) for row in connection.execute("SELECT * FROM sector_source_status")]
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    display_names = {"sw_l1": "申万一级行业", "sw_l2": "申万二级行业", "eastmoney": "东方财富行业", "benchmark_csi300": "沪深300基准"}
+    display_names = {
+        "tushare": "Tushare", "futu_opend": "富途 OpenD",
+        "sw_l1": "申万一级行业", "sw_l2": "申万二级行业", "sw_l3": "申万三级行业",
+        "eastmoney": "东方财富行业行情", "benchmark_csi300": "沪深300基准",
+    }
     connection.execute("ALTER TABLE sector_source_status RENAME TO sector_source_status_legacy")
     connection.execute(
         """CREATE TABLE sector_source_status (
-            source TEXT PRIMARY KEY CHECK(source IN ('sw_l1','sw_l2','eastmoney','benchmark_csi300')),
+            source TEXT PRIMARY KEY CHECK(source IN (
+                'tushare','futu_opend','sw_l1','sw_l2','sw_l3','eastmoney','benchmark_csi300'
+            )),
             display_name TEXT NOT NULL,
             status TEXT NOT NULL CHECK(status IN ('healthy','degraded','unavailable','unknown')),
             sector_count INTEGER NOT NULL DEFAULT 0,

@@ -7,11 +7,14 @@ from dataclasses import dataclass
 
 from backend.collector.dividend_collector import get_akshare
 from backend.collector.probe_sector_data import describe_source_error, find_column
+from backend.data_sources.settings import DataSourceSettings
+from backend.data_sources.tushare import TushareClient, TushareIndustryProvider
+from backend.expectation_gap.futu_client import FutuResearchClient
 from backend.sector_radar.health_repository import (
     SOURCES, list_statuses, record_degraded, record_failure, record_success,
 )
 
-CHECK_ORDER = ("sw_l1", "sw_l2", "eastmoney")
+CHECK_ORDER = ("tushare", "futu_opend", "eastmoney", "sw_l1", "sw_l2", "sw_l3")
 EASTMONEY_DELAYS = (5.0, 15.0, 30.0)
 
 
@@ -30,6 +33,8 @@ def _fetch(ak: object, source: str):
         return ak.index_realtime_sw(symbol="一级行业")
     if source == "sw_l2":
         return ak.index_realtime_sw(symbol="二级行业")
+    if source == "sw_l3":
+        return ak.index_realtime_sw(symbol="三级行业")
     errors = []
     for attempt in range(4):
         try:
@@ -69,14 +74,51 @@ def check_one(ak: object, source: str) -> CheckOutcome:
         return CheckOutcome(source, "unavailable", latency, 0, type(exc).__name__, message)
 
 
-def run_health_checks(connection, selection: str = "all", *, ak: object | None = None) -> list[dict]:
+def check_tushare(provider: object | None = None) -> CheckOutcome:
+    started = time.monotonic()
+    try:
+        if provider is None:
+            settings = DataSourceSettings.from_env()
+            provider = TushareIndustryProvider(TushareClient(
+                settings.tushare_token, timeout_seconds=settings.request_timeout_seconds,
+                max_retries=settings.max_retries, requests_per_minute=settings.requests_per_minute,
+            ), enabled=settings.tushare_enabled)
+        health = provider.health_check()
+        status = "healthy" if health.status == "healthy" else "degraded" if health.status == "degraded" else "unavailable"
+        return CheckOutcome("tushare", status, health.latency_ms or round((time.monotonic() - started) * 1000, 2),
+                            0, health.error_type, None if status == "healthy" else health.error_type)
+    except Exception as exc:
+        return CheckOutcome("tushare", "unavailable", round((time.monotonic() - started) * 1000, 2),
+                            0, type(exc).__name__, str(exc))
+
+
+def check_futu(client_factory=FutuResearchClient) -> CheckOutcome:
+    started = time.monotonic()
+    try:
+        with client_factory() as client:
+            result = client.global_state()
+        latency = round((time.monotonic() - started) * 1000, 2)
+        if result.status == "success":
+            return CheckOutcome("futu_opend", "healthy", latency, 0)
+        return CheckOutcome("futu_opend", "unavailable", latency, 0, result.status, result.error or result.status)
+    except Exception as exc:
+        return CheckOutcome("futu_opend", "unavailable", round((time.monotonic() - started) * 1000, 2),
+                            0, type(exc).__name__, str(exc))
+
+
+def run_health_checks(connection, selection: str = "all", *, ak: object | None = None,
+                      tushare_provider: object | None = None, futu_client_factory=FutuResearchClient) -> list[dict]:
     if selection not in {*CHECK_ORDER, "all"}:
         raise ValueError(f"不支持的数据源: {selection}")
-    client = ak or get_akshare()
     sources = CHECK_ORDER if selection == "all" else (selection,)
     for source in sources:
-        outcome = check_one(client, source)
-        metadata = {"sector_count": outcome.sector_count, "check_type": "industry_list"}
+        if source == "tushare":
+            outcome, metadata = check_tushare(tushare_provider), {"check_type": "provider_health"}
+        elif source == "futu_opend":
+            outcome, metadata = check_futu(futu_client_factory), {"check_type": "opend_global_state"}
+        else:
+            outcome = check_one(ak or get_akshare(), source)
+            metadata = {"sector_count": outcome.sector_count, "check_type": "industry_list"}
         if outcome.status == "healthy":
             record_success(connection, source, latency_ms=outcome.latency_ms, metadata=metadata)
         elif outcome.status == "degraded":

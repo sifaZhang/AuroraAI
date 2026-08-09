@@ -1,4 +1,5 @@
 from http.client import RemoteDisconnected
+from types import SimpleNamespace
 
 import pandas as pd
 
@@ -57,7 +58,7 @@ def test_list_statuses_registers_all_unknown_sources(tmp_path):
     connection = connect(tmp_path / "health.db")
     migrate(connection)
     items = list_statuses(connection)
-    assert [item["source"] for item in items] == ["sw_l1", "sw_l2", "eastmoney", "benchmark_csi300"]
+    assert [item["source"] for item in items] == ["tushare", "futu_opend", "eastmoney", "sw_l1", "sw_l2", "sw_l3", "benchmark_csi300"]
     assert all(item["status"] == "unknown" for item in items)
     connection.close()
 
@@ -92,6 +93,7 @@ class HealthyAk:
 def test_lightweight_checks_success_empty_and_missing_data(monkeypatch):
     healthy = health_checks.check_one(HealthyAk(), "sw_l1")
     assert healthy.status == "healthy" and healthy.sector_count == 1
+    assert health_checks.check_one(HealthyAk(), "sw_l3").status == "healthy"
 
     empty_ak = HealthyAk()
     empty_ak.index_realtime_sw = lambda symbol: pd.DataFrame()
@@ -118,9 +120,20 @@ def test_eastmoney_remote_disconnect_and_all_isolation(tmp_path, monkeypatch):
     monkeypatch.setattr(health_checks.time, "sleep", lambda _: None)
     connection = connect(tmp_path / "health.db")
     migrate(connection)
-    items = health_checks.run_health_checks(connection, "all", ak=MixedAk())
+    class HealthyFutu:
+        def __enter__(self): return self
+        def __exit__(self, *_): pass
+        def global_state(self): return SimpleNamespace(status="success", error=None)
+
+    items = health_checks.run_health_checks(
+        connection, "all", ak=MixedAk(),
+        tushare_provider=SimpleNamespace(health_check=lambda: SimpleNamespace(status="healthy", latency_ms=1, error_type=None)),
+        futu_client_factory=HealthyFutu,
+    )
     states = {item["source"]: item["status"] for item in items}
-    assert states == {"sw_l1": "healthy", "sw_l2": "unavailable", "eastmoney": "unavailable", "benchmark_csi300": "unknown"}
+    assert states == {"tushare": "healthy", "futu_opend": "healthy", "eastmoney": "unavailable",
+                      "sw_l1": "healthy", "sw_l2": "unavailable", "sw_l3": "healthy",
+                      "benchmark_csi300": "unknown"}
     assert "RemoteDisconnected" in get_status(connection, "eastmoney")["last_error_message"]
     connection.close()
 
@@ -131,3 +144,15 @@ def test_degraded_when_required_fields_are_missing():
     result = health_checks.check_one(bad, "sw_l1")
     assert result.status == "degraded"
     assert result.error_type == "SchemaError"
+
+
+def test_tushare_and_futu_health_checks_use_lightweight_provider_calls():
+    tushare = SimpleNamespace(health_check=lambda: SimpleNamespace(status="healthy", latency_ms=8, error_type=None))
+    assert health_checks.check_tushare(tushare).status == "healthy"
+
+    class Futu:
+        def __enter__(self): return self
+        def __exit__(self, *_): pass
+        def global_state(self): return SimpleNamespace(status="success", error=None)
+
+    assert health_checks.check_futu(Futu).status == "healthy"
