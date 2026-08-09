@@ -1,5 +1,12 @@
 # AuroraAI 项目状态
 
+## 2026-08-09: Industry Radar level-3 member row interaction repair (completed, uncommitted)
+
+- Corrected the UI event collision: the legacy unqualified row click always opened the score dialog and the initial member rendering was incorrectly nested in that dialog. A real level-3 industry name is now the sole expand/collapse control, while its score/rank button opens the existing score dialog; level 1 and level 2 retain their original row-detail behavior.
+- Expanded members render inline beneath the selected level-3 row through the existing local constituents API. Switching levels clears the expanded row. The UI never invokes first-limit detection; unavailable detection data remains visibly `未检测`.
+- Level switches now clear the prior table synchronously and use a monotonically increasing request sequence. A late response from a prior level is ignored, and the level-3 list fetches both API pages (200 + 136) before rendering all 336 true third-level nodes.
+- The current formal taxonomy has no level-3 node named exactly `稀土` (the screenshot's `801054` is an upper-level classification), so that row intentionally retains the level-1/2 detail behavior rather than being incorrectly expanded as a third-level node.
+
 ## 2026-08-09: Industry Radar constituent close-limit and first-limit display (completed, uncommitted)
 
 - The level-3 industry detail now loads members through one local batch query. It joins current SW membership, security master, historical status, unadjusted daily bars, existing limit metadata, and the latest completed first-limit detection ledger; it never starts a first-limit detection run or makes per-symbol provider calls.

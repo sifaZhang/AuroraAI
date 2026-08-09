@@ -9,7 +9,7 @@ def test_existing_market_pulse_page_is_upgraded():
  assert '<th>层级</th>' not in text
  assert 'colspan="11"' in text
  assert '<b>数据日期：</b><span id="industry-trade-date">—</span>' in text
- assert 'textContent=d.trade_date||DASH' in script
+ assert 'textContent=tradeDate||DASH' in script
  assert 'id="industry-scroll-top"' in text and 'id="industry-table-wrap"' in text
  assert 'topScroll.onscroll' in script and 'tableWrap.onscroll' in script
  assert 'radar.checkRefresh()' in script
