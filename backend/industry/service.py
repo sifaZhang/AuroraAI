@@ -55,8 +55,8 @@ class IndustryService:
   if search:clauses.append("n.industry_name LIKE ?");p.append(f"%{search}%")
   where=' AND '.join(clauses);field=SORTS[sort_by]
   total=self.connection.execute(f"SELECT COUNT(*) FROM industry_nodes n WHERE {where}",p).fetchone()[0]
-  rows=self.connection.execute(f"""SELECT n.industry_name,n.parent_code,s.*,d.constituent_count,d.valid_bar_count,d.coverage_ratio,d.equal_weight_return,d.median_return,d.rise_ratio,d.strong_rise_ratio,d.limit_up_count,d.first_limit_count,d.turnover_amount,d.data_status
-   FROM industry_nodes n LEFT JOIN industry_daily_snapshots d ON d.industry_code=n.industry_code AND d.trade_date=? LEFT JOIN industry_daily_scores s ON s.industry_code=n.industry_code AND s.trade_date=? AND s.score_version=? WHERE {where}
+  rows=self.connection.execute(f"""SELECT n.industry_code,n.industry_name,n.parent_code,parent.industry_name AS parent_name,s.*,d.constituent_count,d.valid_bar_count,d.coverage_ratio,d.equal_weight_return,d.median_return,d.rise_ratio,d.strong_rise_ratio,d.limit_up_count,d.first_limit_count,d.turnover_amount,d.data_status
+   FROM industry_nodes n LEFT JOIN industry_nodes parent ON parent.classification=n.classification AND parent.classification_version=n.classification_version AND parent.industry_code=n.parent_code LEFT JOIN industry_daily_snapshots d ON d.industry_code=n.industry_code AND d.trade_date=? LEFT JOIN industry_daily_scores s ON s.industry_code=n.industry_code AND s.trade_date=? AND s.score_version=? WHERE {where}
    ORDER BY ({field} IS NULL),{field} {order.upper()},n.industry_code LIMIT ? OFFSET ?""",[day,day,SCORE_VERSION,*p,page_size,(page-1)*page_size]).fetchall()
   return {'trade_date':day or None,'level':level,'page':page,'page_size':page_size,'total':total,'items':[dict(r) for r in rows]}
  def list_constituents(self,code,level,limit=200,trade_date=None):
