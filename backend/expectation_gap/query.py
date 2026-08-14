@@ -65,7 +65,8 @@ def list_expectation_gaps(connection, *, market: str = "all", q: str = "", sort_
             item["rating_label"] = "手工录入"
         else:
             item["rating_label"] = {1: "定量评级", 2: "定性评级"}.get(item["morningstar_rating_type"], "评级类型未知")
-        item["data_date"] = max(filter(None, [item["morningstar_data_date"], item["analyst_data_date"]]), default=None)
+        latest_date = max(filter(None, [item["price_time"], item["morningstar_data_date"], item["analyst_data_date"]]), default=None)
+        item["data_date"] = latest_date[:10] if latest_date else None
         for field in ("quality_reasons", "morningstar_quality_reasons", "analyst_quality_reasons",
                       "morningstar_quality_details", "analyst_quality_details"):
             try:

@@ -109,24 +109,36 @@ def _validate_manual_csv(path: Path) -> list[str]:
         temporary.close()
 
 
-def refresh_a_share_job(connection, job_id: int, *, csv_path: Path | None = None,
+def refresh_a_share_job(connection, job_id: int, *, csv_path: Path | None = None, codes: list[str] | None = None,
                         price_provider: MarketPriceProvider | None = None) -> None:
-    path = csv_path or PROJECT_ROOT / "data" / "manual_a_share_valuations.csv"
-    errors = _validate_manual_csv(path)
-    if errors:
-        raise ValueError("CSV校验失败，未导入估值数据：" + "；".join(errors[:20]))
-    imported, import_errors = import_file(connection, path)
-    if import_errors:
-        raise ValueError("CSV导入失败：" + "；".join(import_errors[:20]))
-    stocks = connection.execute("SELECT id,futu_code,symbol FROM stocks WHERE market='A' AND is_active=1 ORDER BY futu_code").fetchall()
+    imported = 0
+    errors: list[str] = []
+    if not codes:
+        path = csv_path or PROJECT_ROOT / "data" / "manual_a_share_valuations.csv"
+        errors = _validate_manual_csv(path)
+        if errors:
+            raise ValueError("CSV校验失败，未导入估值数据：" + "；".join(errors[:20]))
+        imported, import_errors = import_file(connection, path)
+        if import_errors:
+            raise ValueError("CSV导入失败：" + "；".join(import_errors[:20]))
+    query = "SELECT id,futu_code,symbol FROM stocks WHERE market='A' AND is_active=1"
+    args = []
+    if codes:
+        values = [code[2:] if code.startswith("A.") else code for code in codes]
+        query += " AND symbol IN (" + ",".join("?" for _ in values) + ")"; args = values
+    stocks = connection.execute(query + " ORDER BY futu_code", args).fetchall()
     total = len(stocks)
-    _update(connection, job_id, total=total, message=f"已导入{imported}条手工估值，正在刷新A股股价")
+    _update(connection, job_id, total=total, message=("正在刷新单只A股股价" if codes else f"已导入{imported}条手工估值，正在刷新A股股价"))
     symbols = [row["symbol"] for row in stocks]
     provider = price_provider or UnifiedMarketPriceProvider()
-    prices = provider.fetch_a_share_latest(
-        symbols,
-        progress=lambda message: _update(connection, job_id, message=message),
-    ) if stocks else {}
+    if codes and stocks and price_provider is None:
+        stock = stocks[0]
+        futu_code = str(stock["futu_code"])
+        ts_code = f"{futu_code[3:]}.{futu_code[:2]}" if futu_code[:2] in {"SH", "SZ"} else str(stock["symbol"])
+        single = UnifiedMarketPriceProvider().fetch_a_share_single_latest(ts_code)
+        prices = {str(stock["symbol"])[:6]: single}
+    else:
+        prices = provider.fetch_a_share_latest(symbols, progress=lambda message: _update(connection, job_id, message=message)) if stocks else {}
     counts = Counter()
     for stock in stocks:
         value = prices.get(str(stock["symbol"])[:6])
@@ -177,21 +189,23 @@ def refresh_hk_prices_job(connection, job_id: int, *, codes: list[str] | None = 
 
 
 def refresh_hk_ratings_job(connection, job_id: int, *, codes: list[str] | None = None,
-                           client_factory=FutuResearchClient) -> None:
+                           force: bool = False, client_factory=FutuResearchClient) -> None:
     stocks = _hk_stocks(connection, codes)
     total, counts, errors = len(stocks), Counter(), []
     _update(connection, job_id, total=total, message="正在刷新过期的港股评级")
-    with client_factory() as client:
+    with client_factory(max_retries=1) if force else client_factory() as client:
         for stock in stocks:
             existing = connection.execute("""SELECT morningstar_next_check_at,analyst_next_check_at
                 FROM stock_expectations WHERE stock_id=?""", (stock["id"],)).fetchone()
-            morningstar_due = is_due(existing, "morningstar_next_check_at", False)
-            analyst_due = is_due(existing, "analyst_next_check_at", False)
+            morningstar_due = is_due(existing, "morningstar_next_check_at", force)
+            analyst_due = is_due(existing, "analyst_next_check_at", force)
             morningstar = client.morningstar(stock["futu_code"]) if morningstar_due else CollectionResult("skipped_fresh")
             analyst = client.analyst(stock["futu_code"]) if analyst_due else CollectionResult("skipped_fresh")
+            price = UnifiedMarketPriceProvider().fetch_hk_latest([stock["futu_code"]]).get(stock["futu_code"]) if force else None
             with connection:
                 if morningstar_due: patch_morningstar(connection, stock["id"], morningstar, "futu_opend")
                 if analyst_due: patch_analyst(connection, stock["id"], analyst, "futu_opend")
+                if price and price.status == "success": patch_price(connection, stock["id"], CollectionResult("success", {"last_price": price.price, "price_time": price.price_time or utc_now()}), price.source or "auto")
             statuses = [morningstar.status, analyst.status]
             counts["processed"] += 1
             if all(status == "skipped_fresh" for status in statuses): counts["skipped"] += 1
@@ -287,6 +301,11 @@ def run_job(job_id: int, *, runner_kwargs: dict | None = None) -> None:
                 kwargs = dict(runner_kwargs or {})
                 if row["job_type"] == "refresh_market_pulse":
                     kwargs.setdefault("source", row["source"] or "sw_l1")
+                if row["job_type"] == "refresh_hk_ratings" and row["source"]:
+                    kwargs.setdefault("codes", [row["source"]])
+                    kwargs.setdefault("force", True)
+                if row["job_type"] == "refresh_a_share" and row["source"]:
+                    kwargs.setdefault("codes", [row["source"]])
                 RUNNERS[row["job_type"]](connection, job_id, **kwargs)
         finally:
             release_write_job()

@@ -340,7 +340,7 @@ def _migrate_refresh_jobs_for_market_pulse(connection: sqlite3.Connection) -> No
     columns = {row[1] for row in connection.execute("PRAGMA table_info(refresh_jobs)")}
     table_row = connection.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='refresh_jobs'").fetchone()
     table_sql = table_row[0] if table_row else ""
-    if "source" in columns and "refresh_market_pulse" in table_sql:
+    if "source" in columns and "refresh_market_pulse" in table_sql and "HK.[0-9]*" in table_sql and "A.*" in table_sql:
         return
     rows = [dict(row) for row in connection.execute("SELECT * FROM refresh_jobs")]
     connection.execute("ALTER TABLE refresh_jobs RENAME TO refresh_jobs_legacy")
@@ -348,7 +348,7 @@ def _migrate_refresh_jobs_for_market_pulse(connection: sqlite3.Connection) -> No
         """CREATE TABLE refresh_jobs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             job_type TEXT NOT NULL CHECK(job_type IN ('refresh_a_share','refresh_hk_prices','refresh_hk_ratings','refresh_market_pulse')),
-            source TEXT CHECK(source IS NULL OR source IN ('sw_l1','sw_l2','eastmoney','all')),
+            source TEXT CHECK(source IS NULL OR source IN ('sw_l1','sw_l2','eastmoney','all') OR source GLOB 'HK.[0-9]*' OR source GLOB 'A.*'),
             status TEXT NOT NULL CHECK(status IN ('pending','running','success','partial','failed')),
             total INTEGER NOT NULL DEFAULT 0, processed INTEGER NOT NULL DEFAULT 0,
             success_count INTEGER NOT NULL DEFAULT 0, no_data_count INTEGER NOT NULL DEFAULT 0,
@@ -358,7 +358,7 @@ def _migrate_refresh_jobs_for_market_pulse(connection: sqlite3.Connection) -> No
         )"""
     )
     fields = (
-        "id", "job_type", "status", "total", "processed", "success_count", "no_data_count",
+        "id", "job_type", "source", "status", "total", "processed", "success_count", "no_data_count",
         "failure_count", "skipped_count", "progress_pct", "current_code", "message",
         "error_summary", "started_at", "finished_at", "created_at",
     )

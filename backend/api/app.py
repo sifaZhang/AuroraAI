@@ -136,6 +136,10 @@ def _start_refresh_job(job_type: str):
 def start_a_share_refresh():
     return _start_refresh_job("refresh_a_share")
 
+@app.post("/api/refresh-jobs/a-share/{futu_code}", status_code=202)
+def start_single_a_share_refresh(futu_code: str):
+    return start_background_job("refresh_a_share", source=futu_code)
+
 
 @app.post("/api/refresh-jobs/hk-prices", status_code=202)
 def start_hk_price_refresh():
@@ -145,6 +149,18 @@ def start_hk_price_refresh():
 @app.post("/api/refresh-jobs/hk-ratings", status_code=202)
 def start_hk_rating_refresh():
     return _start_refresh_job("refresh_hk_ratings")
+
+
+@app.post("/api/refresh-jobs/hk-ratings/{futu_code}", status_code=202)
+def start_single_hk_rating_refresh(futu_code: str):
+    if not futu_code.startswith("HK.") or not futu_code[3:].isdigit():
+        raise HTTPException(422, "港股代码格式应为 HK.00700")
+    try:
+        return start_background_job("refresh_hk_ratings", source=futu_code)
+    except JobConflictError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    except DatabaseWriteBusyError as exc:
+        raise HTTPException(409, str(exc)) from exc
 
 
 @app.get("/api/refresh-jobs/latest")

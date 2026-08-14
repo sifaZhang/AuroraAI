@@ -45,10 +45,10 @@ def _valid_positive(value: Any) -> float | None:
 
 
 class FutuResearchClient:
-    def __init__(self, host: str | None = None, port: int | None = None) -> None:
+    def __init__(self, host: str | None = None, port: int | None = None, max_retries: int | None = None) -> None:
         self.host = host or os.getenv("FUTU_HOST", "127.0.0.1")
         self.port = port or int(os.getenv("FUTU_PORT", "11111"))
-        self.max_retries = int(os.getenv("FUTU_MAX_RETRIES", "3"))
+        self.max_retries = int(os.getenv("FUTU_MAX_RETRIES", "3")) if max_retries is None else max_retries
         limit = int(os.getenv("FUTU_REQUESTS_PER_30_SECONDS", "28"))
         self._limiter = SlidingWindowLimiter(limit)
         self._context = None

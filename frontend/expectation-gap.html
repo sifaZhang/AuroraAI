@@ -20,7 +20,7 @@
 <section class="filters"><input id="search" type="search" placeholder="搜索股票名称或代码"><select id="market"><option value="all">全部市场</option><option value="a">A股</option><option value="hk">港股</option></select><label><input id="include-unrated" type="checkbox"> 包含无目标价</label><label><input id="include-anomalies" type="checkbox"> 包含异常值</label><select id="page-size"><option>20</option><option selected>50</option><option>100</option></select><button id="reset" type="button">重置</button></section>
 <div id="error" class="api-error" hidden></div><section class="table-region expectation-table-wrap"><table class="expectation-table"><thead><tr>
 <th>市场</th><th>代码</th><th>名称</th><th><button data-sort="last_price">当前价</button></th><th><button data-sort="morningstar_fair_value">晨星公允价值</button></th><th><button data-sort="morningstar_gap_pct">晨星预期差</button></th><th>晨星星级</th><th><button data-sort="analyst_average_target">分析师目标价</button></th><th><button data-sort="analyst_gap_pct">分析师预期差</button></th><th><button data-sort="analyst_count">分析师人数</button></th><th>数据日期</th><th>数据来源</th><th>质量状态</th>
-</tr></thead><tbody id="rows"><tr><td colspan="13" class="empty-state">加载中…</td></tr></tbody></table></section>
+<th>刷新</th></tr></thead><tbody id="rows"><tr><td colspan="14" class="empty-state">加载中…</td></tr></tbody></table></section>
 <section class="pager"><button id="prev">上一页</button><span id="page-label">第 1 页</span><button id="next">下一页</button></section>
 <aside class="method-note">晨星榜与分析师榜分别按对应预期差排序。分析师榜默认要求分析师人数不少于3；500%以上异常值默认隐藏，200%—500%显示警告。质量规则只影响展示和排名，不修改富途原始数据。</aside>
 </main><script src="expectation-gap.js"></script></body></html>

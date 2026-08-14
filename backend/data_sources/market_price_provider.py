@@ -88,6 +88,15 @@ class UnifiedMarketPriceProvider:
                            type(failures[-1][1]).__name__, failures[-1][1])
         raise AllProvidersFailedError("latest A-share prices", tuple(failures))
 
+    def fetch_a_share_single_latest(self, symbol: str) -> MarketPriceResult:
+        """Fast path for one A share; avoids the full-market daily batch."""
+        frame = self._tushare.call("daily", ts_code=symbol, start_date=(self._today() - timedelta(days=10)).strftime("%Y%m%d"), end_date=self._today().strftime("%Y%m%d"))
+        rows = getattr(frame, "to_dict", lambda *_: [])("records")
+        if not rows:
+            return MarketPriceResult("no_data", source="tushare")
+        row = max(rows, key=lambda value: str(value.get("trade_date") or ""))
+        return MarketPriceResult("success", float(row["close"]), str(row.get("trade_date")), "tushare")
+
     def _fetch_tushare_a_share_prices(self, requested: set[str], *, progress: Callable[[str], None] | None = None) -> dict[str, MarketPriceResult]:
         start = self._today() - timedelta(days=10)
         calendar = self._tushare.call("trade_cal", exchange="", start_date=start.strftime("%Y%m%d"),
