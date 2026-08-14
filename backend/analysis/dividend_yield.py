@@ -82,6 +82,7 @@ def calculate_dividend_top20(
     *,
     as_of_date: date | None = None,
     top: int | None = 20,
+    upcoming_days: int = 7,
 ) -> pd.DataFrame:
     """Build the upcoming Dividend Top20 table.
 
@@ -97,7 +98,8 @@ def calculate_dividend_top20(
     upcoming = dividends.copy()
     upcoming["record_date"] = pd.to_datetime(upcoming["record_date"], errors="coerce")
     upcoming = upcoming.dropna(subset=["record_date"])
-    upcoming = upcoming[upcoming["record_date"].dt.date >= as_of_date]
+    upcoming = upcoming[(upcoming["record_date"].dt.date >= as_of_date) &
+                        (upcoming["record_date"].dt.date <= as_of_date + timedelta(days=upcoming_days))]
     if upcoming.empty:
         return _empty_top20_result()
 

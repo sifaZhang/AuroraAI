@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 
 from backend.analysis.dividend_yield import calculate_dividend_top20, calculate_dividend_yield
 from backend.collector.dividend_collector import collect_dividend_candidates
+from backend.data_sources.errors import DataSourceError
 
 
 TOP20_OUTPUT_COLUMNS = [
@@ -41,8 +42,12 @@ def parse_args() -> argparse.Namespace:
         help="top20 keeps only upcoming record dates; latest/trailing_12m output raw calculation tables.",
     )
     parser.add_argument("--as-of-date", help="Filter date for top20, format YYYY-MM-DD. Default: today.")
-    parser.add_argument("--include-tushare", action="store_true", help="Also query Tushare Pro when TUSHARE_TOKEN is set.")
-    parser.add_argument("--refresh-prices", action="store_true", help="Fetch latest prices one by one instead of using source fallback prices.")
+    parser.add_argument("--upcoming-days", type=int, default=7,
+                        help="Include record dates from as-of date through this many days ahead. Default: 7.")
+    parser.add_argument("--include-tushare", action="store_true",
+                        help="Deprecated compatibility flag; full-market collection is Tushare-first by default.")
+    parser.add_argument("--refresh-prices", action="store_true",
+                        help="Deprecated compatibility flag; full-market prices are always batch-refreshed through the provider.")
     parser.add_argument("--top", type=int, default=0, help="Number of rows to output. Use 0 for all rows.")
     parser.add_argument(
         "--output",
@@ -72,8 +77,9 @@ def main() -> None:
             price_overrides=price_overrides,
             as_of_date=as_of_date,
             refresh_prices=args.refresh_prices,
+            upcoming_days=args.upcoming_days,
         )
-    except RuntimeError as exc:
+    except (RuntimeError, DataSourceError) as exc:
         print(f"Collection failed: {exc}", file=sys.stderr)
         print(
             "Tip: if full-market price APIs are unstable, use --codes with --price-overrides "
@@ -85,7 +91,8 @@ def main() -> None:
     print(f"Collected {len(dividends)} dividend rows and {len(prices)} price rows.", flush=True)
     top = None if args.top == 0 else args.top
     if args.mode == "top20":
-        result = calculate_dividend_top20(dividends, prices, as_of_date=as_of_date, top=top)
+        result = calculate_dividend_top20(dividends, prices, as_of_date=as_of_date, top=top,
+                                          upcoming_days=args.upcoming_days)
         if len(result.columns) == len(TOP20_OUTPUT_COLUMNS):
             result.columns = TOP20_OUTPUT_COLUMNS
     else:

@@ -1,5 +1,24 @@
 # AuroraAI 项目状态
 
+## 2026-08-14: 首页最近分红一键刷新（已实现，待提交）
+
+- 首页“刷新”按钮现在会请求本地 FastAPI 后台任务，自动采集未来 7 天的 A 股分红与批量最新股价，并更新页面使用的 CSV/元数据；不再要求用户手动运行采集命令。
+- 页面会显示提交、运行、成功或失败状态；采集完成后自动重新读取最新结果，同时拒绝重复启动并发刷新。
+- A股历史分红的“刷新股息率”不再复用旧快照日期；未传日期时后端按中国时间当天计算，非交易日继续回退到最近可用交易日价格。
+
+## 2026-08-09: Data-source health coverage expansion (implemented, uncommitted)
+
+- The existing data-source-health page now registers and checks Tushare, Futu/OpenD, 东方财富行业行情, and SW level-1/2/3 industry lists through the existing status table and controls. These are lightweight availability checks only; they do not refresh prices, ratings, industry bars, or scores.
+- Tushare uses the existing provider health contract; Futu/OpenD uses its lightweight global-state call; SW level 3 reuses the same AKShare index-list validation as levels 1 and 2.
+
+## 2026-08-09: Expectation Gap unified batch price provider (implemented, uncommitted)
+
+- A-share price refresh now uses the unified provider: Tushare is primary and obtains one latest open trading date plus one full-market `daily` batch; AKShare's full-market spot batch is the explicit fallback. The former per-symbol AKShare history and GM `history` fallback were removed from this workflow.
+- Hong Kong price refresh now enters through the same provider interface and retains Futu/OpenD `get_market_snapshot` batching (200 securities per request). Refresh jobs no longer invoke provider SDK clients directly.
+- This change is limited to the expectation-price refresh paths; rating collection remains unchanged. Tests use fake providers and make no external requests or database writes outside temporary test databases.
+- Provider-stage messages and elapsed-time/fallback logs identify whether a refresh is waiting for Tushare calendar/daily, falling back to AKShare, or requesting Futu/OpenD snapshots. The UI job message is updated at each provider stage.
+- Futu/OpenD snapshot batches now isolate stale/unknown HK codes reported by the provider: the identified stale code is recorded as `no_data`, then the remaining securities are retried as one batch. A single invalid code can no longer mark its other 199 valid batch peers as connection failures.
+
 ## 2026-08-09: Industry Radar level-3 member row interaction repair (completed, uncommitted)
 
 - Corrected the UI event collision: the legacy unqualified row click always opened the score dialog and the initial member rendering was incorrectly nested in that dialog. A real level-3 industry name is now the sole expand/collapse control, while its score/rank button opens the existing score dialog; level 1 and level 2 retain their original row-detail behavior.

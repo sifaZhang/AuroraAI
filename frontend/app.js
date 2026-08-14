@@ -189,9 +189,36 @@ searchInput.addEventListener("input", (event) => {
   render();
 });
 
-reloadButton.addEventListener("click", () => {
-  loadMetadata();
-  loadData();
+async function pollRefresh() {
+  const response = await fetch("/api/upcoming-dividends/refresh-status", { cache: "no-store" });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const status = await response.json();
+  generatedAt.textContent = status.message || "正在刷新…";
+  if (status.status === "queued" || status.status === "running") {
+    window.setTimeout(pollRefresh, 1200);
+    return;
+  }
+  reloadButton.disabled = false;
+  reloadButton.textContent = "刷新";
+  if (status.status === "success") {
+    await Promise.all([loadMetadata(), loadData()]);
+  }
+}
+
+reloadButton.addEventListener("click", async () => {
+  reloadButton.disabled = true;
+  reloadButton.textContent = "正在刷新…";
+  generatedAt.textContent = "正在提交刷新任务…";
+  try {
+    const response = await fetch("/api/upcoming-dividends/refresh", { method: "POST" });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`);
+    await pollRefresh();
+  } catch (error) {
+    generatedAt.textContent = `刷新失败：${error.message}`;
+    reloadButton.disabled = false;
+    reloadButton.textContent = "刷新";
+  }
 });
 
 sortButtons.forEach((button) => {

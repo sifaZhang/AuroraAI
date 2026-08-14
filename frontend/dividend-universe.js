@@ -178,9 +178,9 @@
     catch (error) { button.disabled = false; button.textContent = '重新筛选候选池'; $('message').textContent = error.message; }
   };
   $('refresh-yields').onclick = async () => {
-    const button = $('refresh-yields'); const calculationDate = yieldCalculationDate || new Date().toISOString().slice(0, 10);
+    const button = $('refresh-yields');
     button.disabled = true; button.textContent = '正在刷新...';
-    try { await api('/api/dividend/yields/refresh', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({calculation_date: calculationDate})}); await load(); }
+    try { await api('/api/dividend/yields/refresh', {method: 'POST', headers: {'content-type': 'application/json'}, body: '{}'}); await load(); }
     catch (error) { $('message').textContent = `刷新股息率失败：${error.message}`; }
     finally { button.disabled = false; button.textContent = '刷新股息率'; }
   };

@@ -10,6 +10,9 @@ from backend.collector.dividend_collector import (
     parse_cash_dividend_per_10,
     parse_date,
 )
+from backend.data_sources.market_price_provider import MarketPriceResult
+from backend.data_sources.errors import ProviderUnavailableError
+from backend.data_sources.upcoming_dividend_provider import TushareFirstUpcomingDividendProvider, TushareUpcomingDividendProvider
 
 
 def test_parse_cash_dividend_per_10_from_common_text():
@@ -172,7 +175,27 @@ def test_calculate_dividend_top20_filters_past_record_dates_and_ranks():
     assert result["本次股息率"].tolist() == [2.5, 2.0]
 
 
-def test_collect_candidates_starts_from_announced_upcoming_dividends(monkeypatch):
+class UpcomingProvider:
+    def __init__(self, rows):
+        self.rows = rows
+        self.windows = []
+
+    def fetch(self, *, start_date, end_date):
+        self.windows.append((start_date, end_date))
+        return self.rows
+
+
+class PriceProvider:
+    def __init__(self, results):
+        self.results = results
+        self.requests = []
+
+    def fetch_a_share_latest(self, symbols):
+        self.requests.append(list(symbols))
+        return self.results
+
+
+def test_collect_candidates_uses_upcoming_provider_and_batch_prices():
     announced = pd.DataFrame(
         [
             {
@@ -193,24 +216,20 @@ def test_collect_candidates_starts_from_announced_upcoming_dividends(monkeypatch
     )
     prices = pd.DataFrame([{"stock_code": "000001", "stock_name": "Ping An Bank", "current_price": 10.0}])
 
-    def fail_full_market_prices():
-        raise AssertionError("full-market prices should not be fetched first")
-
-    monkeypatch.setattr("backend.collector.dividend_collector.fetch_announced_dividends_eastmoney", lambda: announced)
-    monkeypatch.setattr(
-        "backend.collector.dividend_collector.fetch_announced_dividends_akshare",
-        lambda: (_ for _ in ()).throw(AssertionError("Sina fallback should not be used")),
+    upcoming_provider = UpcomingProvider(announced)
+    price_provider = PriceProvider({"000001": MarketPriceResult("success", 10.0, "20260707", "tushare")})
+    dividends, fetched_prices = collect_dividend_candidates(
+        limit=20, as_of_date=date(2026, 7, 7), dividend_provider=upcoming_provider,
+        price_provider=price_provider,
     )
-    monkeypatch.setattr("backend.collector.dividend_collector.fetch_latest_prices_akshare", fail_full_market_prices)
-    monkeypatch.setattr("backend.collector.dividend_collector.fetch_latest_prices_akshare_by_codes", lambda codes: prices)
-
-    dividends, fetched_prices = collect_dividend_candidates(limit=20, as_of_date=date(2026, 7, 7))
 
     assert dividends["stock_code"].tolist() == ["000001"]
     assert fetched_prices["stock_code"].tolist() == ["000001"]
+    assert upcoming_provider.windows == [(date(2026, 7, 7), date(2026, 7, 14))]
+    assert price_provider.requests == [["000001"]]
 
 
-def test_collect_candidates_can_fallback_to_tushare_announced_dividends(monkeypatch):
+def test_tushare_first_upcoming_dividend_provider_falls_back_to_akshare():
     announced = pd.DataFrame(
         [
             {
@@ -222,24 +241,39 @@ def test_collect_candidates_can_fallback_to_tushare_announced_dividends(monkeypa
             }
         ]
     )
-    prices = pd.DataFrame([{"stock_code": "000001", "stock_name": None, "current_price": 10.0}])
+    class UnavailableProvider:
+        def fetch(self, **kwargs):
+            raise ProviderUnavailableError("offline")
 
-    monkeypatch.setattr(
-        "backend.collector.dividend_collector.fetch_announced_dividends_eastmoney",
-        lambda: (_ for _ in ()).throw(RuntimeError("eastmoney failed")),
+    fallback_events = announced.copy()
+    fallback_events["source"] = "akshare"
+    provider = TushareFirstUpcomingDividendProvider(
+        tushare=UnavailableProvider(), akshare=UpcomingProvider(fallback_events),
     )
-    monkeypatch.setattr(
-        "backend.collector.dividend_collector.fetch_announced_dividends_akshare",
-        lambda: (_ for _ in ()).throw(RuntimeError("akshare failed")),
-    )
-    monkeypatch.setattr("backend.collector.dividend_collector.fetch_announced_dividends_tushare", lambda: announced)
-    monkeypatch.setattr("backend.collector.dividend_collector.fetch_latest_prices_akshare_by_codes", lambda codes: prices)
+    result = provider.fetch(start_date=date(2026, 7, 7), end_date=date(2026, 7, 14))
+    assert result["source"].tolist() == ["akshare"]
 
-    dividends, fetched_prices = collect_dividend_candidates(
-        limit=20,
-        include_tushare=True,
-        as_of_date=date(2026, 7, 7),
-    )
 
-    assert dividends["source"].tolist() == ["tushare"]
-    assert fetched_prices["stock_code"].tolist() == ["000001"]
+def test_tushare_upcoming_provider_uses_record_date_batches_and_paginates():
+    class Client:
+        def __init__(self):
+            self.calls = []
+
+        def call(self, endpoint, **params):
+            self.calls.append((endpoint, params))
+            if endpoint == "stock_basic":
+                return pd.DataFrame([{"ts_code": "000001.SZ", "name": "Ping An Bank"}])
+            if params["record_date"] == "20260708" and params["offset"] == 0:
+                return pd.DataFrame([{"ts_code": "000001.SZ", "cash_div_tax": 0.2,
+                                      "ann_date": "20260701", "record_date": "20260708", "ex_date": "20260709"}])
+            return pd.DataFrame()
+
+    client = Client()
+    result = TushareUpcomingDividendProvider(client).fetch(start_date=date(2026, 7, 7), end_date=date(2026, 7, 8))
+    assert result.loc[0, "stock_code"] == "000001"
+    assert result.loc[0, "stock_name"] == "Ping An Bank"
+    assert result.loc[0, "cash_dividend_per_10"] == 2.0
+    dividend_calls = [call for call in client.calls if call[0] == "dividend"]
+    assert [(call[1]["record_date"], call[1]["offset"]) for call in dividend_calls] == [
+        ("20260707", 0), ("20260708", 0),
+    ]

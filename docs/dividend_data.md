@@ -1,8 +1,8 @@
 # Upcoming Dividends
 
-This module collects A-share dividend data from free data sources, keeps only
-upcoming dividend record dates, calculates the current dividend yield, and ranks
-stocks by yield.
+This module keeps only the next seven calendar days of announced A-share
+dividend record dates, calculates the current dividend yield, and ranks stocks
+by yield.
 
 ## Install
 
@@ -27,26 +27,19 @@ python -m backend.collector.collect_dividends `
 python -m backend.collector.collect_dividends --limit 200 --top 0 --output data\dividend_top20.csv
 ```
 
-The full-market path first fetches the announced dividend list from Eastmoney's
-free dividend distribution data through AKShare, filters records whose record
-date has not passed, and then outputs all upcoming dividend candidates. It does not scan every
-A-share one by one.
+The full-market path uses the unified Provider layer. Tushare is primary: it
+queries `dividend(record_date=...)` in date batches for the current date through
+seven days ahead, with 2,000-row offset pagination. Latest prices come from one
+Tushare full-market daily-bar batch. If Tushare is unavailable, only then does
+the flow fall back to AKShare/Eastmoney batch endpoints. It never scans A-shares
+one by one.
 
 Use `--limit 0` to keep all upcoming dividend candidates.
 
-By default, the command uses the price/yield information carried by the
-Eastmoney dividend source, which is faster and more stable. To force a live
-per-stock price refresh, add:
+The seven-day window can be changed explicitly:
 
 ```powershell
-python -m backend.collector.collect_dividends --limit 200 --refresh-prices
-```
-
-If the Eastmoney and AKShare announced dividend sources are unstable, configure
-Tushare Pro as a fallback:
-
-```powershell
-python -m backend.collector.collect_dividends --include-tushare --limit 200
+python -m backend.collector.collect_dividends --limit 200 --upcoming-days 7
 ```
 
 Put your Tushare token in `.env`:
@@ -87,16 +80,12 @@ python -m backend.collector.collect_dividends --mode latest
 python -m backend.collector.collect_dividends --mode trailing_12m
 ```
 
-## Tushare Pro
+## Provider priority
 
-Tushare Pro support is optional. Fill `TUSHARE_TOKEN` in `.env`, then add
-`--include-tushare`.
-
-```powershell
-python -m backend.collector.collect_dividends --codes 000001 --include-tushare
-```
-
-Without a token, the default path uses AKShare only.
+Tushare Pro is the default primary Provider. When it is not configured or its
+batch request fails, AKShare/Eastmoney is the fallback. The old
+`--include-tushare` and `--refresh-prices` flags remain only for command-line
+compatibility; the full-market path is already Tushare-first and batch-only.
 
 ## UI
 
@@ -136,3 +125,7 @@ Beijing time: UTC+8
 The workflow generates `frontend/dividend_top20.csv` and `frontend/metadata.json`,
 then deploys the static UI to GitHub Pages. The UI supports clicking table
 headers to sort by record date, stock, dividend, price, or yield.
+
+Configure the repository Actions secret `TUSHARE_TOKEN` so the scheduled build
+uses the primary Tushare batch provider; without that secret it automatically
+uses the AKShare fallback.

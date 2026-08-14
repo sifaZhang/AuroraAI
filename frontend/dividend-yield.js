@@ -21,6 +21,6 @@
   }
   $('title').textContent = threeYear ? '\u4e09\u5e74\u5e73\u5747\u9ad8\u80a1\u606f' : '\u53bb\u5e74\u9ad8\u80a1\u606f';
   ['q', 'type', 'min'].forEach(id => $(id).addEventListener('input', render));
-  $('refresh').onclick = async () => { const button = $('refresh'); button.disabled = true; try { const response = await fetch('/api/dividend/yields/refresh', { method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({calculation_date: '2026-08-07'}) }); if (!response.ok) throw Error('\u5237\u65b0\u5931\u8d25'); await load(); } catch (error) { $('msg').textContent = `\u5237\u65b0\u8ba1\u7b97\u7ed3\u679c\u5931\u8d25\uff1a${error.message}`; } finally { button.disabled = false; } };
+  $('refresh').onclick = async () => { const button = $('refresh'); button.disabled = true; try { const response = await fetch('/api/dividend/yields/refresh', { method: 'POST', headers: {'content-type': 'application/json'}, body: '{}' }); if (!response.ok) throw Error('\u5237\u65b0\u5931\u8d25'); await load(); } catch (error) { $('msg').textContent = `\u5237\u65b0\u8ba1\u7b97\u7ed3\u679c\u5931\u8d25\uff1a${error.message}`; } finally { button.disabled = false; } };
   load();
 })();

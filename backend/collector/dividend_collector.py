@@ -507,8 +507,16 @@ def collect_dividend_candidates(
     price_overrides: dict[str, float] | None = None,
     as_of_date: date | None = None,
     refresh_prices: bool = False,
+    upcoming_days: int = 7,
+    dividend_provider=None,
+    price_provider=None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Fetch latest prices and dividend records."""
+    """Fetch next-week announced dividends and batch latest prices through providers."""
+
+    # Imported lazily to keep legacy parsing helpers in this module available to
+    # the AKShare provider without an import cycle.
+    from backend.data_sources.market_price_provider import UnifiedMarketPriceProvider
+    from backend.data_sources.upcoming_dividend_provider import TushareFirstUpcomingDividendProvider
 
     price_overrides = {
         normalize_stock_code(code): float(price)
@@ -516,31 +524,22 @@ def collect_dividend_candidates(
     }
 
     as_of_date = as_of_date or date.today()
-    used_tushare_announced = False
-
     if stock_codes is None:
-        try:
-            dividends = fetch_announced_dividends_eastmoney()
-        except RuntimeError:
-            try:
-                dividends = fetch_announced_dividends_akshare()
-            except RuntimeError:
-                if not include_tushare:
-                    raise
-                dividends = fetch_announced_dividends_tushare()
-                used_tushare_announced = True
-        upcoming = dividends.copy()
-        upcoming["record_date"] = pd.to_datetime(upcoming["record_date"], errors="coerce")
-        upcoming = upcoming.dropna(subset=["record_date"])
-        upcoming = upcoming[upcoming["record_date"].dt.date >= as_of_date]
+        end_date = as_of_date + timedelta(days=upcoming_days)
+        provider = dividend_provider or TushareFirstUpcomingDividendProvider()
+        upcoming = provider.fetch(start_date=as_of_date, end_date=end_date)
+        record_dates = pd.to_datetime(upcoming["record_date"], errors="coerce")
+        upcoming = upcoming[(record_dates.dt.date >= as_of_date) & (record_dates.dt.date <= end_date)].copy()
         selected_codes = upcoming["stock_code"].drop_duplicates()
         if limit is not None:
             selected_codes = selected_codes.head(limit)
         dividends = upcoming[upcoming["stock_code"].isin(selected_codes)].copy()
-        prices = _merge_price_fallbacks(pd.DataFrame(), dividends)
-        if refresh_prices or prices.empty:
-            live_prices = fetch_latest_prices_akshare_by_codes(selected_codes)
-            prices = _merge_price_fallbacks(live_prices, dividends)
+        provider = price_provider or UnifiedMarketPriceProvider()
+        results = provider.fetch_a_share_latest(selected_codes)
+        prices = pd.DataFrame([
+            {"stock_code": code, "stock_name": None, "current_price": result.price}
+            for code, result in results.items() if result.status == "success" and result.price is not None
+        ])
     else:
         selected_codes = pd.Series([normalize_stock_code(code) for code in stock_codes]).drop_duplicates()
         codes_needing_prices = [code for code in selected_codes if code not in price_overrides]
