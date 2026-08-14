@@ -149,7 +149,9 @@
     if (result.status === 'never_run') { $('scan-results').hidden = true; return; }
     candidateItems = result.items || []; candidateSummary = result.summary || {};
     const completed = candidateSummary.completed_at ? new Date(candidateSummary.completed_at).toLocaleString() : '未知';
-    $('scan-meta').textContent = `扫描时间：${completed}；总耗时：${candidateSummary.elapsed_seconds ?? '-'} 秒；候选：${candidateSummary.qualified_count ?? candidateItems.length} 只`;
+    const priceRefreshed = candidateSummary.candidate_price_refresh_at ? new Date(candidateSummary.candidate_price_refresh_at).toLocaleString() : null;
+    const priceLabel = priceRefreshed ? `；价格刷新：${priceRefreshed}（价格日期：${candidateSummary.candidate_price_date || '—'}）` : '';
+    $('scan-meta').textContent = `扫描时间：${completed}；总耗时：${candidateSummary.elapsed_seconds ?? '-'} 秒；候选：${candidateSummary.qualified_count ?? candidateItems.length} 只${priceLabel}`;
     $('scan-results').hidden = false; renderCandidates();
   }
   async function loadCandidates() {
@@ -180,7 +182,7 @@
   $('refresh-yields').onclick = async () => {
     const button = $('refresh-yields');
     button.disabled = true; button.textContent = '正在刷新...';
-    try { await api('/api/dividend/yields/refresh', {method: 'POST', headers: {'content-type': 'application/json'}, body: '{}'}); await load(); }
+    try { await api('/api/dividend/yields/refresh', {method: 'POST', headers: {'content-type': 'application/json'}, body: '{}'}); await Promise.all([load(), loadCandidates()]); }
     catch (error) { $('message').textContent = `刷新股息率失败：${error.message}`; }
     finally { button.disabled = false; button.textContent = '刷新股息率'; }
   };

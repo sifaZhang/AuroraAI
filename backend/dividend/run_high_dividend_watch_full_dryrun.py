@@ -141,6 +141,55 @@ def _batch_prices_with_fallback(client: TushareClient, trade_dates: list[str], s
     return found, requests
 
 
+def refresh_saved_candidate_prices(output: Path, calculation_date: date, client: TushareClient) -> dict[str, object]:
+    """Refresh only the current-price fields of an existing candidate export."""
+    if not output.exists():
+        return {"candidate_price_refresh_count": 0, "candidate_price_date": None}
+    with output.open("r", encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    symbols = {str(row["symbol"]).upper() for row in rows}
+    prices: dict[str, tuple[str, float]] = {}
+    for offset in range(MAX_PRICE_LOOKBACK_DAYS):
+        raw_date = (calculation_date - timedelta(days=offset)).strftime("%Y%m%d")
+        daily = _daily_prices(client, raw_date)
+        for symbol in symbols - prices.keys():
+            if symbol in daily:
+                prices[symbol] = (raw_date, daily[symbol])
+        if len(prices) == len(symbols):
+            break
+    for row in rows:
+        price = prices.get(str(row["symbol"]).upper())
+        if price is None:
+            continue
+        raw_date, latest_price = price
+        years = (2023, 2024, 2025)
+        dps = {
+            year: float(row.get(f"{year}_current_basis_dps") or row[f"{year}_dps"])
+            for year in years
+        }
+        metrics = current_yield_metrics(dps, years, latest_price)
+        row.update({key: "" if value is None else value for key, value in metrics.items()})
+        row["latest_year_yield"] = row["latest_year_current_yield"]
+        row["three_year_average_yield"] = row["three_year_average_current_yield"]
+        row["latest_price"] = latest_price
+        row["price_date"] = _format_api_date(raw_date)
+        row["share_basis_as_of"] = calculation_date.isoformat()
+    temporary = output.with_suffix(output.suffix + ".tmp")
+    with temporary.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=CSV_FIELDS)
+        writer.writeheader()
+        writer.writerows(rows)
+    temporary.replace(output)
+    summary_path = output.with_suffix(".summary.json")
+    if summary_path.exists():
+        payload = json.loads(summary_path.read_text(encoding="utf-8"))
+        summary = payload.setdefault("summary", {})
+        summary["candidate_price_refresh_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        summary["candidate_price_date"] = _format_api_date(max(value[0] for value in prices.values())) if prices else None
+        summary_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"candidate_price_refresh_count": len(prices), "candidate_price_date": _format_api_date(max(value[0] for value in prices.values())) if prices else None}
+
+
 def run(output: Path, calculation_date: date) -> dict[str, object]:
     started = time.monotonic()
     connection = connect_readonly()

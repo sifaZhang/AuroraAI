@@ -2,10 +2,11 @@ from datetime import date, datetime
 from zoneinfo import ZoneInfo
 from fastapi import APIRouter,Query
 from pydantic import BaseModel
-from backend.expectation_gap.database import connect,migrate
+from backend.expectation_gap.database import PROJECT_ROOT,connect,migrate
 from backend.dividend.yield_service import calculate,save,target_years
 from backend.dividend.share_basis_adjustment import current_yield_metrics
 from backend.dividend.price_refresh_service import refresh_enabled_prices
+from backend.dividend.run_high_dividend_watch_full_dryrun import refresh_saved_candidate_prices
 from backend.data_sources.settings import DataSourceSettings
 from backend.data_sources.tushare import TushareClient
 router=APIRouter(prefix='/api/dividend/yields',tags=['dividend'])
@@ -45,5 +46,5 @@ def refresh(payload:Refresh):
  c=connect()
  try:
   calculation_date=payload.calculation_date or datetime.now(ZoneInfo('Asia/Shanghai')).date()
-  migrate(c); settings=DataSourceSettings.from_env(); summary=refresh_enabled_prices(c,TushareClient(settings.tushare_token),calculation_date); rows=calculate(c,calculation_date);save(c,rows);return {'calculation_date':calculation_date.isoformat(),'total':len(rows),'snapshot_count':len(rows),**summary}
+  migrate(c); settings=DataSourceSettings.from_env(); client=TushareClient(settings.tushare_token); summary=refresh_enabled_prices(c,client,calculation_date); candidate_summary=refresh_saved_candidate_prices(PROJECT_ROOT/'exports'/'dividend'/'high_dividend_watch_full_dryrun.csv',calculation_date,client); rows=calculate(c,calculation_date);save(c,rows);return {'calculation_date':calculation_date.isoformat(),'total':len(rows),'snapshot_count':len(rows),**summary,**candidate_summary}
  finally:c.close()
