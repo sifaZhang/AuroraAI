@@ -44,8 +44,22 @@ def _candidate_events(events: Iterable[DividendEvent], years: tuple[int, ...]) -
 def _select_group(events: list[DividendEvent]) -> list[DividendEvent]:
     """Collapse lifecycle rows while preserving separate same-amount batches."""
     exact = {event_key(event): event for event in events}
+    # Tushare can publish the same implemented distribution twice with a
+    # different announcement date.  It is one cash event when its report
+    # period, ex-rights date and per-share cash amount are identical.
+    implemented: dict[tuple[object, object, float], DividendEvent] = {}
+    remaining: list[DividendEvent] = []
+    for event in exact.values():
+        if STATUS_PRIORITY.get(event.div_proc or "") == 3 and event.ex_date is not None:
+            key = (event.end_date, event.ex_date, float(event.cash_div_tax or 0))
+            previous = implemented.get(key)
+            if previous is None or (_stage_date(event) or event.ex_date) > (_stage_date(previous) or previous.ex_date):
+                implemented[key] = event
+        else:
+            remaining.append(event)
+    exact_events = [*remaining, *implemented.values()]
     ordered = sorted(
-        exact.values(),
+        exact_events,
         key=lambda event: (_stage_date(event) is None, _stage_date(event), STATUS_PRIORITY.get(event.div_proc or "", 4)),
     )
     plans: list[dict[str, object]] = []

@@ -41,8 +41,13 @@ class TushareClient:
                 sdk = self._sdk
                 if sdk is None:
                     import tushare as sdk  # type: ignore[no-redef]
-                sdk.set_token(self._token)
-                self._pro = sdk.pro_api()
+                # Passing the token directly avoids Tushare SDK's global
+                # ``set_token`` side effect, which writes ``~/tk.csv``.
+                try:
+                    self._pro = sdk.pro_api(self._token)
+                except TypeError:
+                    # Minimal injected test SDKs may expose a no-argument factory.
+                    self._pro = sdk.pro_api()
             except Exception as exc:
                 raise self._translate(exc) from exc
         return self._pro

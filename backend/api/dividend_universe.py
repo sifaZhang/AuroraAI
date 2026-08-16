@@ -23,6 +23,7 @@ from backend.dividend.dividend_candidate_service import (
     _unique_valid_events,
 )
 from backend.dividend.annual_dps import METHOD
+from backend.dividend.share_basis_adjustment import current_basis_dps
 from backend.dividend.run_high_dividend_watch_full_dryrun import run as run_high_dividend_dryrun
 from backend.dividend.universe_repository import DividendUniverseRepository
 from backend.expectation_gap.database import PROJECT_ROOT, connect, connect_readonly, migrate
@@ -179,9 +180,11 @@ def _validate(connection, repository, symbol: str, calculation_date: date) -> di
     events = provider.fetch_events([symbol])
     years = target_years(calculation_date)
     totals, _ = _aggregate_events(events, years)
+    current_totals, _ = current_basis_dps(events, years, calculation_date)
     values = [totals[symbol].get(year, 0.0) for year in years]
     counts = {year: len(_unique_valid_events(events, symbol, (year,))) for year in years}
     annual_dps = dict(zip(map(str, years), values))
+    current_dps = {str(year): current_totals.get(symbol, {}).get(year, values[index]) for index, year in enumerate(years)}
     if any(value <= 0 for value in values):
         return {"symbol": symbol, "company_name": row[1], "target_years": years, "annual_dps": annual_dps, "can_add": False, "warnings": ["三个目标年度DPS无法完整确认"]}
 
@@ -200,6 +203,7 @@ def _validate(connection, repository, symbol: str, calculation_date: date) -> di
         "company_name": row[1],
         "target_years": years,
         "annual_dps": annual_dps,
+        "current_basis_dps": current_dps,
         "dividend_event_counts": {str(year): counts[year] for year in years},
         "three_year_total_dps": sum(values),
         "three_year_average_dps": average,
@@ -227,15 +231,20 @@ def add(payload: AddRequest):
 
     def action(connection, repository):
         symbol = _symbol(payload.symbol)
-        result = _validate(connection, repository, symbol, payload.calculation_date or date.today())
+        calculation_date = payload.calculation_date or date.today()
+        result = _validate(connection, repository, symbol, calculation_date)
         if not result["can_add"]:
             raise HTTPException(422, "该证券无法完成分红数据验证")
         existing = connection.execute("SELECT is_enabled FROM dividend_stable_universe WHERE market='CN' AND symbol=?", (symbol,)).fetchone()
         if existing:
-            return {"status": "already_exists" if existing[0] else "disabled_exists", "symbol": symbol, "validation": result}
+            if existing[0]:
+                return {"status": "already_exists", "symbol": symbol, "validation": result}
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
         row = repository.security(symbol)
         with connection:
+            if existing:
+                connection.execute("DELETE FROM annual_cash_dividend_summaries WHERE market='CN' AND symbol=?", (symbol,))
+                connection.execute("DELETE FROM dividend_stable_universe WHERE market='CN' AND symbol=?", (symbol,))
             connection.execute(
                 """INSERT INTO dividend_stable_universe(market,symbol,company_name,industry_level_1,industry_level_2,monopoly_type,stability_subtype,inclusion_source,inclusion_reason,risk_note,included_at,updated_at)
                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
@@ -243,9 +252,9 @@ def add(payload: AddRequest):
             )
             for year, value in result["annual_dps"].items():
                 connection.execute(
-                    """INSERT INTO annual_cash_dividend_summaries(market,symbol,calendar_year,cash_dividend_per_share,dividend_event_count,calculation_method,source,data_quality_status,calculated_at,updated_at)
-                       VALUES(?,?,?,?,?,?,?,?,?,?)""",
-                    ("CN", symbol, int(year), value, result["dividend_event_counts"][year], METHOD, "tushare", "complete", now, now),
+                    """INSERT INTO annual_cash_dividend_summaries(market,symbol,calendar_year,cash_dividend_per_share,dividend_event_count,calculation_method,source,data_quality_status,calculated_at,updated_at,current_basis_dps,share_basis_as_of)
+                       VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    ("CN", symbol, int(year), value, result["dividend_event_counts"][year], METHOD, "tushare", "complete", now, now, result["current_basis_dps"][year], calculation_date.isoformat()),
                 )
         return {"status": "added", "symbol": symbol, "validation": result}
 
