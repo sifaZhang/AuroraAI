@@ -19,11 +19,13 @@ from zoneinfo import ZoneInfo
 from backend.data_sources.settings import DataSourceSettings
 from backend.data_sources.tushare import TushareClient
 from backend.dividend.position_levels import position_status
+from backend.dividend.position_email import SmtpSettings, render_email, send_email
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_WATCHLIST_PATH = PROJECT_ROOT / "data" / "dividend" / "dividend_watchlist.csv"
 DEFAULT_REPORT_PATH = PROJECT_ROOT / "data" / "dividend" / "daily_position_report.json"
+DEFAULT_EMAIL_PREVIEW_PATH = PROJECT_ROOT / "data" / "dividend" / "daily_position_email_preview.html"
 WATCHLIST_HEADER = (
     "symbol", "name", "grade", "entry_yield", "add_yield", "heavy_yield",
     "avg_dps_3y", "enabled", "updated_at",
@@ -219,12 +221,24 @@ def _default_trade_date() -> date:
     return datetime.now(ZoneInfo("Asia/Shanghai")).date()
 
 
+def send_report_summary(report: dict[str, Any]) -> bool:
+    """Send exactly one mail for a completed report with add/heavy signals."""
+    if report["report_status"] != "completed" or not (report["heavy"] or report["add"]):
+        return False
+    settings = SmtpSettings.from_env()
+    subject, text_body, html_body = render_email(report)
+    send_email(settings, subject, text_body, html_body)
+    return True
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="CSV-only daily dividend position report")
     parser.add_argument("--date", type=date.fromisoformat, default=_default_trade_date())
     parser.add_argument("--watchlist", type=Path, default=DEFAULT_WATCHLIST_PATH)
     parser.add_argument("--output", type=Path, default=DEFAULT_REPORT_PATH)
     parser.add_argument("--dry-run", action="store_true", help="accepted for GitHub Action dry runs; no side effects beyond JSON output")
+    parser.add_argument("--send-email", action="store_true", help="send one summary email when add/heavy signals exist")
+    parser.add_argument("--email-preview", action="store_true", help="write an HTML email preview without sending")
     args = parser.parse_args(argv)
     settings = DataSourceSettings.from_env()
     if not settings.tushare_token:
@@ -246,6 +260,21 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     print(format_report(report))
     print(f"JSON report: {args.output}")
+    if args.email_preview:
+        subject, text_body, html_body = render_email(report)
+        DEFAULT_EMAIL_PREVIEW_PATH.write_text(html_body, encoding="utf-8")
+        print(f"Email subject: {subject}")
+        print(text_body)
+        print(f"Email preview: {DEFAULT_EMAIL_PREVIEW_PATH}")
+    if args.send_email and not args.dry_run and report["report_status"] == "completed":
+        try:
+            if send_report_summary(report):
+                print("summary email sent")
+            else:
+                print("no add/heavy signals; summary email not sent")
+        except Exception as exc:
+            print(f"mail send failed: {exc}", file=sys.stderr)
+            return 1
     return 0
 
 

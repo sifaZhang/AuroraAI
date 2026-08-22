@@ -12,6 +12,8 @@ data/*.db
 data/*.sqlite
 data/*.sqlite3
 data/dividend_*.csv
+data/dividend/daily_position_report.json
+data/dividend/daily_position_email_preview.html
 exports/dividend/*.csv
 exports/dividend/*.summary.json
 data/pytest-temp/

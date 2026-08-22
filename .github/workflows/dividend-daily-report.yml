@@ -2,6 +2,12 @@ name: Dividend Daily Report
 
 on:
   workflow_dispatch:
+    inputs:
+      send_email:
+        description: Send one add/heavy summary email after a successful scan
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -11,7 +17,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  dry-run:
+  daily-report:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -29,4 +35,15 @@ jobs:
       - name: Generate daily dividend position report
         env:
           TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
-        run: python -m backend.dividend.daily_position_report --dry-run
+          DIVIDEND_SMTP_HOST: ${{ secrets.DIVIDEND_SMTP_HOST }}
+          DIVIDEND_SMTP_PORT: ${{ secrets.DIVIDEND_SMTP_PORT }}
+          DIVIDEND_SMTP_USERNAME: ${{ secrets.DIVIDEND_SMTP_USERNAME }}
+          DIVIDEND_SMTP_PASSWORD: ${{ secrets.DIVIDEND_SMTP_PASSWORD }}
+          DIVIDEND_EMAIL_FROM: ${{ secrets.DIVIDEND_EMAIL_FROM }}
+          DIVIDEND_EMAIL_TO: ${{ secrets.DIVIDEND_EMAIL_TO }}
+        run: |
+          if [ "${{ inputs.send_email }}" = "true" ]; then
+            python -m backend.dividend.daily_position_report --send-email
+          else
+            python -m backend.dividend.daily_position_report --dry-run
+          fi
