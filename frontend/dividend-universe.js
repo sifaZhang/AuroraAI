@@ -12,6 +12,7 @@
   let yieldCalculationDate = null;
   let sortKey = null;
   let sortDirection = 'desc';
+  let universeItems = [];
   let candidateItems = [];
   let candidateSummary = {};
   let candidateSortKey = 'three_year_historical_average_yield';
@@ -29,7 +30,16 @@
   const dps = value => value == null ? '-' : Number(value).toFixed(4);
   const price = value => value == null ? '-' : Number(value).toFixed(2);
   const percentage = value => value == null ? '-' : `${(Number(value) * 100).toFixed(2)}%`;
+  const yieldInput = value => value == null ? '' : Number(value).toFixed(2);
   const yieldKey = item => `${item.market || 'CN'}:${item.symbol}`;
+  const positionState = (currentYield, item) => {
+    if (currentYield == null) return 'watch';
+    if (item.heavy_yield != null && currentYield >= item.heavy_yield) return 'heavy';
+    if (item.add_yield != null && currentYield >= item.add_yield) return 'add';
+    if (item.entry_yield != null && currentYield >= item.entry_yield) return 'entry';
+    return 'watch';
+  };
+  const positionLabel = {watch: '观察', entry: '建仓', add: '加仓', heavy: '重仓'};
   const displayError = error => { $('load-error').hidden = false; $('load-error-detail').textContent = error.message || String(error); $('universe-table-card').hidden = true; $('empty-state').hidden = true; $('message').textContent = ''; };
   const resetError = () => { $('load-error').hidden = true; };
 
@@ -50,7 +60,14 @@
   const sortItems = items => {
     if (!sortKey) return items;
     return [...items].sort((left, right) => {
-      const a = yieldByKey[yieldKey(left)]?.[sortKey]; const b = yieldByKey[yieldKey(right)]?.[sortKey];
+      const sortValue = item => {
+        if (sortKey === 'position_status') {
+          const currentYield = yieldByKey[yieldKey(item)]?.three_year_average_yield;
+          return {watch: 0, entry: 1, add: 2, heavy: 3}[positionState(currentYield == null ? null : currentYield * 100, item)];
+        }
+        return yieldByKey[yieldKey(item)]?.[sortKey];
+      };
+      const a = sortValue(left); const b = sortValue(right);
       if (a == null) return b == null ? 0 : 1;
       if (b == null) return -1;
       return sortDirection === 'desc' ? b - a : a - b;
@@ -67,12 +84,14 @@
       const active = sortKey === key; const arrow = active ? (sortDirection === 'desc' ? '↓' : '↑') : '↕';
       return `<th class="yield-sort" data-sort-key="${key}" role="button" tabindex="0">${label} ${arrow}</th>`;
     };
-    $('head').innerHTML = '<tr>' + ['股票', '行业', '类型', '当前价', '价格日', ...years.map(year => `${year} DPS`), '三年平均 DPS'].map(value => `<th>${value}</th>`).join('') + sortableHeader('去年股息率', 'latest_year_yield') + sortableHeader('三年平均股息率', 'three_year_average_yield') + '<th>状态</th><th>操作</th></tr>';
+    $('head').innerHTML = '<tr>' + '<th>股票</th>' + sortableHeader('状态', 'position_status') + ['行业', '类型', '当前价', '价格日', ...years.map(year => `${year} DPS`), '三年平均 DPS'].map(value => `<th>${value}</th>`).join('') + sortableHeader('去年股息率', 'latest_year_yield') + sortableHeader('三年平均股息率', 'three_year_average_yield') + '<th>等级</th><th>建仓</th><th>加仓</th><th>重仓</th><th>操作</th></tr>';
     $('rows').innerHTML = sortItems(items).map(item => {
       const snapshot = yieldByKey[yieldKey(item)];
-      return `<tr><td class="stock-cell"><strong>${item.company_name}</strong><small>${item.symbol}</small></td><td class="industry-cell">${cell(item.industry_level_1)}<small>${cell(item.industry_level_2)}</small></td><td><span class="dividend-tag ${item.stability_subtype === 'resource_monopoly_cyclical' ? 'cyclical' : ''}">${labels[item.stability_subtype] || item.stability_subtype}</span></td><td class="number-cell">${price(snapshot?.latest_price)}</td><td>${cell(snapshot?.price_date)}</td>${years.map(year => `<td class="dps">${dps(item.annual_dps[year])}</td>`).join('')}<td class="dps">${dps(item.three_year_average_dps)}</td><td class="number-cell ${getYieldClass(snapshot?.latest_year_yield)}">${percentage(snapshot?.latest_year_yield)}</td><td class="number-cell ${getYieldClass(snapshot?.three_year_average_yield)}">${percentage(snapshot?.three_year_average_yield)}</td><td><span class="status-chip ${item.is_enabled ? 'eligible' : 'neutral'}">${item.is_enabled ? '启用' : '已停用'}</span></td><td><button class="detail-button" data-symbol="${item.symbol}" data-enabled="${item.is_enabled}">${item.is_enabled ? '停用' : '重新启用'}</button></td></tr>`;
+      const state = positionState(snapshot?.three_year_average_yield == null ? null : snapshot.three_year_average_yield * 100, item);
+      return `<tr><td class="stock-cell"><strong>${item.company_name}</strong><small>${item.symbol}</small></td><td><span class="status-chip position-${state}">${positionLabel[state]}</span></td><td class="industry-cell">${cell(item.industry_level_1)}<small>${cell(item.industry_level_2)}</small></td><td><span class="dividend-tag ${item.stability_subtype === 'resource_monopoly_cyclical' ? 'cyclical' : ''}">${labels[item.stability_subtype] || item.stability_subtype}</span></td><td class="number-cell">${price(snapshot?.latest_price)}</td><td>${cell(snapshot?.price_date)}</td>${years.map(year => `<td class="dps">${dps(item.annual_dps[year])}</td>`).join('')}<td class="dps">${dps(item.three_year_average_dps)}</td><td class="number-cell ${getYieldClass(snapshot?.latest_year_yield)}">${percentage(snapshot?.latest_year_yield)}</td><td class="number-cell ${getYieldClass(snapshot?.three_year_average_yield)} position-yield-${state}">${percentage(snapshot?.three_year_average_yield)}</td><td><select class="position-grade" data-level-symbol="${item.symbol}"><option value="">未设置</option>${['S','A','B'].map(value => `<option value="${value}" ${item.grade === value ? 'selected' : ''}>${value}</option>`).join('')}</select></td>${[['entry_yield','建仓'],['add_yield','加仓'],['heavy_yield','重仓']].map(([field,label]) => `<td><input class="position-yield" data-level-symbol="${item.symbol}" data-level-field="${field}" aria-label="${label}" type="number" min="0" step="0.01" value="${yieldInput(item[field])}"></td>`).join('')}<td><button class="detail-button" data-save-levels="${item.symbol}">保存</button><button class="detail-button" data-symbol="${item.symbol}" data-enabled="${item.is_enabled}">${item.is_enabled ? '停用' : '重新启用'}</button></td></tr>`;
     }).join('');
     document.querySelectorAll('[data-symbol]').forEach(button => button.onclick = () => change(button.dataset.symbol, button.dataset.enabled !== 'true'));
+    document.querySelectorAll('[data-save-levels]').forEach(button => button.onclick = () => savePositionLevels(button.dataset.saveLevels));
     document.querySelectorAll('[data-sort-key]').forEach(header => header.onclick = () => { sortDirection = sortKey === header.dataset.sortKey && sortDirection === 'desc' ? 'asc' : 'desc'; sortKey = header.dataset.sortKey; renderRows(items); });
     requestAnimationFrame(syncScrollbars);
   };
@@ -81,6 +100,18 @@
     yieldCalculationDate = data.calculation_date || null;
     yieldByKey = Object.fromEntries((data.items || []).map(item => [yieldKey(item), item]));
   }
+  async function savePositionLevels(symbol) {
+    const values = field => document.querySelector(`[data-level-symbol="${symbol}"][data-level-field="${field}"]`)?.value;
+    const asRate = value => value === '' ? null : Number(value);
+    const grade = document.querySelector(`select[data-level-symbol="${symbol}"]`)?.value || null;
+    try {
+      const saved = await api(`/api/dividend/universe/${symbol}/position-levels`, {method: 'PATCH', headers: {'content-type': 'application/json'}, body: JSON.stringify({grade, entry_yield: asRate(values('entry_yield')), add_yield: asRate(values('add_yield')), heavy_yield: asRate(values('heavy_yield'))})});
+      const item = universeItems.find(value => value.symbol === symbol);
+      if (item) Object.assign(item, saved);
+      renderRows(universeItems);
+      $('message').textContent = `${symbol} 点位已保存，已按当前三年平均股息率更新状态。`;
+    } catch (error) { $('message').textContent = error.message; }
+  }
   async function load() {
     resetError(); $('empty-state').hidden = true; $('universe-table-card').hidden = false;
     $('rows').innerHTML = '<tr><td colspan="13" class="empty-state">正在加载分红股票池...</td></tr>';
@@ -88,9 +119,9 @@
       const params = new URLSearchParams({ include_disabled: $('disabled').checked, search: $('search').value, stability_subtype: $('subtype').value });
       const data = await api('/api/dividend/universe?' + params);
       try { await loadYields(); } catch { yieldByKey = {}; yieldCalculationDate = null; }
-      years = data.target_years || []; overview(data);
+      years = data.target_years || []; universeItems = data.items || []; overview(data);
       if (!data.items.length) { $('universe-table-card').hidden = true; $('empty-state').hidden = false; $('message').textContent = ''; return; }
-      renderRows(data.items);
+      renderRows(universeItems);
       $('message').textContent = `共 ${data.total} 只，启用 ${data.enabled_count} 只。股息率数据：${yieldCalculationDate || '暂无'}`;
     } catch (error) { displayError(error); }
   }
@@ -139,7 +170,9 @@
       if (right == null) return -1;
       return candidateSortDirection === 'desc' ? Number(right) - Number(left) : Number(left) - Number(right);
     });
-    document.querySelectorAll('[data-candidate-sort-arrow]').forEach(arrow => { arrow.textContent = ''; });
+    document.querySelectorAll('[data-candidate-sort-arrow]').forEach(arrow => {
+      arrow.textContent = arrow.dataset.candidateSortArrow === candidateSortKey ? (candidateSortDirection === 'desc' ? '↓' : '↑') : '↕';
+    });
     $('candidate-summary').innerHTML = candidateStats(candidateSummary).map(([label, value]) => `<span><small>${label}</small><strong>${value}</strong></span>`).join('');
     $('candidate-rows').innerHTML = visible.map(item => `<tr><td class="stock-cell"><strong>${item.company_name}</strong><small>${item.symbol}</small></td><td class="industry-cell">${cell(item.industry)}</td><td><span class="dividend-tag ${item.suggested_stability_subtype === 'resource_monopoly_cyclical' ? 'cyclical' : ''}">${labels[item.suggested_stability_subtype]}</span></td>${[2023, 2024, 2025].map(year => candidateDpsCell(item, year)).join('')}<td class="number-cell">${price(item.latest_price)}<small>${cell(item.price_date)}</small></td><td class="number-cell ${getYieldClass(item.latest_year_yield)}">${percentage(item.latest_year_yield)}</td><td class="number-cell ${getYieldClass(item.three_year_average_yield)}">${percentage(item.three_year_average_yield)}</td><td class="number-cell ${getYieldClass(item.conservative_three_year_current_yield)}">${percentage(item.conservative_three_year_current_yield)}</td><td class="number-cell">${item.dividend_variation_ratio == null ? '-' : Number(item.dividend_variation_ratio).toFixed(2)}</td><td><span class="stability-tag ${item.dividend_stability || ''}">${stabilityLabel(item.dividend_stability)}</span></td><td class="basis-date">${cell(item.share_basis_as_of)}</td><td>${item.already_in_universe ? '<span class="status-chip eligible">&#24050;&#22312;&#32929;&#31080;&#27744;</span>' : '<span class="status-chip neutral">&#26032;&#20505;&#36873;</span>'}</td><td>${item.already_in_universe ? '-' : `<button class="detail-button" data-add-candidate="${item.symbol}">&#21152;&#20837;&#32929;&#31080;&#27744;</button>`}</td></tr>`).join('') || '<tr><td colspan="14" class="empty-state">&#27809;&#26377;&#31526;&#21512;&#24403;&#21069;&#31679;&#36873;&#30340;&#20505;&#36873;</td></tr>';
     document.querySelectorAll('[data-add-candidate]').forEach(button => button.onclick = () => addCandidate(button.dataset.addCandidate));
@@ -204,13 +237,13 @@
   $('search').oninput = () => { clearTimeout(window.dividendSearchTimer); window.dividendSearchTimer = setTimeout(load, 250); };
   ['candidate-search', 'candidate-subtype'].forEach(id => $(id).oninput = renderCandidates);
   $('candidate-sort').oninput = () => {
-    candidateSortKey = {'latest-current': 'latest_year_yield', 'average-current': 'three_year_average_yield', 'conservative-current': 'conservative_three_year_current_yield'}[$('candidate-sort').value] || 'three_year_historical_average_yield';
+    candidateSortKey = {'latest-current': 'latest_year_yield', 'average-current': 'three_year_average_yield', 'conservative-current': 'conservative_three_year_current_yield', 'in-universe': 'already_in_universe'}[$('candidate-sort').value] || 'three_year_historical_average_yield';
     candidateSortDirection = 'desc'; renderCandidates();
   };
   document.querySelectorAll('[data-candidate-sort-key]').forEach(header => header.onclick = () => {
     candidateSortDirection = candidateSortKey === header.dataset.candidateSortKey && candidateSortDirection === 'desc' ? 'asc' : 'desc';
     candidateSortKey = header.dataset.candidateSortKey;
-    $('candidate-sort').value = candidateSortKey === 'latest_year_yield' ? 'latest-current' : candidateSortKey === 'conservative_three_year_current_yield' ? 'conservative-current' : 'average-current';
+    $('candidate-sort').value = {latest_year_yield: 'latest-current', three_year_average_yield: 'average-current', conservative_three_year_current_yield: 'conservative-current', already_in_universe: 'in-universe'}[candidateSortKey] || 'historical';
     renderCandidates();
   });
   load();

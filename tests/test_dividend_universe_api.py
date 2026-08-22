@@ -6,6 +6,7 @@ import json
 from contextlib import contextmanager
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from backend.api import dividend_universe as universe_api
@@ -37,18 +38,18 @@ def _database():
     CREATE TABLE a_share_security_master(symbol TEXT PRIMARY KEY, security_name TEXT, listed_date TEXT, is_active INTEGER, delisted_date TEXT, exchange TEXT);
     CREATE TABLE a_share_security_status_history(symbol TEXT, effective_date TEXT, is_st INTEGER);
     CREATE TABLE industry_memberships_current(symbol TEXT PRIMARY KEY, level1_name TEXT, level2_name TEXT, level3_name TEXT, source TEXT);
-    CREATE TABLE dividend_stable_universe (market TEXT, symbol TEXT, company_name TEXT, industry_level_1 TEXT, industry_level_2 TEXT, monopoly_type TEXT, stability_subtype TEXT CHECK(stability_subtype IN ('stable_monopoly','resource_monopoly_cyclical','high_dividend_watch')), inclusion_source TEXT CHECK(inclusion_source IN ('automatic_rule','manual_addition','manual_review')), inclusion_reason TEXT, risk_note TEXT, is_enabled INTEGER DEFAULT 1, included_at TEXT, updated_at TEXT, PRIMARY KEY(market,symbol));
-    CREATE TABLE annual_cash_dividend_summaries (market TEXT, symbol TEXT, calendar_year INTEGER, cash_dividend_per_share REAL, dividend_event_count INTEGER, calculation_method TEXT, source TEXT, data_quality_status TEXT, calculated_at TEXT, updated_at TEXT, PRIMARY KEY(market,symbol,calendar_year));
+    CREATE TABLE dividend_stable_universe (market TEXT, symbol TEXT, company_name TEXT, industry_level_1 TEXT, industry_level_2 TEXT, monopoly_type TEXT, stability_subtype TEXT CHECK(stability_subtype IN ('stable_monopoly','resource_monopoly_cyclical','high_dividend_watch')), inclusion_source TEXT CHECK(inclusion_source IN ('automatic_rule','manual_addition','manual_review')), inclusion_reason TEXT, risk_note TEXT, is_enabled INTEGER DEFAULT 1, included_at TEXT, updated_at TEXT, grade TEXT, entry_yield REAL, add_yield REAL, heavy_yield REAL, PRIMARY KEY(market,symbol));
+    CREATE TABLE annual_cash_dividend_summaries (market TEXT, symbol TEXT, calendar_year INTEGER, cash_dividend_per_share REAL, dividend_event_count INTEGER, calculation_method TEXT, source TEXT, data_quality_status TEXT, calculated_at TEXT, updated_at TEXT, current_basis_dps REAL, share_basis_as_of TEXT, PRIMARY KEY(market,symbol,calendar_year));
     INSERT INTO a_share_security_master VALUES ('600001.SH','Test Hydro','2010-01-01',1,NULL,'SH');
     INSERT INTO a_share_security_master VALUES ('200001.SZ','B Share','2010-01-01',1,NULL,'SZ');
     INSERT INTO a_share_security_status_history VALUES ('600001.SH','2026-01-01',0);
     INSERT INTO a_share_security_status_history VALUES ('200001.SZ','2026-01-01',0);
     INSERT INTO industry_memberships_current VALUES ('600001.SH','Utilities','Hydropower','Hydropower','test');
     INSERT INTO industry_memberships_current VALUES ('200001.SZ','Utilities','Hydropower','Hydropower','test');
-    INSERT INTO dividend_stable_universe VALUES ('CN','600001.SH','Test Hydro','Utilities','Hydropower','hydropower_resource','stable_monopoly','automatic_rule','rule','',1,'2026-01-01','2026-01-01');
-    INSERT INTO annual_cash_dividend_summaries VALUES ('CN','600001.SH',2023,0.1,1,'method','test','complete','2026-01-01','2026-01-01');
-    INSERT INTO annual_cash_dividend_summaries VALUES ('CN','600001.SH',2024,0.2,2,'method','test','complete','2026-01-01','2026-01-01');
-    INSERT INTO annual_cash_dividend_summaries VALUES ('CN','600001.SH',2025,0.3,1,'method','test','complete','2026-01-01','2026-01-01');
+    INSERT INTO dividend_stable_universe VALUES ('CN','600001.SH','Test Hydro','Utilities','Hydropower','hydropower_resource','stable_monopoly','automatic_rule','rule','',1,'2026-01-01','2026-01-01',NULL,NULL,NULL,NULL);
+    INSERT INTO annual_cash_dividend_summaries VALUES ('CN','600001.SH',2023,0.1,1,'method','test','complete','2026-01-01','2026-01-01',0.1,'2026-01-01');
+    INSERT INTO annual_cash_dividend_summaries VALUES ('CN','600001.SH',2024,0.2,2,'method','test','complete','2026-01-01','2026-01-01',0.2,'2026-01-01');
+    INSERT INTO annual_cash_dividend_summaries VALUES ('CN','600001.SH',2025,0.3,1,'method','test','complete','2026-01-01','2026-01-01',0.3,'2026-01-01');
     """)
     return connection
 
@@ -75,11 +76,29 @@ def test_list_search_and_status_changes_preserve_dps(monkeypatch):
     assert client.patch('/api/dividend/universe/600001.SH/status', json={'is_enabled': True}).status_code == 200
 
 
+@pytest.mark.parametrize('grade', ['S', 'A', 'B'])
+def test_position_levels_save_read_and_validate_without_touching_dividends(monkeypatch, grade):
+    connection, client = _client(monkeypatch)
+    payload = {'grade': grade, 'entry_yield': 5.0, 'add_yield': 5.5, 'heavy_yield': 6.0}
+    response = client.patch('/api/dividend/universe/600001.SH/position-levels', json=payload)
+    assert response.status_code == 200
+    assert response.json() == {'symbol': '600001.SH', **payload}
+    item = client.get('/api/dividend/universe').json()['items'][0]
+    assert {key: item[key] for key in payload} == payload
+    assert connection.execute('SELECT COUNT(*) FROM annual_cash_dividend_summaries').fetchone()[0] == 3
+    assert client.patch('/api/dividend/universe/600001.SH/position-levels', json={**payload, 'entry_yield': 5.6}).status_code == 422
+    assert client.patch('/api/dividend/universe/600001.SH/position-levels', json={**payload, 'add_yield': 6.1, 'heavy_yield': 6.0}).status_code == 422
+    assert client.patch('/api/dividend/universe/600001.SH/position-levels', json={**payload, 'grade': 'C'}).status_code == 422
+    assert client.patch('/api/dividend/universe/600001.SH/position-levels', json={'grade': None, 'entry_yield': None, 'add_yield': None, 'heavy_yield': None}).status_code == 200
+    assert client.get('/api/dividend/universe').json()['items'][0]['grade'] is None
+
+
 def test_manual_add_requires_acknowledgement_and_uses_actual_event_counts(monkeypatch):
     connection, client = _client(monkeypatch)
     monkeypatch.setattr(universe_api, '_validate', lambda *_args: {
         'symbol': '600001.SH', 'company_name': 'Test Hydro', 'can_add': True, 'warnings': ['manual review'],
         'annual_dps': {'2023': 0.1, '2024': 0.2, '2025': 0.3},
+        'current_basis_dps': {'2023': 0.1, '2024': 0.2, '2025': 0.3},
         'dividend_event_counts': {'2023': 1, '2024': 2, '2025': 1},
     })
     connection.execute("DELETE FROM annual_cash_dividend_summaries")
@@ -99,8 +118,8 @@ def test_universe_page_and_navigation_are_registered():
     page = client.get('/dividend/universe')
     assert page.status_code == 200
     assert page.headers['cache-control'] == 'no-store'
-    assert 'src="/dividend-universe.js?v=yield-sort-3"' in page.text
-    assert 'href="/dividend-universe.css?v=candidate-readable-3"' in page.text
+    assert 'src="/dividend-universe.js?v=position-levels-6"' in page.text
+    assert 'href="/dividend-universe.css?v=position-levels-8"' in page.text
     assert 'href="/styles.css?v=d3-universe-yields-3"' in page.text
     assert 'dividend/universe' in client.get('/').text
 
@@ -135,9 +154,18 @@ def test_universe_frontend_left_joins_yield_snapshots_and_keeps_d1_actions_separ
     assert 'data-sort-key="${key}"' in script
     assert "sortDirection === 'desc' ? 'asc' : 'desc'" in script
     assert "if (a == null) return b == null ? 0 : 1" in script
+    assert "sortableHeader('状态', 'position_status')" in script
+    assert "{watch: 0, entry: 1, add: 2, heavy: 3}" in script
+    assert "<th>股票</th>' + sortableHeader('状态', 'position_status')" in script
+    assert '&#31561;&#32423;&#19982;&#20179;&#20301;&#21442;&#32771;' in page
+    assert '<span>S &#8776; 3% / 6% / 10%</span><span>A &#8776; 2% / 3.5% / 5%</span><span>B &#8776; 0.5% / 1% / 2%</span>' in page
     assert "id=\"dividend-top-scroll\"" in page
     assert "$('dividend-top-scroll').addEventListener('scroll'" in script
     assert "syncScrollbars(); syncCandidateScrollbars()" in script
+    assert "snapshot.three_year_average_yield * 100" in script
+    assert "data-save-levels" in script
+    assert "position-${state}" in script
+    assert "await load();" not in script[script.index('async function savePositionLevels'):script.index('async function load()')]
 
 
 def _scan_files(tmp_path):
@@ -221,6 +249,9 @@ def test_page_loads_latest_candidates_but_only_button_posts_rescan():
     assert "candidateSortDirection === 'desc' ? 'asc' : 'desc'" in script
     assert "2023 DPS /" not in page and "2024 DPS /" not in page and "2025 DPS /" not in page
     assert 'data-candidate-sort-key="conservative_three_year_current_yield"' in page
+    assert 'data-candidate-sort-key="already_in_universe"' in page
+    assert 'data-candidate-sort-arrow="already_in_universe"></span>' in page
+    assert "'in-universe': 'already_in_universe'" in script
     assert 'current_basis_dps' in script
     assert 'stabilityLabel' in script
     assert 'id="candidate-top-scroll"' in page

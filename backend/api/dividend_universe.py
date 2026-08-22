@@ -26,6 +26,7 @@ from backend.dividend.annual_dps import METHOD
 from backend.dividend.share_basis_adjustment import current_basis_dps
 from backend.dividend.run_high_dividend_watch_full_dryrun import run as run_high_dividend_dryrun
 from backend.dividend.universe_repository import DividendUniverseRepository
+from backend.dividend.position_levels import validate_position_levels
 from backend.expectation_gap.database import PROJECT_ROOT, connect, connect_readonly, migrate
 
 
@@ -51,6 +52,13 @@ class AddRequest(ValidateRequest):
 
 class StatusRequest(BaseModel):
     is_enabled: bool
+
+
+class PositionLevelsRequest(BaseModel):
+    grade: str | None = None
+    entry_yield: float | None = None
+    add_yield: float | None = None
+    heavy_yield: float | None = None
 
 
 class RescanRequest(BaseModel):
@@ -276,6 +284,35 @@ def status(symbol: str, payload: StatusRequest):
         with connection:
             connection.execute("UPDATE dividend_stable_universe SET is_enabled=?,updated_at=? WHERE market='CN' AND symbol=?", (int(payload.is_enabled), datetime.now(timezone.utc).isoformat(timespec="seconds"), symbol_value))
         return {"symbol": symbol_value, "is_enabled": payload.is_enabled}
+
+    return _run(action)
+
+
+@router.patch("/{symbol}/position-levels")
+def update_position_levels(symbol: str, payload: PositionLevelsRequest):
+    try:
+        validate_position_levels(
+            payload.grade, payload.entry_yield, payload.add_yield, payload.heavy_yield,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+    def action(connection, _repository):
+        symbol_value = _symbol(symbol)
+        exists = connection.execute(
+            "SELECT 1 FROM dividend_stable_universe WHERE market='CN' AND symbol=?", (symbol_value,)
+        ).fetchone()
+        if not exists:
+            raise HTTPException(404, "股票池中不存在该证券")
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        with connection:
+            connection.execute(
+                """UPDATE dividend_stable_universe
+                   SET grade=?,entry_yield=?,add_yield=?,heavy_yield=?,updated_at=?
+                   WHERE market='CN' AND symbol=?""",
+                (payload.grade, payload.entry_yield, payload.add_yield, payload.heavy_yield, now, symbol_value),
+            )
+        return {"symbol": symbol_value, **payload.model_dump()}
 
     return _run(action)
 

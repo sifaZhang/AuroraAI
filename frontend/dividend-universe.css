@@ -7,27 +7,32 @@
 .dividend-overview { grid-template-columns: repeat(4, minmax(120px, 1fr)); }
 .dividend-filter-grid { grid-template-columns: minmax(260px, 1.5fr) minmax(180px, .8fr) auto; align-items: end; margin: 0; }
 .dividend-filter-grid input, .dividend-filter-grid select { width: 100%; min-height: 39px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: inherit; font: inherit; }
+.position-grade-hint { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 12px 0 0; color: var(--muted); font-size: 13px; }
+.position-grade-hint strong { color: var(--text); }
+.position-grade-hint span { padding: 2px 7px; border-radius: 999px; background: var(--surface-soft); white-space: nowrap; }
 .checkbox-field { display: flex; align-items: center; min-height: 39px; gap: 7px; color: var(--muted); cursor: pointer; }
 .checkbox-field span { margin: 0 !important; font-size: 14px !important; }
-.dividend-top-scroll { overflow-x: auto; overflow-y: hidden; height: 15px; margin: 0 0 5px; }
+.dividend-top-scroll { position: sticky; top: 4px; z-index: 3; overflow-x: auto; overflow-y: hidden; height: 15px; margin: 0 0 5px; background: var(--surface); }
 .dividend-top-scroll > div { height: 1px; }
 .dividend-table-wrap { overflow-x: auto; }
-.dividend-table { min-width: 1325px; width: 1325px; table-layout: fixed; }
-.dividend-table th, .dividend-table td { padding: 7px 8px; white-space: nowrap; }
-.dividend-table th { padding-top: 8px; padding-bottom: 8px; }
+.dividend-table { min-width: 1500px; width: 1500px; table-layout: fixed; font-size: 13px; }
+.dividend-table th, .dividend-table td { padding: 5px 5px; white-space: nowrap; }
+.dividend-table th { padding-top: 6px; padding-bottom: 6px; }
 .dividend-table th, .dividend-table td { text-align: left; }
-.dividend-table th:nth-child(1), .dividend-table td:nth-child(1) { width: 130px; }
-.dividend-table th:nth-child(2), .dividend-table td:nth-child(2) { width: 145px; }
-.dividend-table th:nth-child(3), .dividend-table td:nth-child(3) { width: 105px; }
-.dividend-table th:nth-child(3), .dividend-table td:nth-child(3) { text-align: center; }
-.dividend-table th:nth-child(4), .dividend-table td:nth-child(4) { width: 80px; }
-.dividend-table th:nth-child(5), .dividend-table td:nth-child(5) { width: 90px; }
-.dividend-table th:nth-child(n+4):nth-child(-n+11), .dividend-table td:nth-child(n+4):nth-child(-n+11), .dividend-table td.dps, .dividend-table td.number-cell { text-align: right; font-variant-numeric: tabular-nums; }
-.dividend-table th:nth-child(6), .dividend-table td:nth-child(6), .dividend-table th:nth-child(7), .dividend-table td:nth-child(7), .dividend-table th:nth-child(8), .dividend-table td:nth-child(8) { width: 80px; }
-.dividend-table th:nth-child(9), .dividend-table td:nth-child(9) { width: 100px; }
-.dividend-table th:nth-child(10), .dividend-table td:nth-child(10) { width: 95px; }
-.dividend-table th:nth-child(11), .dividend-table td:nth-child(11) { width: 115px; }
-.dividend-table th:nth-child(12), .dividend-table td:nth-child(12), .dividend-table th:nth-child(13), .dividend-table td:nth-child(13) { width: 70px; text-align: center; white-space: nowrap; }
+.dividend-table th:nth-child(1), .dividend-table td:nth-child(1) { width: 76px; }
+.dividend-table th:nth-child(2), .dividend-table td:nth-child(2) { width: 58px; text-align: center; white-space: nowrap; }
+.dividend-table th:nth-child(3), .dividend-table td:nth-child(3) { width: 84px; }
+.dividend-table th:nth-child(4), .dividend-table td:nth-child(4) { width: 76px; text-align: center; }
+.dividend-table th:nth-child(5), .dividend-table td:nth-child(5) { width: 64px; }
+.dividend-table th:nth-child(6), .dividend-table td:nth-child(6) { width: 82px; }
+.dividend-table th:nth-child(n+5):nth-child(-n+12), .dividend-table td:nth-child(n+5):nth-child(-n+12), .dividend-table td.dps, .dividend-table td.number-cell { text-align: right; font-variant-numeric: tabular-nums; }
+.dividend-table th:nth-child(7), .dividend-table td:nth-child(7), .dividend-table th:nth-child(8), .dividend-table td:nth-child(8), .dividend-table th:nth-child(9), .dividend-table td:nth-child(9) { width: 68px; }
+.dividend-table th:nth-child(10), .dividend-table td:nth-child(10) { width: 82px; }
+.dividend-table th:nth-child(11), .dividend-table td:nth-child(11) { width: 84px; }
+.dividend-table th:nth-child(12), .dividend-table td:nth-child(12) { width: 100px; }
+.dividend-table th:nth-child(13), .dividend-table td:nth-child(13) { width: 64px; text-align: center; white-space: nowrap; }
+.dividend-table th:nth-child(n+14):nth-child(-n+16), .dividend-table td:nth-child(n+14):nth-child(-n+16) { width: 70px; text-align: center; white-space: nowrap; }
+.dividend-table th:nth-child(17), .dividend-table td:nth-child(17) { width: 112px; text-align: center; white-space: nowrap; }
 .dividend-table td.price-date { white-space: nowrap; }
 .dividend-table .yield-sort { cursor: pointer; user-select: none; }
 .dividend-table .yield-sort:hover { color: var(--accent-strong); background: #f0fdfa; }
@@ -74,4 +79,13 @@
 .candidate-table .stock-cell, .candidate-table .industry-cell { white-space: normal; }
 .candidate-table .stock-cell { min-width: 105px; }.candidate-table .industry-cell { min-width: 135px; max-width: 145px; }
 .candidate-table .dps-cell, .candidate-table .number-cell { min-width: 78px; }
-@media (max-width: 700px) { .dividend-universe-shell { width: min(100vw - 20px, 1440px); }.dividend-header-actions { justify-content: flex-start; }.dividend-overview, .dividend-filter-grid { grid-template-columns: 1fr; }.dividend-header-actions button { width: 100%; } }
+@media (max-width: 700px) { .dividend-universe-shell { width: min(100vw - 20px, 1440px); }.dividend-header-actions { justify-content: flex-start; }.dividend-overview, .dividend-filter-grid { grid-template-columns: 1fr; }.dividend-header-actions button { width: 100%; }.position-grade-hint { gap: 6px 8px; } }
+.position-yield { width: 3.9rem; }
+.position-grade { min-width: 3.2rem; }
+.status-chip.position-watch { background: #e5e7eb; color: #4b5563; }
+.status-chip.position-entry { background: #dcfce7; color: #166534; }
+.status-chip.position-add { background: #ffedd5; color: #9a3412; }
+.status-chip.position-heavy { background: #fee2e2; color: #b91c1c; }
+.position-yield-entry { color: #166534; font-weight: 700; }
+.position-yield-add { color: #9a3412; font-weight: 700; }
+.position-yield-heavy { color: #b91c1c; font-weight: 700; }
