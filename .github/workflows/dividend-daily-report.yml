@@ -8,6 +8,11 @@ on:
         required: false
         default: false
         type: boolean
+      trade_date:
+        description: Optional trade date for manual testing (YYYY-MM-DD); blank uses today's Beijing date
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -41,9 +46,14 @@ jobs:
           DIVIDEND_SMTP_PASSWORD: ${{ secrets.DIVIDEND_SMTP_PASSWORD }}
           DIVIDEND_EMAIL_FROM: ${{ secrets.DIVIDEND_EMAIL_FROM }}
           DIVIDEND_EMAIL_TO: ${{ secrets.DIVIDEND_EMAIL_TO }}
+          TRADE_DATE: ${{ inputs.trade_date }}
         run: |
+          ARGS=()
+          if [ -n "$TRADE_DATE" ]; then
+            ARGS=(--date "$TRADE_DATE")
+          fi
           if [ "${{ inputs.send_email }}" = "true" ]; then
-            python -m backend.dividend.daily_position_report --send-email
+            python -m backend.dividend.daily_position_report "${ARGS[@]}" --send-email
           else
-            python -m backend.dividend.daily_position_report --dry-run
+            python -m backend.dividend.daily_position_report "${ARGS[@]}" --dry-run
           fi

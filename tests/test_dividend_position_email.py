@@ -52,6 +52,12 @@ def test_workflow_has_manual_email_input_without_schedule():
     workflow = (PROJECT_ROOT / ".github/workflows/dividend-daily-report.yml").read_text(encoding="utf-8")
     assert "send_email:" in workflow and "default: false" in workflow
     assert "--send-email" in workflow and "schedule:" not in workflow
+    assert "trade_date:" in workflow
+    assert "TRADE_DATE: ${{ inputs.trade_date }}" in workflow
+    assert 'if [ -n "$TRADE_DATE" ]; then' in workflow
+    assert 'ARGS=(--date "$TRADE_DATE")' in workflow
+    assert '"${ARGS[@]}" --send-email' in workflow
+    assert '"${ARGS[@]}" --dry-run' in workflow
 
 
 def test_no_signals_never_configures_or_sends(monkeypatch):

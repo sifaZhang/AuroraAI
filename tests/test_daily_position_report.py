@@ -145,7 +145,7 @@ def test_workflow_is_manual_only_and_old_workflow_remains_existing():
     old_workflow = (report_module.PROJECT_ROOT / ".github/workflows/dividend-top20.yml").read_text(encoding="utf-8")
     assert "workflow_dispatch:" in workflow
     assert "schedule:" not in workflow
-    assert "daily_position_report --dry-run" in workflow
+    assert 'daily_position_report "${ARGS[@]}" --dry-run' in workflow
     assert "name: Dividend Upcoming" in old_workflow
     assert "schedule:" in old_workflow
 
