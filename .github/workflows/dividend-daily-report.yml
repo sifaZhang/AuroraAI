@@ -1,6 +1,8 @@
 name: Dividend Daily Report
 
 on:
+  schedule:
+    - cron: "0 10 * * *"
   workflow_dispatch:
     inputs:
       send_email:
@@ -48,12 +50,21 @@ jobs:
           DIVIDEND_EMAIL_TO: ${{ secrets.DIVIDEND_EMAIL_TO }}
           TRADE_DATE: ${{ inputs.trade_date }}
         run: |
+          echo "trigger=$GITHUB_EVENT_NAME"
+          if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
+            echo "mode=send-email"
+            echo "trade_date=auto"
+            python -m backend.dividend.daily_position_report --send-email
+            exit 0
+          fi
           ARGS=()
           if [ -n "$TRADE_DATE" ]; then
             ARGS=(--date "$TRADE_DATE")
           fi
           if [ "${{ inputs.send_email }}" = "true" ]; then
+            echo "mode=send-email"
             python -m backend.dividend.daily_position_report "${ARGS[@]}" --send-email
           else
+            echo "mode=dry-run"
             python -m backend.dividend.daily_position_report "${ARGS[@]}" --dry-run
           fi

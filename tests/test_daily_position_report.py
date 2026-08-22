@@ -140,11 +140,11 @@ def test_json_output_and_missing_token_error(tmp_path, monkeypatch, capsys):
     assert "TUSHARE_TOKEN not configured" in capsys.readouterr().err
 
 
-def test_workflow_is_manual_only_and_old_workflow_remains_existing():
+def test_workflow_has_schedule_and_manual_trigger_while_old_workflow_remains_existing():
     workflow = (report_module.PROJECT_ROOT / ".github/workflows/dividend-daily-report.yml").read_text(encoding="utf-8")
     old_workflow = (report_module.PROJECT_ROOT / ".github/workflows/dividend-top20.yml").read_text(encoding="utf-8")
     assert "workflow_dispatch:" in workflow
-    assert "schedule:" not in workflow
+    assert 'cron: "0 10 * * *"' in workflow
     assert 'daily_position_report "${ARGS[@]}" --dry-run' in workflow
     assert "name: Dividend Upcoming" in old_workflow
     assert "schedule:" in old_workflow

@@ -50,14 +50,19 @@ def test_sender_uses_one_message_and_ssl_for_465(monkeypatch):
 def test_workflow_has_manual_email_input_without_schedule():
     from backend.dividend.daily_position_report import PROJECT_ROOT
     workflow = (PROJECT_ROOT / ".github/workflows/dividend-daily-report.yml").read_text(encoding="utf-8")
+    assert 'schedule:\n    - cron: "0 10 * * *"\n  workflow_dispatch:' in workflow
+    assert 'trade_date:\n        description: Optional trade date for manual testing (YYYY-MM-DD); blank uses today\'s Beijing date\n        required: false\n        default: ""\n        type: string' in workflow
     assert "send_email:" in workflow and "default: false" in workflow
-    assert "--send-email" in workflow and "schedule:" not in workflow
+    assert "--send-email" in workflow
     assert "trade_date:" in workflow
     assert "TRADE_DATE: ${{ inputs.trade_date }}" in workflow
     assert 'if [ -n "$TRADE_DATE" ]; then' in workflow
     assert 'ARGS=(--date "$TRADE_DATE")' in workflow
     assert '"${ARGS[@]}" --send-email' in workflow
     assert '"${ARGS[@]}" --dry-run' in workflow
+    assert 'if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then' in workflow
+    assert 'python -m backend.dividend.daily_position_report --send-email' in workflow
+    assert 'echo "trade_date=auto"' in workflow
 
 
 def test_no_signals_never_configures_or_sends(monkeypatch):
