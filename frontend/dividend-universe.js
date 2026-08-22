@@ -65,6 +65,7 @@
           const currentYield = yieldByKey[yieldKey(item)]?.three_year_average_yield;
           return {watch: 0, entry: 1, add: 2, heavy: 3}[positionState(currentYield == null ? null : currentYield * 100, item)];
         }
+        if (sortKey === 'grade') return {S: 3, A: 2, B: 1}[item.grade] || 0;
         return yieldByKey[yieldKey(item)]?.[sortKey];
       };
       const a = sortValue(left); const b = sortValue(right);
@@ -84,7 +85,7 @@
       const active = sortKey === key; const arrow = active ? (sortDirection === 'desc' ? '↓' : '↑') : '↕';
       return `<th class="yield-sort" data-sort-key="${key}" role="button" tabindex="0">${label} ${arrow}</th>`;
     };
-    $('head').innerHTML = '<tr>' + '<th>股票</th>' + sortableHeader('状态', 'position_status') + ['行业', '类型', '当前价', '价格日', ...years.map(year => `${year} DPS`), '三年平均 DPS'].map(value => `<th>${value}</th>`).join('') + sortableHeader('去年股息率', 'latest_year_yield') + sortableHeader('三年平均股息率', 'three_year_average_yield') + '<th>等级</th><th>建仓</th><th>加仓</th><th>重仓</th><th>操作</th></tr>';
+    $('head').innerHTML = '<tr>' + '<th>股票</th>' + sortableHeader('状态', 'position_status') + ['行业', '类型', '当前价', '价格日', ...years.map(year => `${year} DPS`), '三年平均 DPS'].map(value => `<th>${value}</th>`).join('') + sortableHeader('去年股息率', 'latest_year_yield') + sortableHeader('三年平均股息率', 'three_year_average_yield') + sortableHeader('等级', 'grade') + '<th>建仓</th><th>加仓</th><th>重仓</th><th>操作</th></tr>';
     $('rows').innerHTML = sortItems(items).map(item => {
       const snapshot = yieldByKey[yieldKey(item)];
       const state = positionState(snapshot?.three_year_average_yield == null ? null : snapshot.three_year_average_yield * 100, item);

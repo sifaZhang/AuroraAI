@@ -118,7 +118,7 @@ def test_universe_page_and_navigation_are_registered():
     page = client.get('/dividend/universe')
     assert page.status_code == 200
     assert page.headers['cache-control'] == 'no-store'
-    assert 'src="/dividend-universe.js?v=position-levels-6"' in page.text
+    assert 'src="/dividend-universe.js?v=position-levels-7"' in page.text
     assert 'href="/dividend-universe.css?v=position-levels-8"' in page.text
     assert 'href="/styles.css?v=d3-universe-yields-3"' in page.text
     assert 'dividend/universe' in client.get('/').text
@@ -156,6 +156,8 @@ def test_universe_frontend_left_joins_yield_snapshots_and_keeps_d1_actions_separ
     assert "if (a == null) return b == null ? 0 : 1" in script
     assert "sortableHeader('状态', 'position_status')" in script
     assert "{watch: 0, entry: 1, add: 2, heavy: 3}" in script
+    assert "sortableHeader('等级', 'grade')" in script
+    assert "{S: 3, A: 2, B: 1}[item.grade] || 0" in script
     assert "<th>股票</th>' + sortableHeader('状态', 'position_status')" in script
     assert '&#31561;&#32423;&#19982;&#20179;&#20301;&#21442;&#32771;' in page
     assert '<span>S &#8776; 3% / 6% / 10%</span><span>A &#8776; 2% / 3.5% / 5%</span><span>B &#8776; 0.5% / 1% / 2%</span>' in page
