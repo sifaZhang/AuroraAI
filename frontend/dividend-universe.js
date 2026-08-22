@@ -40,6 +40,7 @@
     return 'watch';
   };
   const positionLabel = {watch: '观察', entry: '建仓', add: '加仓', heavy: '重仓'};
+  const csvSyncMessage = result => result?.csv_sync?.status === 'failed' ? (result.csv_sync.message || '观察池已保存，但 CSV 同步失败；请手工重建快照。') : null;
   const displayError = error => { $('load-error').hidden = false; $('load-error-detail').textContent = error.message || String(error); $('universe-table-card').hidden = true; $('empty-state').hidden = true; $('message').textContent = ''; };
   const resetError = () => { $('load-error').hidden = true; };
 
@@ -110,7 +111,7 @@
       const item = universeItems.find(value => value.symbol === symbol);
       if (item) Object.assign(item, saved);
       renderRows(universeItems);
-      $('message').textContent = `${symbol} 点位已保存，已按当前三年平均股息率更新状态。`;
+      $('message').textContent = csvSyncMessage(saved) || `${symbol} 点位已保存，已按当前三年平均股息率更新状态。`;
     } catch (error) { $('message').textContent = error.message; }
   }
   async function load() {
@@ -128,7 +129,7 @@
   }
   async function change(symbol, isEnabled) {
     if (!confirm(isEnabled ? `确认重新启用 ${symbol}？` : `停用 ${symbol} 后仍会保留分红历史。确认停用？`)) return;
-    try { await api(`/api/dividend/universe/${symbol}/status`, {method: 'PATCH', headers: {'content-type': 'application/json'}, body: JSON.stringify({is_enabled: isEnabled})}); await load(); } catch (error) { $('message').textContent = error.message; }
+    try { const result = await api(`/api/dividend/universe/${symbol}/status`, {method: 'PATCH', headers: {'content-type': 'application/json'}, body: JSON.stringify({is_enabled: isEnabled})}); await load(); const warning = csvSyncMessage(result); if (warning) $('message').textContent = warning; } catch (error) { $('message').textContent = error.message; }
   }
 
   const candidateStats = summary => [
@@ -195,8 +196,8 @@
     if (!confirm(`确认将 ${symbol} 按扫描建议类型加入正式股票池？`)) return;
     try {
       const result = await api(`/api/dividend/universe/rescan/candidates/${symbol}/add`, {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({confirm: true})});
-      $('message').textContent = result.status === 'added' ? `${symbol} 已加入股票池。` : `${symbol} 已在股票池。`;
       await Promise.all([load(), loadCandidates()]);
+      $('message').textContent = csvSyncMessage(result) || (result.status === 'added' ? `${symbol} 已加入股票池。` : `${symbol} 已在股票池。`);
     } catch (error) { $('message').textContent = `加入股票池失败：${error.message}`; }
   }
   async function poll(runId) {
@@ -225,7 +226,7 @@
   async function validate(symbol) { try { selected = await api('/api/dividend/universe/validate', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({symbol})}); $('validation').textContent = selected.can_add ? `${selected.company_name}：DPS验证完成。${(selected.warnings || []).join('；')}` : (selected.warnings || []).join('；'); $('add-monopoly').value = selected.suggested_monopoly_type || ''; updateConfirm(); } catch (error) { $('validation').textContent = error.message; } }
   function updateConfirm() { $('confirm').disabled = !selected || !selected.can_add || !$('ack').checked; }
   $('find').onclick = async () => { try { const data = await api('/api/dividend/universe/search?q=' + encodeURIComponent($('query').value)); $('results').innerHTML = data.items.map(item => `<button type="button" class="detail-button" data-candidate="${item.symbol}">选择并验证：${item.symbol} ${item.company_name}${item.already_in_universe ? '（已在池中）' : ''}</button>`).join('') || '<p>未找到可用A股</p>'; document.querySelectorAll('[data-candidate]').forEach(button => button.onclick = () => validate(button.dataset.candidate)); if (data.items.length === 1) validate(data.items[0].symbol); } catch (error) { $('validation').textContent = error.message; } };
-  $('confirm').onclick = async () => { if (!selected || !$('ack').checked) return; try { const result = await api('/api/dividend/universe', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({symbol: selected.symbol, stability_subtype: $('add-subtype').value, monopoly_type: $('add-monopoly').value, manual_reason: $('reason').value, acknowledge_warnings: true})}); if (result.status === 'added') { $('dialog').close(); await load(); } else $('validation').textContent = '该公司已在股票池。'; } catch (error) { $('validation').textContent = error.message; } };
+  $('confirm').onclick = async () => { if (!selected || !$('ack').checked) return; try { const result = await api('/api/dividend/universe', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({symbol: selected.symbol, stability_subtype: $('add-subtype').value, monopoly_type: $('add-monopoly').value, manual_reason: $('reason').value, acknowledge_warnings: true})}); if (result.status === 'added') { $('dialog').close(); await load(); const warning = csvSyncMessage(result); if (warning) $('message').textContent = warning; } else $('validation').textContent = '该公司已在股票池。'; } catch (error) { $('validation').textContent = error.message; } };
   $('add').onclick = openDialog; $('empty-add').onclick = openDialog; $('retry').onclick = load;
   $('dialog-close').onclick = () => $('dialog').close(); $('dialog').addEventListener('click', event => { if (event.target === $('dialog')) $('dialog').close(); });
   $('ack').onchange = updateConfirm;

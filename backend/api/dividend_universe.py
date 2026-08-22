@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 import csv
 import json
+import logging
 import sqlite3
 import threading
 import uuid
@@ -27,10 +28,12 @@ from backend.dividend.share_basis_adjustment import current_basis_dps
 from backend.dividend.run_high_dividend_watch_full_dryrun import run as run_high_dividend_dryrun
 from backend.dividend.universe_repository import DividendUniverseRepository
 from backend.dividend.position_levels import validate_position_levels
+from backend.dividend.watchlist_csv import export_dividend_watchlist_csv
 from backend.expectation_gap.database import PROJECT_ROOT, connect, connect_readonly, migrate
 
 
 router = APIRouter(prefix="/api/dividend/universe", tags=["dividend"])
+logger = logging.getLogger(__name__)
 _runs: dict[str, dict[str, object]] = {}
 _run_lock = threading.Lock()
 SCAN_OUTPUT = PROJECT_ROOT / "exports" / "dividend" / "high_dividend_watch_full_dryrun.csv"
@@ -145,6 +148,19 @@ def _run(callback):
         raise HTTPException(422, str(exc)) from exc
     finally:
         connection.close()
+
+
+def _sync_watchlist_csv(connection) -> dict[str, object]:
+    try:
+        result = export_dividend_watchlist_csv(connection)
+        return {"status": "synced", **result}
+    except Exception as exc:
+        logger.exception("Dividend watchlist CSV sync failed after SQLite update")
+        return {
+            "status": "failed",
+            "message": "观察池已保存，但 CSV 同步失败；请使用手工重建命令恢复快照。",
+            "error": f"{type(exc).__name__}: {exc}",
+        }
 
 
 @router.get("")
@@ -264,7 +280,7 @@ def add(payload: AddRequest):
                        VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
                     ("CN", symbol, int(year), value, result["dividend_event_counts"][year], METHOD, "tushare", "complete", now, now, result["current_basis_dps"][year], calculation_date.isoformat()),
                 )
-        return {"status": "added", "symbol": symbol, "validation": result}
+        return {"status": "added", "symbol": symbol, "validation": result, "csv_sync": _sync_watchlist_csv(connection)}
 
     return _run(action)
 
@@ -283,7 +299,7 @@ def status(symbol: str, payload: StatusRequest):
                 raise HTTPException(422, "缺少最近三个完整年度DPS，不能重新启用")
         with connection:
             connection.execute("UPDATE dividend_stable_universe SET is_enabled=?,updated_at=? WHERE market='CN' AND symbol=?", (int(payload.is_enabled), datetime.now(timezone.utc).isoformat(timespec="seconds"), symbol_value))
-        return {"symbol": symbol_value, "is_enabled": payload.is_enabled}
+        return {"symbol": symbol_value, "is_enabled": payload.is_enabled, "csv_sync": _sync_watchlist_csv(connection)}
 
     return _run(action)
 
@@ -312,7 +328,7 @@ def update_position_levels(symbol: str, payload: PositionLevelsRequest):
                    WHERE market='CN' AND symbol=?""",
                 (payload.grade, payload.entry_yield, payload.add_yield, payload.heavy_yield, now, symbol_value),
             )
-        return {"symbol": symbol_value, **payload.model_dump()}
+        return {"symbol": symbol_value, **payload.model_dump(), "csv_sync": _sync_watchlist_csv(connection)}
 
     return _run(action)
 
@@ -397,7 +413,7 @@ def add_scanned_candidate(symbol: str, payload: CandidateAddRequest):
                     connection.execute("""INSERT INTO annual_cash_dividend_summaries(market,symbol,calendar_year,cash_dividend_per_share,dividend_event_count,calculation_method,source,data_quality_status,calculated_at,updated_at,current_basis_dps,share_basis_as_of) VALUES('CN',?,?,?,?,?,'tushare','complete',?,?,?,?)""", (symbol_value, year, candidate[f"{year}_dps"], counts[year], METHOD, now, now, candidate.get(f"{year}_current_basis_dps"), candidate.get("share_basis_as_of")))
                 else:
                     connection.execute("""INSERT INTO annual_cash_dividend_summaries(market,symbol,calendar_year,cash_dividend_per_share,dividend_event_count,calculation_method,source,data_quality_status,calculated_at,updated_at) VALUES('CN',?,?,?,?,?,'tushare','complete',?,?)""", (symbol_value, year, candidate[f"{year}_dps"], counts[year], METHOD, now, now))
-        return {"status": "added", "symbol": symbol_value, "stability_subtype": subtype}
+        return {"status": "added", "symbol": symbol_value, "stability_subtype": subtype, "csv_sync": _sync_watchlist_csv(connection)}
     finally:
         connection.close()
 

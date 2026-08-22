@@ -58,6 +58,7 @@ def _client(monkeypatch):
     connection = _database()
     monkeypatch.setattr(universe_api, "connect", lambda: SharedConnection(connection))
     monkeypatch.setattr(universe_api, "migrate", lambda _connection: None)
+    monkeypatch.setattr(universe_api, "export_dividend_watchlist_csv", lambda _connection: {"path": "test.csv", "row_count": 1})
     return connection, TestClient(app)
 
 
@@ -82,7 +83,7 @@ def test_position_levels_save_read_and_validate_without_touching_dividends(monke
     payload = {'grade': grade, 'entry_yield': 5.0, 'add_yield': 5.5, 'heavy_yield': 6.0}
     response = client.patch('/api/dividend/universe/600001.SH/position-levels', json=payload)
     assert response.status_code == 200
-    assert response.json() == {'symbol': '600001.SH', **payload}
+    assert response.json() == {'symbol': '600001.SH', **payload, 'csv_sync': {'status': 'synced', 'path': 'test.csv', 'row_count': 1}}
     item = client.get('/api/dividend/universe').json()['items'][0]
     assert {key: item[key] for key in payload} == payload
     assert connection.execute('SELECT COUNT(*) FROM annual_cash_dividend_summaries').fetchone()[0] == 3
@@ -93,8 +94,30 @@ def test_position_levels_save_read_and_validate_without_touching_dividends(monke
     assert client.get('/api/dividend/universe').json()['items'][0]['grade'] is None
 
 
+def test_watchlist_sync_runs_after_config_writes_and_is_reported_on_failure(monkeypatch, caplog):
+    connection, client = _client(monkeypatch)
+    calls = []
+    monkeypatch.setattr(universe_api, "export_dividend_watchlist_csv", lambda _connection: calls.append(True) or {"path": "test.csv", "row_count": 1})
+
+    assert client.patch('/api/dividend/universe/600001.SH/position-levels', json={'grade': 'A'}).json()['csv_sync']['status'] == 'synced'
+    assert client.patch('/api/dividend/universe/600001.SH/status', json={'is_enabled': False}).json()['csv_sync']['status'] == 'synced'
+    assert calls == [True, True]
+
+    def fail(_connection):
+        raise OSError('disk unavailable')
+
+    monkeypatch.setattr(universe_api, "export_dividend_watchlist_csv", fail)
+    response = client.patch('/api/dividend/universe/600001.SH/position-levels', json={'grade': 'B'})
+    assert response.status_code == 200
+    assert response.json()['csv_sync']['status'] == 'failed'
+    assert connection.execute("SELECT grade FROM dividend_stable_universe WHERE symbol='600001.SH'").fetchone()[0] == 'B'
+    assert 'Dividend watchlist CSV sync failed after SQLite update' in caplog.text
+
+
 def test_manual_add_requires_acknowledgement_and_uses_actual_event_counts(monkeypatch):
     connection, client = _client(monkeypatch)
+    sync_calls = []
+    monkeypatch.setattr(universe_api, "export_dividend_watchlist_csv", lambda _connection: sync_calls.append(True) or {"path": "test.csv", "row_count": 1})
     monkeypatch.setattr(universe_api, '_validate', lambda *_args: {
         'symbol': '600001.SH', 'company_name': 'Test Hydro', 'can_add': True, 'warnings': ['manual review'],
         'annual_dps': {'2023': 0.1, '2024': 0.2, '2025': 0.3},
@@ -107,6 +130,8 @@ def test_manual_add_requires_acknowledgement_and_uses_actual_event_counts(monkey
     assert client.post('/api/dividend/universe', json=request).status_code == 422
     response = client.post('/api/dividend/universe', json={**request, 'acknowledge_warnings': True})
     assert response.status_code == 200 and response.json()['status'] == 'added'
+    assert response.json()['csv_sync']['status'] == 'synced'
+    assert sync_calls == [True]
     assert connection.execute("SELECT inclusion_source FROM dividend_stable_universe WHERE symbol='600001.SH'").fetchone()[0] == 'manual_review'
     assert connection.execute("SELECT dividend_event_count FROM annual_cash_dividend_summaries WHERE calendar_year=2024").fetchone()[0] == 2
     assert client.post('/api/dividend/universe', json={**request, 'acknowledge_warnings': True}).json()['status'] == 'already_exists'
@@ -118,7 +143,7 @@ def test_universe_page_and_navigation_are_registered():
     page = client.get('/dividend/universe')
     assert page.status_code == 200
     assert page.headers['cache-control'] == 'no-store'
-    assert 'src="/dividend-universe.js?v=position-levels-7"' in page.text
+    assert 'src="/dividend-universe.js?v=watchlist-sync-1"' in page.text
     assert 'href="/dividend-universe.css?v=position-levels-8"' in page.text
     assert 'href="/styles.css?v=d3-universe-yields-3"' in page.text
     assert 'dividend/universe' in client.get('/').text
@@ -167,6 +192,7 @@ def test_universe_frontend_left_joins_yield_snapshots_and_keeps_d1_actions_separ
     assert "snapshot.three_year_average_yield * 100" in script
     assert "data-save-levels" in script
     assert "position-${state}" in script
+    assert "const csvSyncMessage" in script
     assert "await load();" not in script[script.index('async function savePositionLevels'):script.index('async function load()')]
 
 
@@ -208,6 +234,8 @@ def _scan_files(tmp_path):
 
 def test_latest_scan_is_file_backed_and_high_watch_add_requires_confirmation(monkeypatch, tmp_path):
     connection, client = _client(monkeypatch)
+    sync_calls = []
+    monkeypatch.setattr(universe_api, "export_dividend_watchlist_csv", lambda _connection: sync_calls.append(True) or {"path": "test.csv", "row_count": 2})
     connection.execute("INSERT INTO a_share_security_master VALUES ('600002.SH','Watch Co','2010-01-01',1,NULL,'SH')")
     connection.execute("INSERT INTO a_share_security_status_history VALUES ('600002.SH','2026-01-01',0)")
     connection.execute("INSERT INTO industry_memberships_current VALUES ('600002.SH','Consumer','Food','Food','test')")
@@ -227,6 +255,8 @@ def test_latest_scan_is_file_backed_and_high_watch_add_requires_confirmation(mon
     assert client.post("/api/dividend/universe/rescan/candidates/600002.SH/add", json={"confirm": False}).status_code == 422
     added = client.post("/api/dividend/universe/rescan/candidates/600002.SH/add", json={"confirm": True})
     assert added.status_code == 200 and added.json()["status"] == "added"
+    assert added.json()['csv_sync']['status'] == 'synced'
+    assert sync_calls == [True]
     stored = connection.execute("SELECT stability_subtype,inclusion_source FROM dividend_stable_universe WHERE symbol='600002.SH'").fetchone()
     assert tuple(stored) == ("high_dividend_watch", "manual_review")
     assert connection.execute("SELECT COUNT(*) FROM annual_cash_dividend_summaries WHERE symbol='600002.SH'").fetchone()[0] == 3

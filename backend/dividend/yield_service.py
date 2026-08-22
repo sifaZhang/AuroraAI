@@ -4,13 +4,17 @@ from datetime import date,datetime,timezone
 from .share_basis_adjustment import current_yield_metrics
 
 def target_years(day:date): return (day.year-3,day.year-2,day.year-1)
+
+def current_basis_dps_for_years(connection:sqlite3.Connection, market:str, symbol:str, years:tuple[int,int,int]):
+ return {r['calendar_year']:r['current_basis_dps'] if r['current_basis_dps'] is not None else r['cash_dividend_per_share'] for r in connection.execute("SELECT calendar_year,cash_dividend_per_share,current_basis_dps FROM annual_cash_dividend_summaries WHERE market=? AND symbol=? AND calendar_year IN (?,?,?)",(market,symbol,*years))}
+
 def calculate(connection:sqlite3.Connection, day:date, symbols:set[str]|None=None):
  years=target_years(day); params=[]; sql="SELECT u.market,u.symbol,u.company_name,u.industry_level_1,u.industry_level_2,u.stability_subtype FROM dividend_stable_universe u WHERE u.is_enabled=1"
  if symbols: sql += " AND u.symbol IN ("+','.join('?'*len(symbols))+")";params=list(symbols)
  rows=[]
  for u in connection.execute(sql,params):
   code=u['symbol'].split('.')[0]; price=connection.execute("SELECT trade_date,close,source FROM a_share_daily_bars WHERE stock_code=? AND adjustment='none' AND trade_date<=? AND close>0 ORDER BY trade_date DESC LIMIT 1",(code,day.isoformat())).fetchone()
-  d={r['calendar_year']:r['current_basis_dps'] if r['current_basis_dps'] is not None else r['cash_dividend_per_share'] for r in connection.execute("SELECT calendar_year,cash_dividend_per_share,current_basis_dps FROM annual_cash_dividend_summaries WHERE market=? AND symbol=? AND calendar_year IN (?,?,?)",(u['market'],u['symbol'],*years))}
+  d=current_basis_dps_for_years(connection,u['market'],u['symbol'],years)
   complete=len(d)==3; p=float(price['close']) if price else None; pd=date.fromisoformat(price['trade_date']) if price else None; age=(day-pd).days if pd else None
   status='ok'; warnings=[]
   if not price: status='missing_price'
