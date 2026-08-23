@@ -13,9 +13,10 @@ from .json_store import read_json, write_json_atomic
 from .portfolio_manager import PortfolioManager
 from .profile_builder import DEFAULT_RESEARCH_ROOT, ProfileBuilder
 from .profile_repository import ProfileRepository
-from .research_plan import (ExecutionPlan, OrchestratorConfig, ResearchPlan, ResearchState,
+from .research_plan import (ExecutionPlan, OrchestratorConfig, ResearchPlan, ResearchState, Trigger,
                             build_research_plan, enforce_llm_budget)
 from .research_run_schema import RunDocument
+from .research_trigger_state import TriggerStateStore
 from .skeptic_analyst import SkepticAnalyst
 from .source_collector import CninfoClient, discover_documents, save_document
 from .source_metadata import SourceDocument
@@ -101,6 +102,16 @@ class ResearchOrchestrator:
                 current_step = "valuation_input"; ValuationInputBuilder(research_root=self.research_root).build(plan.symbol, version=version)
                 current_step = "valuation"; actual_calls += 1; ValuationAgent(research_root=self.research_root).run(plan.symbol, version=version)
             current_step = "portfolio_manager"; actual_calls += 1; PortfolioManager(research_root=self.research_root, repository=self.repository).run(plan.symbol, version=version)
+            current_step = "trigger_state"
+            TriggerStateStore(self.research_root).write_success(
+                symbol=plan.symbol,
+                analysis_version=version,
+                current_price=float(plan.current_price),
+                current_signal=plan.current_yield_signal,
+                reset_anchor=plan.execution_plan == ExecutionPlan.FULL_REFRESH or Trigger.PRICE_MOVE in plan.triggers,
+                anchor_reason=plan.primary_trigger.value,
+                exit_confirmation=plan.exit_confirmation,
+            )
             run = self._run_document(plan, version, "COMPLETED", actual_calls)
             write_json_atomic(folder / "run.json", run.model_dump(mode="json"))
             write_json_atomic(folder.parents[1] / "current.json", {"schema_version": 1, "status": "analyzed", "analysis_version": version, "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds")})
@@ -121,9 +132,18 @@ class ResearchOrchestrator:
             if run and run.get("status") != "COMPLETED": continue
             choices.append(folder)
         if not choices: return None
-        folder = sorted(choices, key=lambda item: item.name)[-1]
+        ordered = sorted(choices, key=lambda item: item.name)
+        folder = ordered[-1]
         snapshot, valuation = read_json(folder / "input_snapshot.json"), read_json(folder / "valuation.json")
         as_of = snapshot.get("as_of"); generated = valuation.get("generation", {}).get("generated_at")
+        full_dates = []
+        for candidate in ordered:
+            run = read_json(candidate / "run.json")
+            if run.get("execution_plan") == ExecutionPlan.FULL_REFRESH.value:
+                candidate_snapshot = read_json(candidate / "input_snapshot.json")
+                if candidate_snapshot.get("as_of"):
+                    full_dates.append(date.fromisoformat(candidate_snapshot["as_of"]))
+        trigger_state = TriggerStateStore(self.research_root).read(symbol)
         def snapshot_keys(category: str, *, financial: bool) -> frozenset[str]:
             keys = []
             for item in snapshot.get(category, []):
@@ -134,7 +154,10 @@ class ResearchOrchestrator:
                              date.fromisoformat(str(generated)[:10]) if generated else (date.fromisoformat(as_of) if as_of else None),
                              snapshot.get("yield_context", {}).get("latest_price"), snapshot.get("yield_context", {}).get("yield_signal"),
                              snapshot_keys("financial_reports", financial=True),
-                             snapshot_keys("announcements", financial=False))
+                             snapshot_keys("announcements", financial=False),
+                             trigger_state.price_trigger.anchor_price if trigger_state and trigger_state.price_trigger else None,
+                             trigger_state.exit_confirmation.completed_for_signal if trigger_state and trigger_state.exit_confirmation else None,
+                             max(full_dates) if full_dates else (date.fromisoformat(as_of) if as_of else None))
 
     def _current_state(self, symbol: str, previous: ResearchState | None,
                        discovered_financial: tuple[SourceDocument, ...] = (),
@@ -151,7 +174,10 @@ class ResearchOrchestrator:
         announcement_keys.update(_document_key(x, financial=False) for x in discovered_announcements)
         return ResearchState(symbol, previous.analysis_version if previous else None, previous.analysis_date if previous else None,
                              previous.valuation_date if previous else None, facts.get("latest_price"), facts.get("yield_signal"),
-                             frozenset(report_keys), frozenset(announcement_keys))
+                             frozenset(report_keys), frozenset(announcement_keys),
+                             previous.price_anchor if previous else None,
+                             previous.exit_confirmed_signal if previous else None,
+                             previous.full_analysis_date if previous else None)
 
     def _collect_sources(self, symbol: str) -> None:
         ProfileBuilder(self.repository, research_root=self.research_root).build(symbol)
@@ -171,8 +197,10 @@ class ResearchOrchestrator:
                            trigger_reasons=[x.value for x in plan.triggers], primary_trigger=plan.primary_trigger.value,
                            previous_analysis_version=plan.previous_analysis_version, execution_plan=plan.execution_plan.value,
                            steps=STEP_PLANS[plan.execution_plan], reused_outputs=reused,
-                           market_change={"previous_price": plan.previous_price, "current_price": plan.current_price,
-                                          "price_change_pct": plan.price_change_pct, "previous_yield_signal": plan.previous_yield_signal,
+                           market_change={"price_anchor": plan.previous_price, "current_price": plan.current_price,
+                                          "price_change_from_anchor_pct": plan.price_change_pct,
+                                          "price_trigger_threshold": -plan.price_trigger_threshold,
+                                          "previous_yield_signal": plan.previous_yield_signal,
                                           "current_yield_signal": plan.current_yield_signal},
                            llm_plan={"analyst": "analyst" in plan.estimated_agents, "skeptic": "skeptic" in plan.estimated_agents,
                                      "valuation": "valuation" in plan.estimated_agents, "portfolio": "portfolio" in plan.estimated_agents,
@@ -181,7 +209,11 @@ class ResearchOrchestrator:
 
 
 def _display(plan: ResearchPlan) -> str:
-    lines = [f"Symbol: {plan.symbol}", "Triggers:", *[f"- {x.value}" for x in plan.triggers],
+    active = plan.current_yield_signal in {"add", "heavy"}
+    lines = [f"Symbol: {plan.symbol}", f"Current Yield Signal: {plan.current_yield_signal}",
+             f"Active deep research: {active}", f"Price anchor: {plan.previous_price}",
+             f"Current price: {plan.current_price}", f"Price change from anchor: {plan.price_change_pct}",
+             f"Exit confirmation required: {plan.exit_confirmation}", "Triggers:", *[f"- {x.value}" for x in plan.triggers],
              f"Primary trigger: {plan.primary_trigger.value}", f"Previous analysis: {plan.previous_analysis_version}",
              f"Execution plan: {plan.execution_plan.value}"]
     lines.extend(f"- {name}: {value}" for name, value in STEP_PLANS[plan.execution_plan].items())

@@ -5,6 +5,8 @@ import pytest
 from backend.research.daily_research_runner import build_universe, resolve_budget, run_daily
 from backend.research.research_git import validate_staged_paths
 from backend.research.research_plan import ExecutionPlan, PLAN_AGENTS, ResearchPlan, Trigger
+from backend.research.json_store import write_json_atomic
+from backend.research.research_trigger_state import TriggerStateStore
 from backend.research.source_discovery import DiscoveryResult
 
 
@@ -17,6 +19,7 @@ class Repo:
     def __init__(self, enabled, candidates): self.enabled, self.candidates = enabled, candidates
     def enabled_symbols(self): return self.enabled
     def research_candidates(self): return [{"symbol": item} for item in self.candidates]
+    def profile_facts(self, symbol): return {"yield_signal": "add" if symbol in self.candidates else "watch"}
 
 
 class Discovery:
@@ -36,9 +39,29 @@ class Orchestrator:
                 "actual_llm_calls": plan.estimated_llm_calls}
 
 
-def test_universe_combines_candidates_and_researched_watch(tmp_path):
+def test_universe_only_includes_active_add_heavy_without_exit_history(tmp_path):
     for symbol in ("WATCH", "DISABLED"): (tmp_path / symbol).mkdir()
-    assert build_universe(Repo(["ENTRY", "WATCH"], ["ENTRY"]), tmp_path) == ["ENTRY", "WATCH"]
+    assert build_universe(Repo(["ADD", "WATCH"], ["ADD"]), tmp_path) == ["ADD"]
+
+
+def test_universe_includes_exit_once_then_excludes_confirmed_symbol(tmp_path):
+    folder = tmp_path / "EXIT" / "analysis" / "2026-08-22_v1"
+    folder.mkdir(parents=True)
+    write_json_atomic(folder / "decision.json", {"research_decision": "watch"})
+    write_json_atomic(folder / "input_snapshot.json", {"yield_context": {"yield_signal": "add"}})
+    repo = Repo(["EXIT"], [])
+    assert build_universe(repo, tmp_path) == ["EXIT"]
+    TriggerStateStore(tmp_path).write_success(symbol="EXIT", analysis_version="v2", current_price=10,
+                                              current_signal="watch", reset_anchor=False,
+                                              anchor_reason="YIELD_SIGNAL_CHANGE", exit_confirmation=True)
+    assert build_universe(repo, tmp_path) == []
+
+
+def test_exit_confirmed_symbol_reenters_when_signal_add(tmp_path):
+    TriggerStateStore(tmp_path).write_success(symbol="REENTER", analysis_version="v1", current_price=10,
+                                              current_signal="entry", reset_anchor=False,
+                                              anchor_reason="YIELD_SIGNAL_CHANGE", exit_confirmation=True)
+    assert build_universe(Repo(["REENTER"], ["REENTER"]), tmp_path) == ["REENTER"]
 
 
 def test_24_symbol_matrix_plans_ten_calls_before_execution(tmp_path):

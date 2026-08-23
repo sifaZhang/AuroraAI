@@ -7,6 +7,7 @@ import pytest
 
 from backend.research.json_store import read_json, write_json_atomic
 from backend.research.research_orchestrator import STEP_PLANS, MarketDataMissing, ResearchOrchestrator
+from backend.research.research_trigger_state import TriggerStateStore
 from backend.research.research_plan import (ExecutionPlan, OrchestratorConfig, ResearchState, Trigger,
                                             build_research_plan, enforce_llm_budget)
 
@@ -15,9 +16,11 @@ TODAY = date(2026, 8, 23)
 CONFIG = OrchestratorConfig(.10, 30, 90)
 
 
-def state(*, price=100., signal="entry", analysis_days=1, valuation_days=1, reports=(), announcements=()):
+def state(*, price=100., signal="heavy", analysis_days=1, valuation_days=1, reports=(), announcements=(),
+          anchor=None, exit_confirmed=None, full_days=None):
     return ResearchState("000858.SZ", "2026-08-22_v1", TODAY - timedelta(days=analysis_days),
-                         TODAY - timedelta(days=valuation_days), price, signal, frozenset(reports), frozenset(announcements))
+                         TODAY - timedelta(days=valuation_days), price, signal, frozenset(reports), frozenset(announcements),
+                         anchor, exit_confirmed, TODAY - timedelta(days=full_days) if full_days is not None else None)
 
 
 def plan(previous, current, mode=None):
@@ -38,7 +41,7 @@ def test_yield_change_refreshes_valuation(old, new):
 
 def test_price_threshold_is_inclusive():
     assert plan(state(), state(price=109.)).execution_plan == ExecutionPlan.NO_ACTION
-    assert plan(state(), state(price=110.)).execution_plan == ExecutionPlan.VALUATION_REFRESH
+    assert plan(state(), state(price=110.)).execution_plan == ExecutionPlan.NO_ACTION
     assert plan(state(), state(price=90.)).execution_plan == ExecutionPlan.VALUATION_REFRESH
     assert plan(state(), state(price=88.)).estimated_llm_calls == 2
 
@@ -118,11 +121,16 @@ def test_run_metadata_records_reuse():
     assert run.reused_outputs == {"evidence_summary": "2026-08-22_v1", "analyst": "2026-08-22_v1", "skeptic": "2026-08-22_v1"}
     assert run.steps["analyst"] == "REUSED" and run.steps["valuation"] == "RUN"
     assert run.llm_plan["estimated_calls"] == 2
+    assert run.market_change["price_anchor"] == 100.0
+    assert run.market_change["price_change_from_anchor_pct"] == pytest.approx(-.2)
+    assert run.market_change["price_trigger_threshold"] == -.1
 
 
 def test_valuation_failure_stops_portfolio_and_does_not_update_current(tmp_path: Path, monkeypatch):
     folder = tmp_path / "000858.SZ" / "analysis" / "2026-08-23_v1"; current = tmp_path / "000858.SZ" / "current.json"
     current.parent.mkdir(parents=True); write_json_atomic(current, {"schema_version": 1, "status": "not_analyzed"})
+    TriggerStateStore(tmp_path).write_success(symbol="000858.SZ", analysis_version="old", current_price=100,
+                                              current_signal="heavy", reset_anchor=True, anchor_reason="FULL_REFRESH")
     class Repo: pass
     monkeypatch.setattr("backend.research.research_orchestrator.InputPackBuilder.build", lambda *_a, **_k: (folder.mkdir(parents=True), write_json_atomic(folder/"input_snapshot.json", {}), {"directory": str(folder), "version": folder.name})[-1])
     monkeypatch.setattr("backend.research.research_orchestrator.ResearchOrchestrator._collect_sources", lambda *_: None)
@@ -139,6 +147,7 @@ def test_valuation_failure_stops_portfolio_and_does_not_update_current(tmp_path:
     assert not called and read_json(folder/"run.json")["status"] == "FAILED"
     assert read_json(folder/"run.json")["failed_step"] == "valuation"
     assert read_json(current)["status"] == "not_analyzed"
+    assert read_json(tmp_path / "000858.SZ" / "trigger_state.json")["price_trigger"]["anchor_price"] == 100
 
 
 def test_portfolio_failure_does_not_complete_version(tmp_path: Path, monkeypatch):
@@ -152,10 +161,27 @@ def test_portfolio_failure_does_not_complete_version(tmp_path: Path, monkeypatch
     monkeypatch.setattr("backend.research.research_orchestrator.PortfolioManager.run", lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("portfolio failed")))
     with pytest.raises(RuntimeError): ResearchOrchestrator(repository=Repo(), research_root=tmp_path).execute(plan(state(), state(reports=("new",))))
     assert read_json(folder/"run.json")["status"] == "FAILED"
+    assert not (tmp_path / "000858.SZ" / "trigger_state.json").exists()
+
+
+def test_successful_full_refresh_resets_price_anchor(tmp_path: Path, monkeypatch):
+    folder = tmp_path / "000858.SZ" / "analysis" / "2026-08-23_v1"
+    class Repo: pass
+    monkeypatch.setattr("backend.research.research_orchestrator.InputPackBuilder.build", lambda *_a, **_k: (folder.mkdir(parents=True), {"directory": str(folder), "version": folder.name})[-1])
+    monkeypatch.setattr("backend.research.research_orchestrator.ResearchOrchestrator._collect_sources", lambda *_: None)
+    for target in ("EvidenceCompressor.compress", "FundamentalAnalyst.run", "SkepticAnalyst.run",
+                   "ValuationInputBuilder.build", "ValuationAgent.run", "PortfolioManager.run"):
+        monkeypatch.setattr("backend.research.research_orchestrator." + target, lambda *_a, **_k: {})
+    result = plan(state(price=100, reports=("annual",)), state(price=105, reports=("annual", "h1")))
+    outcome = ResearchOrchestrator(repository=Repo(), research_root=tmp_path).execute(result)
+    trigger = read_json(tmp_path / "000858.SZ" / "trigger_state.json")
+    assert outcome["status"] == "COMPLETED"
+    assert trigger["price_trigger"]["anchor_price"] == 105
+    assert trigger["price_trigger"]["updated_reason"] == "NEW_FINANCIAL_REPORT"
 
 
 def test_synthetic_poc_matrix():
     assert plan(state(signal="entry"), state(signal="add")).estimated_llm_calls == 2
     assert plan(state(reports=("annual",)), state(reports=("annual", "h1"))).estimated_llm_calls == 4
-    assert plan(state(price=100), state(price=112)).estimated_llm_calls == 2
+    assert plan(state(price=100), state(price=112)).estimated_llm_calls == 0
     assert plan(state(), state()).estimated_llm_calls == 0

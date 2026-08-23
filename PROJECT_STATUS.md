@@ -323,3 +323,10 @@
 - Added role-specific compressed contexts for Analyst, Skeptic, and Valuation. Skeptic selection prioritizes evidence cited by Analyst claims; missing or invalid summaries use the existing raw-context fallback and record the selected context mode.
 - Integrated zero-LLM compression into `FULL_REFRESH`; valuation/decision refreshes reuse the prior valid artifact and `NO_ACTION` does not regenerate it. The full-chain estimate remains four LLM calls.
 - Generated and golden-tested summaries only for the two approved POCs, `000858.SZ` and `000423.SZ`. No DeepSeek call, historical backfill, database/schema, UI, Yield Signal, or Portfolio Manager decision change is included.
+
+## 2026-08-23: PR-IR10 focused research trigger policy (implemented, uncommitted)
+
+- Scheduled deep research now covers enabled `add`/`heavy` symbols plus a one-time exit confirmation for previously active symbols that move to `entry`/`watch`; confirmed inactive symbols leave both daily discovery and stale checks.
+- Replaced the automatic bidirectional price trigger with a persisted downside-only ladder. Successful price-trigger refreshes advance the anchor, successful full refreshes reset it, and failed runs leave it unchanged.
+- Added atomic file-based `trigger_state.json` metadata, auditable anchor fields in `run.json`, lazy compatibility with old research, and focused re-entry/first-research behavior without a database migration.
+- Agent prompts, IR9 compression, valuation, Portfolio Manager, Yield Signal thresholds, UI, workflow schedule and LLM call estimates are unchanged; validation uses dry-run/fakes only and does not call DeepSeek.

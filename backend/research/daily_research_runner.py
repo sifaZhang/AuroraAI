@@ -13,6 +13,7 @@ from .profile_builder import DEFAULT_RESEARCH_ROOT
 from .profile_repository import ProfileRepository
 from .research_orchestrator import MarketDataMissing, ResearchOrchestrator
 from .research_plan import ExecutionPlan, ResearchPlan
+from .research_trigger_state import requires_exit_confirmation
 from .source_discovery import SourceDiscovery
 
 
@@ -46,9 +47,13 @@ def build_universe(repository: ProfileRepository, research_root: Path, symbol: s
         if selected not in enabled:
             raise ValueError(f"symbol is not enabled in stable dividend universe: {selected}")
         return [selected]
-    candidates = {item["symbol"] for item in repository.research_candidates()}
-    researched = {path.name for path in research_root.iterdir() if path.is_dir()} if research_root.exists() else set()
-    return sorted((candidates | researched) & enabled)
+    selected = set()
+    for item in enabled:
+        facts = repository.profile_facts(item)
+        signal = facts.get("yield_signal") if facts else None
+        if signal in {"add", "heavy"} or requires_exit_confirmation(research_root, item, signal):
+            selected.add(item)
+    return sorted(selected)
 
 
 def _plan_payload(plan: ResearchPlan) -> dict[str, Any]:
