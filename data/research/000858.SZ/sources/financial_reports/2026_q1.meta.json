@@ -1,0 +1,15 @@
+{
+  "announcement_id": "1225273099",
+  "document_type": "q1_report",
+  "downloaded_at": "2026-08-23T01:03:15+00:00",
+  "file_name": "2026_q1.pdf",
+  "file_size": 345683,
+  "period": "2026Q1",
+  "published_at": "2026-04-30",
+  "schema_version": 1,
+  "sha256": "a68803f4a5fc6234f0fc97606a8f27f34aa6fb106aad8dafa40c526864208a34",
+  "source": "cninfo",
+  "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-30/1225273099.PDF",
+  "symbol": "000858.SZ",
+  "title": "2026年一季度报告"
+}

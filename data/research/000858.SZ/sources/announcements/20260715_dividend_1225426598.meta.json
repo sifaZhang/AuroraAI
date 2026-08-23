@@ -1,0 +1,14 @@
+{
+  "announcement_id": "1225426598",
+  "announcement_type": "dividend",
+  "downloaded_at": "2026-08-23T00:54:44+00:00",
+  "file_name": "20260715_dividend_1225426598.pdf",
+  "file_size": 73634,
+  "published_at": "2026-07-15",
+  "schema_version": 1,
+  "sha256": "6424b807e28fca49887b4c4da5eac7d7e9ba128edc76aac423d785750aab2d2d",
+  "source": "cninfo",
+  "source_url": "https://static.cninfo.com.cn/finalpage/2026-07-16/1225426598.PDF",
+  "symbol": "000858.SZ",
+  "title": "关于2025年度分红派息实施后调整回购股份价格上限的公告"
+}

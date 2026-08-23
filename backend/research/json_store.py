@@ -21,3 +21,11 @@ def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
         handle.flush()
         os.fsync(handle.fileno())
     os.replace(temporary, path)
+
+
+def write_bytes_atomic(path: Path, content: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with NamedTemporaryFile("wb", dir=path.parent, prefix=f".{path.name}.", suffix=".tmp", delete=False) as handle:
+        temporary = Path(handle.name)
+        handle.write(content); handle.flush(); os.fsync(handle.fileno())
+    os.replace(temporary, path)

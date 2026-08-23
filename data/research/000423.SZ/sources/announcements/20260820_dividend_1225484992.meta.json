@@ -1,0 +1,14 @@
+{
+  "announcement_id": "1225484992",
+  "announcement_type": "dividend",
+  "downloaded_at": "2026-08-23T01:05:13+00:00",
+  "file_name": "20260820_dividend_1225484992.pdf",
+  "file_size": 114508,
+  "published_at": "2026-08-20",
+  "schema_version": 1,
+  "sha256": "7ec9a66b5e8ca45b9db1472a9b0cb815d813dbae19d92c03c80b433db69fcff1",
+  "source": "cninfo",
+  "source_url": "https://static.cninfo.com.cn/finalpage/2026-08-21/1225484992.PDF",
+  "symbol": "000423.SZ",
+  "title": "关于2026年中期利润分配方案的公告"
+}

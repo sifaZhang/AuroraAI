@@ -1,0 +1,14 @@
+{
+  "announcement_id": "1225417855",
+  "announcement_type": "dividend",
+  "downloaded_at": "2026-08-23T00:54:45+00:00",
+  "file_name": "20260709_dividend_1225417855.pdf",
+  "file_size": 86291,
+  "published_at": "2026-07-09",
+  "schema_version": 1,
+  "sha256": "ea25b37738e9ce788b9e9d163552ca3b133dca5b40ba4c82c2360b6e15fc17a8",
+  "source": "cninfo",
+  "source_url": "https://static.cninfo.com.cn/finalpage/2026-07-10/1225417855.PDF",
+  "symbol": "000858.SZ",
+  "title": "2025年度分红派息实施公告"
+}

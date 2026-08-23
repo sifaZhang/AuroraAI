@@ -1,0 +1,142 @@
+{
+  "announcements": [
+    {
+      "announcement_type": "share_repurchase",
+      "document_type": null,
+      "file": "../../sources/announcements/20260402_share_repurchase_1225075935.pdf",
+      "metadata_file": "../../sources/announcements/20260402_share_repurchase_1225075935.meta.json",
+      "period": null,
+      "published_at": "2026-04-02",
+      "sha256": "617f230fa079699fc8e5e63bdf7a61ebba7fc58422590da27ef6edde93eaec54",
+      "source": "cninfo"
+    },
+    {
+      "announcement_type": "share_repurchase",
+      "document_type": null,
+      "file": "../../sources/announcements/20260507_share_repurchase_1225282195.pdf",
+      "metadata_file": "../../sources/announcements/20260507_share_repurchase_1225282195.meta.json",
+      "period": null,
+      "published_at": "2026-05-07",
+      "sha256": "2b1ba5ad8e56ebc90b20bd604079fa0f7b4fdbfeff155348d2277cfbc058830b",
+      "source": "cninfo"
+    },
+    {
+      "announcement_type": "dividend",
+      "document_type": null,
+      "file": "../../sources/announcements/20260518_dividend_1225313517.pdf",
+      "metadata_file": "../../sources/announcements/20260518_dividend_1225313517.meta.json",
+      "period": null,
+      "published_at": "2026-05-18",
+      "sha256": "96253bdd6b58e5d751259966468b75c1d63e71d6d91e88cf93b8fe9f709df990",
+      "source": "cninfo"
+    },
+    {
+      "announcement_type": "share_repurchase",
+      "document_type": null,
+      "file": "../../sources/announcements/20260601_share_repurchase_1225342914.pdf",
+      "metadata_file": "../../sources/announcements/20260601_share_repurchase_1225342914.meta.json",
+      "period": null,
+      "published_at": "2026-06-01",
+      "sha256": "9a1959ceef18621ebd88287db6b257082012db5ec198f77b7a764f6aa7f3f142",
+      "source": "cninfo"
+    },
+    {
+      "announcement_type": "share_repurchase",
+      "document_type": null,
+      "file": "../../sources/announcements/20260624_share_repurchase_1225385490.pdf",
+      "metadata_file": "../../sources/announcements/20260624_share_repurchase_1225385490.meta.json",
+      "period": null,
+      "published_at": "2026-06-24",
+      "sha256": "72cad2b603466b02afd9c6d3648080624b908305118f3d203273ec33cefd1304",
+      "source": "cninfo"
+    },
+    {
+      "announcement_type": "share_repurchase",
+      "document_type": null,
+      "file": "../../sources/announcements/20260701_share_repurchase_1225403693.pdf",
+      "metadata_file": "../../sources/announcements/20260701_share_repurchase_1225403693.meta.json",
+      "period": null,
+      "published_at": "2026-07-01",
+      "sha256": "136722a31a0ca29d7378a46aac0dbe4469d88a3ae134cf517415767834dec307",
+      "source": "cninfo"
+    },
+    {
+      "announcement_type": "dividend",
+      "document_type": null,
+      "file": "../../sources/announcements/20260820_dividend_1225484992.pdf",
+      "metadata_file": "../../sources/announcements/20260820_dividend_1225484992.meta.json",
+      "period": null,
+      "published_at": "2026-08-20",
+      "sha256": "7ec9a66b5e8ca45b9db1472a9b0cb815d813dbae19d92c03c80b433db69fcff1",
+      "source": "cninfo"
+    }
+  ],
+  "as_of": "2026-08-23",
+  "company_profile": {
+    "industry": {
+      "sw_l1": "医药生物",
+      "sw_l2": "中药Ⅱ",
+      "sw_l3": "中药Ⅲ"
+    },
+    "research_type": {
+      "primary": "consumer_brand",
+      "secondary": "high_dividend_cash_cow",
+      "source": "symbol_override"
+    }
+  },
+  "dividend_history": [
+    {
+      "calendar_year": 2023,
+      "cash_dividend_per_share": 1.7841902,
+      "current_basis_dps": 1.7841902,
+      "share_basis_as_of": "2026-08-16"
+    },
+    {
+      "calendar_year": 2024,
+      "cash_dividend_per_share": 2.4196826,
+      "current_basis_dps": 2.4196826,
+      "share_basis_as_of": "2026-08-16"
+    },
+    {
+      "calendar_year": 2025,
+      "cash_dividend_per_share": 2.7055822999999997,
+      "current_basis_dps": 2.7055822999999997,
+      "share_basis_as_of": "2026-08-16"
+    }
+  ],
+  "financial_reports": [
+    {
+      "announcement_type": null,
+      "document_type": "annual_report",
+      "file": "../../sources/financial_reports/2025_annual.pdf",
+      "metadata_file": "../../sources/financial_reports/2025_annual.meta.json",
+      "period": "2025",
+      "published_at": "2026-03-19",
+      "sha256": "d1ce791faa85e60d7f0d27ebafe20303ab32fc5d1075e9a303f179a3e9acd1a0",
+      "source": "cninfo"
+    },
+    {
+      "announcement_type": null,
+      "document_type": "half_year_report",
+      "file": "../../sources/financial_reports/2026_h1.pdf",
+      "metadata_file": "../../sources/financial_reports/2026_h1.meta.json",
+      "period": "2026H1",
+      "published_at": "2026-08-20",
+      "sha256": "59a579d82d54c7bdb2085574cecf3f61d91a9bb0985be3e63fe871a741f30057",
+      "source": "cninfo"
+    }
+  ],
+  "name": "东阿阿胶",
+  "schema_version": 1,
+  "symbol": "000423.SZ",
+  "yield_context": {
+    "add_yield": 4.0,
+    "entry_yield": 3.5,
+    "heavy_yield": 4.5,
+    "latest_price": 48.35,
+    "price_date": "2026-08-21",
+    "three_year_average_dps": 2.3031517,
+    "three_year_average_yield": 0.0476349886246122,
+    "yield_signal": "heavy"
+  }
+}

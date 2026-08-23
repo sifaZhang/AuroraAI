@@ -1,0 +1,14 @@
+{
+  "announcement_id": "1225423626",
+  "announcement_type": "earnings_forecast",
+  "downloaded_at": "2026-08-23T00:54:45+00:00",
+  "file_name": "20260714_earnings_forecast_1225423626.pdf",
+  "file_size": 58873,
+  "published_at": "2026-07-14",
+  "schema_version": 1,
+  "sha256": "fc011b991bea25206c6586a5514494551a8499b8558372278211199a0bfa89bd",
+  "source": "cninfo",
+  "source_url": "https://static.cninfo.com.cn/finalpage/2026-07-15/1225423626.PDF",
+  "symbol": "000858.SZ",
+  "title": "2026年半年度业绩预告"
+}

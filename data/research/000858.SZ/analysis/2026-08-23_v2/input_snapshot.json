@@ -1,0 +1,142 @@
+{
+  "announcements": [
+    {
+      "announcement_type": "share_repurchase",
+      "document_type": null,
+      "file": "../../sources/announcements/20260518_share_repurchase_1225313954.pdf",
+      "metadata_file": "../../sources/announcements/20260518_share_repurchase_1225313954.meta.json",
+      "period": null,
+      "published_at": "2026-05-18",
+      "sha256": "dbaae0eace2a163a9868221b1aaa39f565dd5f142edaf1d921bd6a5088d80b48",
+      "source": "cninfo"
+    },
+    {
+      "announcement_type": "share_repurchase",
+      "document_type": null,
+      "file": "../../sources/announcements/20260520_share_repurchase_1225321404.pdf",
+      "metadata_file": "../../sources/announcements/20260520_share_repurchase_1225321404.meta.json",
+      "period": null,
+      "published_at": "2026-05-20",
+      "sha256": "7f0df642848c73dd4deafde06bbcb47f7d412bb514b078446a93244af3f46912",
+      "source": "cninfo"
+    },
+    {
+      "announcement_type": "share_repurchase",
+      "document_type": null,
+      "file": "../../sources/announcements/20260601_share_repurchase_1225343262.pdf",
+      "metadata_file": "../../sources/announcements/20260601_share_repurchase_1225343262.meta.json",
+      "period": null,
+      "published_at": "2026-06-01",
+      "sha256": "5925632f09960121ebca8c9319512c90551ef338dc40922ef879757a173a6b5e",
+      "source": "cninfo"
+    },
+    {
+      "announcement_type": "share_repurchase",
+      "document_type": null,
+      "file": "../../sources/announcements/20260702_share_repurchase_1225405736.pdf",
+      "metadata_file": "../../sources/announcements/20260702_share_repurchase_1225405736.meta.json",
+      "period": null,
+      "published_at": "2026-07-02",
+      "sha256": "9a5a7a6d8eaea10f89c4ee6b896249a2f8200d7f3feea4e3c04c7c9a2a567568",
+      "source": "cninfo"
+    },
+    {
+      "announcement_type": "dividend",
+      "document_type": null,
+      "file": "../../sources/announcements/20260709_dividend_1225417855.pdf",
+      "metadata_file": "../../sources/announcements/20260709_dividend_1225417855.meta.json",
+      "period": null,
+      "published_at": "2026-07-09",
+      "sha256": "ea25b37738e9ce788b9e9d163552ca3b133dca5b40ba4c82c2360b6e15fc17a8",
+      "source": "cninfo"
+    },
+    {
+      "announcement_type": "earnings_forecast",
+      "document_type": null,
+      "file": "../../sources/announcements/20260714_earnings_forecast_1225423626.pdf",
+      "metadata_file": "../../sources/announcements/20260714_earnings_forecast_1225423626.meta.json",
+      "period": null,
+      "published_at": "2026-07-14",
+      "sha256": "fc011b991bea25206c6586a5514494551a8499b8558372278211199a0bfa89bd",
+      "source": "cninfo"
+    },
+    {
+      "announcement_type": "dividend",
+      "document_type": null,
+      "file": "../../sources/announcements/20260715_dividend_1225426598.pdf",
+      "metadata_file": "../../sources/announcements/20260715_dividend_1225426598.meta.json",
+      "period": null,
+      "published_at": "2026-07-15",
+      "sha256": "6424b807e28fca49887b4c4da5eac7d7e9ba128edc76aac423d785750aab2d2d",
+      "source": "cninfo"
+    },
+    {
+      "announcement_type": "share_repurchase",
+      "document_type": null,
+      "file": "../../sources/announcements/20260803_share_repurchase_1225454939.pdf",
+      "metadata_file": "../../sources/announcements/20260803_share_repurchase_1225454939.meta.json",
+      "period": null,
+      "published_at": "2026-08-03",
+      "sha256": "4dad34d9d28c77fd0b331332bfb439f4d47d7bc8e73cf7b69424c61bcff6d927",
+      "source": "cninfo"
+    }
+  ],
+  "as_of": "2026-08-23",
+  "company_profile": {
+    "industry": {
+      "sw_l1": "食品饮料",
+      "sw_l2": "白酒Ⅱ",
+      "sw_l3": "白酒Ⅲ"
+    },
+    "research_type": {
+      "primary": "consumer_brand",
+      "secondary": "high_dividend_cash_cow",
+      "source": "symbol_override"
+    }
+  },
+  "dividend_history": [
+    {
+      "calendar_year": 2023,
+      "cash_dividend_per_share": 4.67,
+      "current_basis_dps": 4.67,
+      "share_basis_as_of": "2026-08-16"
+    },
+    {
+      "calendar_year": 2024,
+      "cash_dividend_per_share": 5.745,
+      "current_basis_dps": 5.745,
+      "share_basis_as_of": "2026-08-16"
+    },
+    {
+      "calendar_year": 2025,
+      "cash_dividend_per_share": 5.1576851999999995,
+      "current_basis_dps": 5.1576851999999995,
+      "share_basis_as_of": "2026-08-16"
+    }
+  ],
+  "financial_reports": [
+    {
+      "announcement_type": null,
+      "document_type": "annual_report",
+      "file": "../../sources/financial_reports/2025_annual.pdf",
+      "metadata_file": "../../sources/financial_reports/2025_annual.meta.json",
+      "period": "2025",
+      "published_at": "2026-04-30",
+      "sha256": "09133e1f44b3bb4b2cebe211529ad68f5b04b6be10b43870f2a78c947d5910a4",
+      "source": "cninfo"
+    }
+  ],
+  "name": "五粮液",
+  "schema_version": 1,
+  "symbol": "000858.SZ",
+  "yield_context": {
+    "add_yield": 6.0,
+    "entry_yield": 5.0,
+    "heavy_yield": 7.0,
+    "latest_price": 71.19,
+    "price_date": "2026-08-21",
+    "three_year_average_dps": 5.190895066666666,
+    "three_year_average_yield": 0.07291607060916795,
+    "yield_signal": "heavy"
+  }
+}

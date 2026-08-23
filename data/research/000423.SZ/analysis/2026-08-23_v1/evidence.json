@@ -1,0 +1,86 @@
+{
+  "evidence": [
+    {
+      "file": "../../sources/financial_reports/2025_annual.pdf",
+      "id": "financial_report:2025:annual_report",
+      "period": "2025",
+      "published_at": "2026-03-19",
+      "sha256": "d1ce791faa85e60d7f0d27ebafe20303ab32fc5d1075e9a303f179a3e9acd1a0",
+      "source": "cninfo",
+      "type": "financial_report"
+    },
+    {
+      "file": "../../sources/financial_reports/2026_h1.pdf",
+      "id": "financial_report:2026H1:half_year_report",
+      "period": "2026H1",
+      "published_at": "2026-08-20",
+      "sha256": "59a579d82d54c7bdb2085574cecf3f61d91a9bb0985be3e63fe871a741f30057",
+      "source": "cninfo",
+      "type": "financial_report"
+    },
+    {
+      "file": "../../sources/announcements/20260402_share_repurchase_1225075935.pdf",
+      "id": "announcement:1225075935",
+      "published_at": "2026-04-02",
+      "sha256": "617f230fa079699fc8e5e63bdf7a61ebba7fc58422590da27ef6edde93eaec54",
+      "source": "cninfo",
+      "type": "announcement"
+    },
+    {
+      "file": "../../sources/announcements/20260507_share_repurchase_1225282195.pdf",
+      "id": "announcement:1225282195",
+      "published_at": "2026-05-07",
+      "sha256": "2b1ba5ad8e56ebc90b20bd604079fa0f7b4fdbfeff155348d2277cfbc058830b",
+      "source": "cninfo",
+      "type": "announcement"
+    },
+    {
+      "file": "../../sources/announcements/20260518_dividend_1225313517.pdf",
+      "id": "announcement:1225313517",
+      "published_at": "2026-05-18",
+      "sha256": "96253bdd6b58e5d751259966468b75c1d63e71d6d91e88cf93b8fe9f709df990",
+      "source": "cninfo",
+      "type": "announcement"
+    },
+    {
+      "file": "../../sources/announcements/20260601_share_repurchase_1225342914.pdf",
+      "id": "announcement:1225342914",
+      "published_at": "2026-06-01",
+      "sha256": "9a1959ceef18621ebd88287db6b257082012db5ec198f77b7a764f6aa7f3f142",
+      "source": "cninfo",
+      "type": "announcement"
+    },
+    {
+      "file": "../../sources/announcements/20260624_share_repurchase_1225385490.pdf",
+      "id": "announcement:1225385490",
+      "published_at": "2026-06-24",
+      "sha256": "72cad2b603466b02afd9c6d3648080624b908305118f3d203273ec33cefd1304",
+      "source": "cninfo",
+      "type": "announcement"
+    },
+    {
+      "file": "../../sources/announcements/20260701_share_repurchase_1225403693.pdf",
+      "id": "announcement:1225403693",
+      "published_at": "2026-07-01",
+      "sha256": "136722a31a0ca29d7378a46aac0dbe4469d88a3ae134cf517415767834dec307",
+      "source": "cninfo",
+      "type": "announcement"
+    },
+    {
+      "file": "../../sources/announcements/20260820_dividend_1225484992.pdf",
+      "id": "announcement:1225484992",
+      "published_at": "2026-08-20",
+      "sha256": "7ec9a66b5e8ca45b9db1472a9b0cb815d813dbae19d92c03c80b433db69fcff1",
+      "source": "cninfo",
+      "type": "announcement"
+    },
+    {
+      "as_of": "2026-08-22",
+      "id": "dividend_snapshot:2026-08-22",
+      "source": "aurora_db",
+      "type": "database_snapshot"
+    }
+  ],
+  "schema_version": 1,
+  "symbol": "000423.SZ"
+}
