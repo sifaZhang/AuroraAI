@@ -89,3 +89,10 @@
 .position-yield-entry { color: #166534; font-weight: 700; }
 .position-yield-add { color: #9a3412; font-weight: 700; }
 .position-yield-heavy { color: #b91c1c; font-weight: 700; }
+.research-decision { display:inline-flex; align-items:center; border-radius:999px; padding:.2rem .55rem; font-weight:700; text-decoration:none; border:1px solid transparent; }
+.research-decision.decision-avoid { color:#a93232; background:#fff0f0; border-color:#efc7c7; }
+.research-decision.decision-watch { color:#7a5a16; background:#fff8e5; border-color:#ead7a4; }
+.research-decision.decision-entry { color:#256b55; background:#eef8f3; border-color:#b9ddcf; }
+.research-decision.decision-add { color:#176347; background:#e4f5ed; border-color:#93cfb7; }
+.research-decision.decision-heavy { color:#0b5138; background:#d9f0e5; border-color:#67b993; }
+.research-unavailable { color:var(--muted, #76808f); white-space:nowrap; }

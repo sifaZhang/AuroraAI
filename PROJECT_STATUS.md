@@ -304,6 +304,12 @@
 - `score_first_limit_context` 当前会将上述两组输入标记为不可用，因此数据不完整的候选显示分数 `—` 且不生成 `S/A/B` 等级。这是防止使用未来数据或伪造分数的保护行为。
 - 建议下一个独立 PR 实现历史时点行业归属、行业/市场数据采集与上下文评分接线，并加入防未来数据、覆盖率和评分边界测试。
 - 已保存的旧候选快照不会因代码更新自动变化。ST 排除、名称和完整评分等变更需要重新同步相关数据并重新生成候选后才会体现在新结果中。
+## 2026-08-23: PR-IR8 AI Research Overview (implemented, uncommitted)
+
+- Added a read-only `/api/research` projection over valid completed `data/research/**` artifacts, with current-version preference, completed-version fallback, formal Dividend Yield Signal calculation, compact filtering, and no full Agent text exposure.
+- Added AI Decision, confidence, and research date to `/dividend/universe`, plus `/dividend/ai-research` with KPI cards, decision/yield/disagreement/symbol filters, signal-gap display, and safe empty states.
+- Verified the real summaries for 五粮液 (Heavy → Watch, 40%) and 东阿阿胶 (Heavy → Watch, 0%). No LLM execution, database write, schema change, migration, company detail page, or IR9 feature is included.
+
 ## 2026-08-23: PR-IR7 unified Dividend + Research daily workflow (implemented, uncommitted)
 
 - Extended the existing Dividend Daily workflow to run daily at UTC 12:00 / Beijing 20:00, preserving scheduled email and manual dividend inputs.

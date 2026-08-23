@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AuroraAI - AI Research</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/expectation-gap.css">
+  <link rel="stylesheet" href="/first-limit.css">
+  <link rel="stylesheet" href="/ai-research.css?v=ir8-1">
+</head>
+<body>
+  <main class="app-shell first-limit-shell ai-research-shell">
+    <nav class="site-nav" aria-label="主导航"><a href="/market-pulse.html">Market Pulse</a><details class="nav-dropdown active"><summary>分红</summary><div class="nav-menu"><a href="/dividend/universe">A股历史分红</a><a class="active" href="/dividend/ai-research">AI Research</a><a href="/">最近分红</a></div></details><a href="/expectation-gap?nav=20260809">预期差</a><details class="nav-dropdown"><summary>战法</summary><div class="nav-menu"><a href="/first-limit">首板回调战法</a></div></details><a href="/data-source-health">数据源状态</a></nav>
+    <header class="topbar first-limit-header"><div><p class="eyebrow">AuroraAI Research</p><h1>AI Research 总览</h1><p class="subtitle">Yield Signal 是基于股息率阈值的机械信号；AI Research Decision 是综合 Fundamental Analyst、Skeptic 和 Valuation 后的研究结论，不是自动交易建议。</p></div></header>
+    <section class="dashboard-card overview-card"><div id="research-kpis" class="overview-grid research-kpis"><div class="loading-card">正在加载研究摘要...</div></div></section>
+    <section class="dashboard-card run-controls"><div class="filter-grid research-filter-grid">
+      <label><span>搜索</span><input id="research-search" type="search" placeholder="股票代码或名称"></label>
+      <label><span>Research Decision</span><select id="decision-filter"><option value="all">All</option><option value="avoid">Avoid</option><option value="watch">Watch</option><option value="entry">Entry</option><option value="add">Add</option><option value="heavy">Heavy</option></select></label>
+      <label><span>Yield Signal</span><select id="yield-filter"><option value="all">All</option><option value="watch">Watch</option><option value="entry">Entry</option><option value="add">Add</option><option value="heavy">Heavy</option></select></label>
+      <label class="checkbox-field"><input id="disagreement-filter" type="checkbox"><span>Only disagreements</span></label>
+    </div></section>
+    <p id="research-message" class="state-note" aria-live="polite"></p>
+    <section id="research-error" class="api-error" role="alert" hidden><strong>AI研究摘要加载失败</strong><p id="research-error-detail"></p><button id="research-retry" type="button" class="secondary-button">重新加载</button></section>
+    <section class="dashboard-card tab-card"><div class="table-region"><table class="first-limit-table research-table"><thead><tr><th>股票</th><th>Yield Signal</th><th>AI Decision</th><th>Signal Gap</th><th>Decision Cap</th><th>Confidence</th><th>Skeptic</th><th>Valuation</th><th>Forecast Quality</th><th>当前价</th><th>研究时间</th></tr></thead><tbody id="research-rows"><tr><td colspan="11" class="empty-state">正在加载AI研究结果...</td></tr></tbody></table></div></section>
+  </main>
+  <script src="/ai-research.js?v=ir8-1"></script>
+</body>
+</html>

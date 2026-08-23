@@ -1,0 +1,14 @@
+.ai-research-shell { max-width:1500px; }
+.research-kpis { grid-template-columns:repeat(4,minmax(150px,1fr)); }
+.research-filter-grid { grid-template-columns:minmax(220px,2fr) repeat(2,minmax(160px,1fr)) minmax(180px,1fr); }
+.research-table { min-width:1180px; }
+.research-table td,.research-table th { white-space:nowrap; }
+.research-chip { display:inline-flex; border-radius:999px; padding:.2rem .55rem; font-weight:700; border:1px solid transparent; }
+.research-chip.decision-avoid { color:#a93232; background:#fff0f0; border-color:#efc7c7; }
+.research-chip.decision-watch { color:#7a5a16; background:#fff8e5; border-color:#ead7a4; }
+.research-chip.decision-entry { color:#256b55; background:#eef8f3; border-color:#b9ddcf; }
+.research-chip.decision-add { color:#176347; background:#e4f5ed; border-color:#93cfb7; }
+.research-chip.decision-heavy { color:#0b5138; background:#d9f0e5; border-color:#67b993; }
+.signal-gap { color:#8a5e16; font-weight:700; }
+.signal-match { color:var(--muted,#76808f); }
+@media (max-width:900px) { .research-kpis,.research-filter-grid { grid-template-columns:1fr 1fr; } }

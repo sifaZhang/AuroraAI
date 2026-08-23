@@ -21,6 +21,7 @@ from backend.api.industry import router as industry_router
 from backend.api.dividend_universe import router as dividend_universe_router
 from backend.api.dividend_yields import router as dividend_yields_router
 from backend.api.upcoming_dividend_refresh import router as upcoming_dividend_refresh_router
+from backend.api.research import router as research_router
 from backend.strategy.first_limit.api_service import FirstLimitAPIError
 
 app = FastAPI(title="AuroraAI")
@@ -30,6 +31,7 @@ app.include_router(industry_router)
 app.include_router(dividend_universe_router)
 app.include_router(dividend_yields_router)
 app.include_router(upcoming_dividend_refresh_router)
+app.include_router(research_router)
 app.include_router(first_limit_router)
 FRONTEND = PROJECT_ROOT / "frontend"
 
@@ -205,6 +207,10 @@ def dividend_universe_page():
 def dividend_yield_page(view: str):
     if view not in {'latest','three-year'}: raise HTTPException(404)
     return FileResponse(FRONTEND / 'dividend-yield.html', headers={'Cache-Control': 'no-store'})
+
+@app.get('/dividend/ai-research')
+def ai_research_page():
+    return FileResponse(FRONTEND / 'ai-research.html', headers={'Cache-Control': 'no-store'})
 
 
 app.mount("/", FrontendStaticFiles(directory=FRONTEND, html=True), name="frontend")
