@@ -35,8 +35,13 @@ class ProfileRepository:
         return item
 
     def research_candidates(self) -> list[dict[str, Any]]:
-        symbols = [row[0] for row in self.connection.execute("SELECT symbol FROM dividend_stable_universe WHERE is_enabled=1 ORDER BY symbol")]
+        symbols = self.enabled_symbols()
         return [facts for symbol in symbols if (facts := self.profile_facts(symbol)) and facts["yield_signal"] in {"entry", "add", "heavy"}]
+
+    def enabled_symbols(self) -> list[str]:
+        return [row[0] for row in self.connection.execute(
+            "SELECT symbol FROM dividend_stable_universe WHERE is_enabled=1 ORDER BY symbol"
+        )]
 
     def dividend_history(self, symbol: str) -> list[dict[str, Any]]:
         return [dict(row) for row in self.connection.execute(

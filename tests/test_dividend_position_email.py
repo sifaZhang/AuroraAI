@@ -50,7 +50,7 @@ def test_sender_uses_one_message_and_ssl_for_465(monkeypatch):
 def test_workflow_has_manual_email_input_without_schedule():
     from backend.dividend.daily_position_report import PROJECT_ROOT
     workflow = (PROJECT_ROOT / ".github/workflows/dividend-daily-report.yml").read_text(encoding="utf-8")
-    assert 'schedule:\n    - cron: "0 10 * * *"\n  workflow_dispatch:' in workflow
+    assert 'schedule:\n    - cron: "0 12 * * *"\n  workflow_dispatch:' in workflow
     assert 'trade_date:\n        description: Optional trade date for manual testing (YYYY-MM-DD); blank uses today\'s Beijing date\n        required: false\n        default: ""\n        type: string' in workflow
     assert "send_email:" in workflow and "default: false" in workflow
     assert "--send-email" in workflow

@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from backend.research.json_store import read_json, write_json_atomic
-from backend.research.research_orchestrator import ResearchOrchestrator
+from backend.research.research_orchestrator import MarketDataMissing, ResearchOrchestrator
 from backend.research.research_plan import (ExecutionPlan, OrchestratorConfig, ResearchState, Trigger,
                                             build_research_plan, enforce_llm_budget)
 
@@ -55,6 +55,18 @@ def test_new_announcement_triggers_full_once():
     assert plan(state(announcements=("a",)), state(announcements=("a",))).execution_plan == ExecutionPlan.NO_ACTION
 
 
+def test_discovered_source_identity_dedupes_consumed_reports_and_announcements():
+    consumed = state(reports=("2026-H1:half_year_report:report-1",), announcements=("announcement-1",))
+    same = state(reports=("2026-H1:half_year_report:report-1",), announcements=("announcement-1",))
+    assert plan(consumed, same).execution_plan == ExecutionPlan.NO_ACTION
+    new_report = state(reports=(*same.financial_source_keys, "2026-Q3:q3_report:report-2"),
+                       announcements=same.announcement_source_keys)
+    assert plan(consumed, new_report).primary_trigger == Trigger.NEW_FINANCIAL_REPORT
+    new_announcement = state(reports=consumed.financial_source_keys,
+                             announcements=(*same.announcement_source_keys, "announcement-2"))
+    assert plan(consumed, new_announcement).primary_trigger == Trigger.MATERIAL_ANNOUNCEMENT
+
+
 def test_staleness_routes_to_correct_plan():
     assert plan(state(valuation_days=31), state(valuation_days=31)).execution_plan == ExecutionPlan.VALUATION_REFRESH
     result = plan(state(analysis_days=91, valuation_days=91), state(analysis_days=91, valuation_days=91))
@@ -83,6 +95,13 @@ def test_no_action_does_not_create_version(tmp_path: Path):
     orchestrator = ResearchOrchestrator(repository=Repo(), research_root=tmp_path)
     before = set(tmp_path.rglob("*")); result = orchestrator.execute(plan(state(), state()))
     assert result["status"] == "NO_ACTION" and set(tmp_path.rglob("*")) == before
+
+
+def test_missing_market_facts_fail_safe(tmp_path: Path):
+    class Repo:
+        def profile_facts(self, _symbol): return {"latest_price": None, "yield_signal": "watch"}
+    with pytest.raises(MarketDataMissing):
+        ResearchOrchestrator(repository=Repo(), research_root=tmp_path).plan("000858.SZ")
 
 
 def test_run_metadata_records_reuse():

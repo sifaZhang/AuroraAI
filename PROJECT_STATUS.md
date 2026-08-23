@@ -304,3 +304,9 @@
 - `score_first_limit_context` 当前会将上述两组输入标记为不可用，因此数据不完整的候选显示分数 `—` 且不生成 `S/A/B` 等级。这是防止使用未来数据或伪造分数的保护行为。
 - 建议下一个独立 PR 实现历史时点行业归属、行业/市场数据采集与上下文评分接线，并加入防未来数据、覆盖率和评分边界测试。
 - 已保存的旧候选快照不会因代码更新自动变化。ST 排除、名称和完整评分等变更需要重新同步相关数据并重新生成候选后才会体现在新结果中。
+## 2026-08-23: PR-IR7 unified Dividend + Research daily workflow (implemented, uncommitted)
+
+- Extended the existing Dividend Daily workflow to run daily at UTC 12:00 / Beijing 20:00, preserving scheduled email and manual dividend inputs.
+- Added metadata-only CNINFO discovery, enabled research-universe construction, plan-all-before-execute budgeting, per-symbol failure isolation, and daily JSON/step summaries.
+- Scheduled research explicitly executes; manual research defaults to dry-run. Only `data/research/**` can be staged and pushed with the GitHub token; no force push or PAT is used.
+- No database migration, research decision logic, Review Agent, UI, or new workflow was added. Development validation does not call DeepSeek or push Git changes.

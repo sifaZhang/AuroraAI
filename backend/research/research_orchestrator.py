@@ -17,6 +17,7 @@ from .research_plan import (ExecutionPlan, OrchestratorConfig, ResearchPlan, Res
 from .research_run_schema import RunDocument
 from .skeptic_analyst import SkepticAnalyst
 from .source_collector import CninfoClient, discover_documents, save_document
+from .source_metadata import SourceDocument
 from .source_repository import SourceRepository
 from .valuation_agent import ValuationAgent
 from .valuation_input_builder import ValuationInputBuilder
@@ -30,10 +31,21 @@ STEP_PLANS = {
 }
 
 
+class MarketDataMissing(ValueError):
+    pass
+
+
 def _source_key(item: dict[str, Any], *, financial: bool) -> str:
+    identity = item.get("announcement_id") or item.get("source_url") or item.get("sha256")
     if financial:
-        return str(item.get("sha256") or f"{item.get('period')}:{item.get('document_type')}")
-    return str(item.get("sha256") or item.get("announcement_id") or item.get("source_url"))
+        return f"{item.get('period')}:{item.get('document_type')}:{identity or ''}"
+    return str(identity)
+
+
+def _document_key(document: SourceDocument, *, financial: bool) -> str:
+    return _source_key({"period": document.period, "document_type": document.document_type,
+                        "announcement_id": document.announcement_id, "source_url": document.source_url},
+                       financial=financial)
 
 
 class ResearchOrchestrator:
@@ -45,8 +57,11 @@ class ResearchOrchestrator:
     def close(self) -> None:
         if self._owns_repository: self.repository.close()
 
-    def plan(self, symbol: str, *, mode: str | None = None) -> ResearchPlan:
-        symbol = symbol.upper(); previous = self._previous_state(symbol); current = self._current_state(symbol, previous)
+    def plan(self, symbol: str, *, mode: str | None = None,
+             discovered_financial: tuple[SourceDocument, ...] = (),
+             discovered_announcements: tuple[SourceDocument, ...] = ()) -> ResearchPlan:
+        symbol = symbol.upper(); previous = self._previous_state(symbol)
+        current = self._current_state(symbol, previous, discovered_financial, discovered_announcements)
         return build_research_plan(previous, current, today=self.today(), config=self.config, manual_mode=mode)
 
     def execute(self, plan: ResearchPlan, *, max_llm_calls: int | None = None) -> dict[str, Any]:
@@ -101,21 +116,34 @@ class ResearchOrchestrator:
         folder = sorted(choices, key=lambda item: item.name)[-1]
         snapshot, valuation = read_json(folder / "input_snapshot.json"), read_json(folder / "valuation.json")
         as_of = snapshot.get("as_of"); generated = valuation.get("generation", {}).get("generated_at")
+        def snapshot_keys(category: str, *, financial: bool) -> frozenset[str]:
+            keys = []
+            for item in snapshot.get(category, []):
+                metadata = read_json((folder / str(item.get("metadata_file", ""))).resolve()) if item.get("metadata_file") else {}
+                keys.append(_source_key({**item, **metadata}, financial=financial))
+            return frozenset(keys)
         return ResearchState(symbol, folder.name, date.fromisoformat(as_of) if as_of else None,
                              date.fromisoformat(str(generated)[:10]) if generated else (date.fromisoformat(as_of) if as_of else None),
                              snapshot.get("yield_context", {}).get("latest_price"), snapshot.get("yield_context", {}).get("yield_signal"),
-                             frozenset(_source_key(x, financial=True) for x in snapshot.get("financial_reports", [])),
-                             frozenset(_source_key(x, financial=False) for x in snapshot.get("announcements", [])))
+                             snapshot_keys("financial_reports", financial=True),
+                             snapshot_keys("announcements", financial=False))
 
-    def _current_state(self, symbol: str, previous: ResearchState | None) -> ResearchState:
+    def _current_state(self, symbol: str, previous: ResearchState | None,
+                       discovered_financial: tuple[SourceDocument, ...] = (),
+                       discovered_announcements: tuple[SourceDocument, ...] = ()) -> ResearchState:
         facts = self.repository.profile_facts(symbol)
         if facts is None: raise ValueError(f"stable dividend universe symbol not found: {symbol}")
+        if facts.get("latest_price") is None or facts.get("yield_signal") is None:
+            raise MarketDataMissing(f"latest price or yield signal unavailable for {symbol}")
         sources = SourceRepository(self.research_root / symbol)
         reports, announcements = sources.documents("financial_reports"), sources.documents("announcements")
+        report_keys = {_source_key(x, financial=True) for x in reports}
+        report_keys.update(_document_key(x, financial=True) for x in discovered_financial)
+        announcement_keys = {_source_key(x, financial=False) for x in announcements}
+        announcement_keys.update(_document_key(x, financial=False) for x in discovered_announcements)
         return ResearchState(symbol, previous.analysis_version if previous else None, previous.analysis_date if previous else None,
                              previous.valuation_date if previous else None, facts.get("latest_price"), facts.get("yield_signal"),
-                             frozenset(_source_key(x, financial=True) for x in reports),
-                             frozenset(_source_key(x, financial=False) for x in announcements))
+                             frozenset(report_keys), frozenset(announcement_keys))
 
     def _collect_sources(self, symbol: str) -> None:
         ProfileBuilder(self.repository, research_root=self.research_root).build(symbol)
