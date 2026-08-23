@@ -6,3 +6,4 @@ futu-api>=10.9
 fastapi>=0.115
 uvicorn>=0.34
 httpx>=0.28
+pypdf>=5.0

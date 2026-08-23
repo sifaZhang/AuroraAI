@@ -1,0 +1,213 @@
+{
+  "analysis_version": "2026-08-23_v3",
+  "claims": [
+    {
+      "claim_id": "C001",
+      "claim_type": "FACT",
+      "confidence": 1.0,
+      "evidence_ids": [
+        "financial_report:2025:annual_report"
+      ],
+      "reasoning": null,
+      "statement": "五粮液's 2025 revenue was RMB 40.53 billion, a decrease of 54.55% year-over-year."
+    },
+    {
+      "claim_id": "C002",
+      "claim_type": "FACT",
+      "confidence": 1.0,
+      "evidence_ids": [
+        "financial_report:2025:annual_report"
+      ],
+      "reasoning": null,
+      "statement": "五粮液's 2025 net profit attributable to shareholders was RMB 8.95 billion, a decrease of 71.89% year-over-year."
+    },
+    {
+      "claim_id": "C003",
+      "claim_type": "FACT",
+      "confidence": 1.0,
+      "evidence_ids": [
+        "financial_report:2025:annual_report"
+      ],
+      "reasoning": null,
+      "statement": "The company's liquor product gross margin was 83.75% in 2025, up 1.54 percentage points from 2024."
+    },
+    {
+      "claim_id": "C004",
+      "claim_type": "FACT",
+      "confidence": 1.0,
+      "evidence_ids": [
+        "financial_report:2025:annual_report"
+      ],
+      "reasoning": null,
+      "statement": "Finished goods inventory increased by 45.18% year-over-year to 47,616 tons at the end of 2025."
+    },
+    {
+      "claim_id": "C005",
+      "claim_type": "FACT",
+      "confidence": 1.0,
+      "evidence_ids": [
+        "financial_report:2026Q1:q1_report"
+      ],
+      "reasoning": null,
+      "statement": "In Q1 2026, revenue increased by 33.67% year-over-year to RMB 22.84 billion, but operating cash flow was negative RMB 2.54 billion."
+    },
+    {
+      "claim_id": "C006",
+      "claim_type": "FACT",
+      "confidence": 1.0,
+      "evidence_ids": [
+        "announcement:1225313954"
+      ],
+      "reasoning": null,
+      "statement": "The company announced a share repurchase program of RMB 8-10 billion at a maximum price of RMB 153.59 per share."
+    },
+    {
+      "claim_id": "C007",
+      "claim_type": "FACT",
+      "confidence": 1.0,
+      "evidence_ids": [
+        "dividend_snapshot:2026-08-22"
+      ],
+      "reasoning": null,
+      "statement": "The three-year average dividend per share is RMB 5.19, implying a dividend yield of 7.29% at the latest price of RMB 71.19."
+    },
+    {
+      "claim_id": "C008",
+      "claim_type": "FACT",
+      "confidence": 1.0,
+      "evidence_ids": [
+        "financial_report:2025:annual_report"
+      ],
+      "reasoning": null,
+      "statement": "The baijiu industry is in a deep adjustment period with national production declining 12.1% and sales revenue declining 7.5% in 2025."
+    },
+    {
+      "claim_id": "C009",
+      "claim_type": "INFERENCE",
+      "confidence": 0.6,
+      "evidence_ids": [
+        "financial_report:2025:annual_report"
+      ],
+      "reasoning": "The company has a leading brand, extensive distribution, and high margins, which historically provide resilience; however, current industry downturn may persist.",
+      "statement": "五粮液's brand strength and market position are likely to support a recovery once industry conditions stabilize."
+    },
+    {
+      "claim_id": "C010",
+      "claim_type": "INFERENCE",
+      "confidence": 0.7,
+      "evidence_ids": [
+        "announcement:1225313954"
+      ],
+      "reasoning": "A buyback of this magnitude (RMB 8-10 billion) is typically undertaken when management believes shares are undervalued, and it reduces share count, potentially boosting EPS.",
+      "statement": "The large share repurchase program signals management's confidence in the company's intrinsic value and may support the stock price."
+    },
+    {
+      "claim_id": "C011",
+      "claim_type": "INFERENCE",
+      "confidence": 0.5,
+      "evidence_ids": [
+        "financial_report:2026Q1:q1_report"
+      ],
+      "reasoning": "The company cited higher bills receivable and a high base effect; annual cash flow in 2025 was still positive at RMB 29.7 billion, suggesting a seasonal or cyclical issue.",
+      "statement": "The negative operating cash flow in Q1 2026 is likely temporary and due to increased receivables from market conditions, not a structural deterioration."
+    },
+    {
+      "claim_id": "C012",
+      "claim_type": "ASSUMPTION",
+      "confidence": 0.5,
+      "evidence_ids": [
+        "financial_report:2025:annual_report",
+        "financial_report:2026Q1:q1_report"
+      ],
+      "reasoning": "Given the sharp decline in 2025 and only partial recovery in Q1 2026, full-year earnings are unlikely to return to 2024 levels without a significant industry rebound.",
+      "statement": "五粮液's normalized earnings for FY2026 will likely remain below historical peak levels due to ongoing industry challenges."
+    }
+  ],
+  "company_classification": {
+    "business_model_summary": "五粮液 is a leading Chinese baijiu producer with a strong brand, extensive distribution network, and significant cash generation, operating in a mature but currently contracting industry.",
+    "primary_research_type": "consumer_brand",
+    "secondary_research_type": "high_dividend_cash_cow"
+  },
+  "generation": {
+    "generated_at": "2026-08-23T02:26:36+00:00",
+    "input_tokens": 19994,
+    "latency_ms": 29019,
+    "model": "deepseek-v4-pro",
+    "output_tokens": 2215,
+    "prompt_version": "fundamental-v1",
+    "provider": "deepseek"
+  },
+  "investment_thesis": {
+    "market_concerns": [
+      "Sharp decline in revenue (-54.55%) and net profit (-71.89%) in 2025 due to industry downturn.",
+      "Rising inventory levels (finished goods inventory up 45.18% year-over-year) indicating weak demand.",
+      "Negative operating cash flow in Q1 2026 (-RMB 2.54 billion) due to increased receivables.",
+      "Intense competition and shrinking consumption scenarios in the baijiu industry.",
+      "Governance uncertainty with acting chairman and recent accounting adjustments."
+    ],
+    "positive_drivers": [
+      "Strong brand equity and leading position in the premium baijiu segment.",
+      "High gross margins (83.75% for liquor products) and robust cash generation.",
+      "Large share repurchase program (RMB 8-10 billion) and consistent dividend payments.",
+      "Extensive distribution network with over 5,500 active terminals and growing e-commerce presence.",
+      "Significant cash reserves (RMB 124.3 billion in cash as of Q1 2026) providing financial flexibility."
+    ],
+    "summary": "五粮液 faces a severe industry downturn with revenue and profit declining sharply in 2025, but maintains a strong brand, high margins, and substantial cash reserves. The company is actively returning cash to shareholders through dividends and a large share repurchase program, supported by a high dividend yield. Recovery depends on industry stabilization and successful execution of brand and channel strategies."
+  },
+  "key_risks": [
+    "Prolonged industry downturn leading to further revenue and profit declines.",
+    "Inventory buildup causing price erosion and margin pressure.",
+    "Increased competition from other baijiu brands and alternative alcoholic beverages.",
+    "Regulatory changes affecting alcohol consumption or advertising.",
+    "Execution risk in brand revitalization and channel expansion."
+  ],
+  "normalized_earnings": {
+    "base": null,
+    "bear": null,
+    "bull": null,
+    "key_drivers": [],
+    "limitations": [
+      "No explicit FY2026 earnings forecast provided in the evidence.",
+      "Historical earnings are volatile due to industry downturn and accounting adjustments."
+    ],
+    "method": "insufficient_evidence",
+    "period": "FY2026E",
+    "unit": "CNY_100M"
+  },
+  "provisional_view": {
+    "confidence": 0.4,
+    "summary": "五粮液 is a high-quality company facing a cyclical downturn. Its strong brand, cash generation, and shareholder returns provide downside support, but near-term earnings visibility is poor. The stock appears attractively valued on a dividend yield basis, but recovery timing is uncertain.",
+    "valuation_attractiveness": "uncertain"
+  },
+  "quality_assessment": {
+    "business_quality": {
+      "reason": "Strong brand, high margins, and dominant market position, but currently facing severe industry headwinds and declining volumes.",
+      "score": 7.0
+    },
+    "dividend_quality": {
+      "reason": "Consistent dividend payments with a three-year average DPS of 5.19 and a current yield of 7.29%, supported by strong cash reserves and a commitment to shareholder returns.",
+      "score": 8.0
+    },
+    "earnings_quality": {
+      "reason": "Earnings are under pressure with significant declines, and there was a prior period accounting adjustment; however, cash flow remains positive on an annual basis and non-recurring items are modest.",
+      "score": 5.0
+    },
+    "governance_quality": {
+      "reason": "State-owned enterprise with stable ownership, but acting chairman and recent accounting restatement raise some concerns.",
+      "score": 6.0
+    }
+  },
+  "schema_version": 1,
+  "symbol": "000858.SZ",
+  "valuation": {
+    "base_value_per_share": null,
+    "bear_value_per_share": null,
+    "bull_value_per_share": null,
+    "limitations": [
+      "Insufficient evidence to estimate intrinsic value; no forward earnings or cash flow projections available."
+    ],
+    "methodology": "",
+    "primary_method": "insufficient_evidence",
+    "secondary_methods": []
+  }
+}
