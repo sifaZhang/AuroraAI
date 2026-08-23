@@ -1,0 +1,195 @@
+{
+  "analysis_version": "2026-08-23_v3",
+  "challenged_claims": [
+    {
+      "analyst_claim_id": "C005",
+      "evidence_ids": [
+        "financial_report:2026Q1:q1_report"
+      ],
+      "reason": "The claim states Q1 2026 revenue increased 33.67% year-over-year, but the Q1 report shows the prior-year figure was restated due to an accounting error correction. The restated base is RMB 17.09 billion, not the originally reported RMB 36.94 billion. The 33.67% growth is therefore partly an artifact of the restatement, not purely organic growth. The analyst did not disclose this restatement in the claim, making the growth figure misleading.",
+      "severity": "HIGH",
+      "status": "WEAKLY_SUPPORTED"
+    },
+    {
+      "analyst_claim_id": "C009",
+      "evidence_ids": [
+        "financial_report:2025:annual_report"
+      ],
+      "reason": "The inference that brand strength will support recovery is not directly supported by the evidence. The annual report shows a 54.55% revenue decline and 45.18% inventory increase, indicating severe demand weakness. No evidence is provided that industry conditions are stabilizing or that brand strength has historically led to quick recoveries in similar downturns.",
+      "severity": "MEDIUM",
+      "status": "WEAKLY_SUPPORTED"
+    },
+    {
+      "analyst_claim_id": "C010",
+      "evidence_ids": [
+        "announcement:1225313954"
+      ],
+      "reason": "The claim that the buyback signals management confidence is an inference not supported by the announcement. The announcement only states the buyback is for reducing registered capital; it does not state management believes shares are undervalued. Buybacks can also be used for other purposes, and the company's acting chairman and recent accounting adjustments raise questions about management's credibility.",
+      "severity": "MEDIUM",
+      "status": "WEAKLY_SUPPORTED"
+    },
+    {
+      "analyst_claim_id": "C011",
+      "evidence_ids": [
+        "financial_report:2026Q1:q1_report"
+      ],
+      "reason": "The claim that negative operating cash flow is temporary is not well supported. The Q1 report attributes it to higher bills receivable and a high base, but the cash flow statement shows sales cash received dropped from RMB 38.23 billion to RMB 13.31 billion, a 65% decline, while revenue increased. This suggests a significant deterioration in cash collection, possibly due to channel stuffing or extended credit terms, which could be structural.",
+      "severity": "HIGH",
+      "status": "WEAKLY_SUPPORTED"
+    },
+    {
+      "analyst_claim_id": "C012",
+      "evidence_ids": [
+        "financial_report:2025:annual_report",
+        "financial_report:2026Q1:q1_report"
+      ],
+      "reason": "The assumption that normalized earnings will remain below peak is plausible but not directly evidenced. The analyst provides no quantitative basis for normalized earnings, and the Q1 2026 net profit of RMB 8.06 billion annualizes to RMB 32.25 billion, which is close to 2024 levels. However, this annualization is unreliable due to seasonality and the restated base.",
+      "severity": "MEDIUM",
+      "status": "WEAKLY_SUPPORTED"
+    }
+  ],
+  "dividend_trap_assessment": {
+    "confidence": 0.5,
+    "missing_evidence": [
+      "Future dividend policy announcements or management guidance on dividend sustainability.",
+      "Detailed cash flow projections or free cash flow estimates.",
+      "Industry recovery indicators or company-specific sales volume trends."
+    ],
+    "reasons": [
+      "The high dividend yield is based on historical DPS, but 2025 DPS declined and earnings fell sharply, making future dividends uncertain.",
+      "The payout ratio exceeds 100% of 2025 earnings, indicating dividends are not covered by current profits.",
+      "Negative operating cash flow in Q1 2026 raises concerns about cash generation to sustain dividends.",
+      "The company has large cash reserves (RMB 124.3 billion), which could support dividends temporarily, but this is not a long-term solution."
+    ],
+    "status": "UNKNOWN",
+    "supporting_evidence_ids": [
+      "financial_report:2025:annual_report",
+      "financial_report:2026Q1:q1_report",
+      "dividend_snapshot:2026-08-22"
+    ]
+  },
+  "earnings_risk_assessment": {
+    "challenged_assumptions": [
+      "That Q1 2026 revenue growth of 33.67% is organic and sustainable.",
+      "That negative operating cash flow is temporary and not indicative of channel stuffing.",
+      "That normalized earnings will recover to historical levels without evidence of industry stabilization."
+    ],
+    "confidence": 0.6,
+    "evidence_ids": [
+      "financial_report:2026Q1:q1_report",
+      "financial_report:2025:annual_report"
+    ],
+    "summary": "Earnings quality is questionable due to the accounting restatement, negative operating cash flow despite revenue growth, and high inventory levels. The Q1 2026 profit increase is partly due to a low restated base, and annualizing Q1 results is unreliable."
+  },
+  "generation": {
+    "generated_at": "2026-08-23T03:52:44+00:00",
+    "input_tokens": 22403,
+    "latency_ms": 34877,
+    "model": "deepseek-v4-pro",
+    "output_tokens": 2540,
+    "prompt_version": "skeptic-v1",
+    "provider": "deepseek"
+  },
+  "governance_risk_assessment": {
+    "confidence": 0.5,
+    "evidence_ids": [
+      "financial_report:2025:annual_report",
+      "financial_report:2026Q1:q1_report"
+    ],
+    "missing_evidence": [
+      "Details on the chairman's situation and succession plan.",
+      "Auditor's opinion on internal controls and the accounting restatement.",
+      "Any regulatory inquiries or investigations related to the accounting issues."
+    ],
+    "summary": "The company has an acting chairman due to the chairman's inability to perform duties, and there was a prior period accounting error correction. These factors raise concerns about management stability and financial reporting integrity."
+  },
+  "major_risks": [
+    {
+      "category": "cash_flow",
+      "evidence_ids": [
+        "financial_report:2026Q1:q1_report"
+      ],
+      "invalidate_condition": "If subsequent quarters show operating cash flow returning to positive and receivables declining, the risk may be temporary.",
+      "reasoning": "The cash flow statement shows sales cash received fell 65% year-over-year while revenue rose, indicating a significant increase in receivables (notes receivable). This could signal channel stuffing or deteriorating collection, undermining earnings quality and dividend sustainability.",
+      "risk_id": "R001",
+      "severity": "HIGH",
+      "statement": "Q1 2026 operating cash flow was negative RMB 2.54 billion, a sharp reversal from positive RMB 15.85 billion in Q1 2025, despite a 33.67% revenue increase."
+    },
+    {
+      "category": "balance_sheet",
+      "evidence_ids": [
+        "financial_report:2025:annual_report"
+      ],
+      "invalidate_condition": "If inventory levels decline in subsequent quarters and sales volume recovers, the risk may subside.",
+      "reasoning": "The sharp inventory buildup indicates weak demand and potential future price erosion or write-downs. High inventory levels can lead to discounting, margin pressure, and reduced future production, impacting earnings.",
+      "risk_id": "R002",
+      "severity": "HIGH",
+      "statement": "Finished goods inventory increased 45.18% year-over-year to 47,616 tons at end of 2025, with 五粮液 product inventory up 306.90%."
+    },
+    {
+      "category": "industry",
+      "evidence_ids": [
+        "financial_report:2025:annual_report"
+      ],
+      "invalidate_condition": "If industry data shows stabilization or recovery in production and sales, the risk may diminish.",
+      "reasoning": "The industry downturn is severe and may persist, as indicated by the company's own commentary on shrinking consumption scenarios and intensified competition. This cyclical risk could further depress revenue and profits.",
+      "risk_id": "R003",
+      "severity": "HIGH",
+      "statement": "The baijiu industry is in a deep adjustment period with national production declining 12.1% and sales revenue declining 7.5% in 2025."
+    },
+    {
+      "category": "accounting",
+      "evidence_ids": [
+        "financial_report:2026Q1:q1_report",
+        "financial_report:2025:annual_report"
+      ],
+      "invalidate_condition": "If the accounting issues are fully resolved and a permanent chairman is appointed with no further restatements, the risk may decrease.",
+      "reasoning": "The accounting restatement raises concerns about the reliability of financial reporting and internal controls. The acting chairman situation adds governance uncertainty, which could affect strategic decisions and investor confidence.",
+      "risk_id": "R004",
+      "severity": "MEDIUM",
+      "statement": "The company made a prior period accounting error correction in Q1 2026, adjusting 2025 revenue recognition, and has an acting chairman due to the chairman's inability to perform duties."
+    },
+    {
+      "category": "dividend_sustainability",
+      "evidence_ids": [
+        "dividend_snapshot:2026-08-22",
+        "financial_report:2025:annual_report"
+      ],
+      "invalidate_condition": "If earnings recover to levels that cover the dividend with a reasonable payout ratio, the risk may be mitigated.",
+      "reasoning": "The dividend may not be sustainable if earnings remain depressed. The payout ratio based on 2025 EPS of RMB 2.31 and DPS of RMB 5.16 is over 200%, indicating dividends are being paid from cash reserves or prior profits, which is not sustainable long-term.",
+      "risk_id": "R005",
+      "severity": "MEDIUM",
+      "statement": "The three-year average DPS of RMB 5.19 implies a 7.29% yield, but 2025 DPS declined to RMB 5.16 from RMB 5.745 in 2024, and earnings fell 71.89%."
+    }
+  ],
+  "missing_evidence": [
+    {
+      "importance": "HIGH",
+      "item": "FY2026 earnings forecast or management guidance",
+      "reason": "Without forward-looking earnings estimates, it is impossible to assess dividend sustainability or valuation."
+    },
+    {
+      "importance": "HIGH",
+      "item": "Detailed breakdown of receivables and collection trends",
+      "reason": "The negative operating cash flow and increase in notes receivable need further explanation to determine if it is temporary or structural."
+    },
+    {
+      "importance": "HIGH",
+      "item": "Industry recovery indicators or company sales volume trends for 2026",
+      "reason": "The investment thesis depends on industry stabilization, but no evidence is provided on current demand trends."
+    },
+    {
+      "importance": "MEDIUM",
+      "item": "Auditor's report on internal controls and accounting restatement",
+      "reason": "The accounting error correction raises concerns about financial reporting reliability, and the auditor's opinion is not available."
+    }
+  ],
+  "overall_assessment": {
+    "confidence": 0.65,
+    "summary": "五粮液 faces a severe industry downturn with revenue and profit declining sharply in 2025, and Q1 2026 recovery is partly due to a low base and accounting restatement. The negative operating cash flow in Q1 2026, rising inventory, and governance uncertainty (acting chairman, accounting adjustments) undermine the fundamental analyst's optimistic recovery thesis. Dividend yield appears high but is based on historical DPS that may not be sustainable if earnings remain depressed."
+  },
+  "recommended_research_cap": "ENTRY",
+  "schema_version": 1,
+  "symbol": "000858.SZ",
+  "verdict": "CAUTION"
+}
