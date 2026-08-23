@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from backend.research.json_store import read_json, write_json_atomic
-from backend.research.research_orchestrator import MarketDataMissing, ResearchOrchestrator
+from backend.research.research_orchestrator import STEP_PLANS, MarketDataMissing, ResearchOrchestrator
 from backend.research.research_plan import (ExecutionPlan, OrchestratorConfig, ResearchState, Trigger,
                                             build_research_plan, enforce_llm_budget)
 
@@ -97,6 +97,14 @@ def test_no_action_does_not_create_version(tmp_path: Path):
     assert result["status"] == "NO_ACTION" and set(tmp_path.rglob("*")) == before
 
 
+def test_compression_step_routing_does_not_add_llm_calls():
+    assert STEP_PLANS[ExecutionPlan.FULL_REFRESH]["evidence_compression"] == "RUN"
+    assert STEP_PLANS[ExecutionPlan.VALUATION_REFRESH]["evidence_compression"] == "REUSED"
+    assert STEP_PLANS[ExecutionPlan.DECISION_ONLY]["evidence_compression"] == "REUSED"
+    assert STEP_PLANS[ExecutionPlan.NO_ACTION]["evidence_compression"] == "SKIPPED"
+    assert plan(state(), state(reports=("new",))).estimated_llm_calls == 4
+
+
 def test_missing_market_facts_fail_safe(tmp_path: Path):
     class Repo:
         def profile_facts(self, _symbol): return {"latest_price": None, "yield_signal": "watch"}
@@ -107,7 +115,7 @@ def test_missing_market_facts_fail_safe(tmp_path: Path):
 def test_run_metadata_records_reuse():
     result = plan(state(), state(price=80.))
     run = ResearchOrchestrator._run_document(result, "2026-08-23_v1", "PLANNED", 0)
-    assert run.reused_outputs == {"analyst": "2026-08-22_v1", "skeptic": "2026-08-22_v1"}
+    assert run.reused_outputs == {"evidence_summary": "2026-08-22_v1", "analyst": "2026-08-22_v1", "skeptic": "2026-08-22_v1"}
     assert run.steps["analyst"] == "REUSED" and run.steps["valuation"] == "RUN"
     assert run.llm_plan["estimated_calls"] == 2
 
@@ -118,6 +126,7 @@ def test_valuation_failure_stops_portfolio_and_does_not_update_current(tmp_path:
     class Repo: pass
     monkeypatch.setattr("backend.research.research_orchestrator.InputPackBuilder.build", lambda *_a, **_k: (folder.mkdir(parents=True), write_json_atomic(folder/"input_snapshot.json", {}), {"directory": str(folder), "version": folder.name})[-1])
     monkeypatch.setattr("backend.research.research_orchestrator.ResearchOrchestrator._collect_sources", lambda *_: None)
+    monkeypatch.setattr("backend.research.research_orchestrator.EvidenceCompressor.compress", lambda *_a, **_k: {})
     monkeypatch.setattr("backend.research.research_orchestrator.FundamentalAnalyst.run", lambda *_a, **_k: {})
     monkeypatch.setattr("backend.research.research_orchestrator.SkepticAnalyst.run", lambda *_a, **_k: {})
     monkeypatch.setattr("backend.research.research_orchestrator.ValuationInputBuilder.build", lambda *_a, **_k: {})
@@ -137,6 +146,7 @@ def test_portfolio_failure_does_not_complete_version(tmp_path: Path, monkeypatch
     class Repo: pass
     monkeypatch.setattr("backend.research.research_orchestrator.InputPackBuilder.build", lambda *_a, **_k: (folder.mkdir(parents=True), {"directory": str(folder), "version": folder.name})[-1])
     monkeypatch.setattr("backend.research.research_orchestrator.ResearchOrchestrator._collect_sources", lambda *_: None)
+    monkeypatch.setattr("backend.research.research_orchestrator.EvidenceCompressor.compress", lambda *_a, **_k: {})
     for target in ("FundamentalAnalyst.run", "SkepticAnalyst.run", "ValuationInputBuilder.build", "ValuationAgent.run"):
         monkeypatch.setattr("backend.research.research_orchestrator." + target, lambda *_a, **_k: {})
     monkeypatch.setattr("backend.research.research_orchestrator.PortfolioManager.run", lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("portfolio failed")))

@@ -12,6 +12,7 @@ from .json_store import read_json, write_json_atomic
 from .llm.base import LlmProviderError, StructuredProvider
 from .llm.factory import create_provider
 from .profile_builder import DEFAULT_RESEARCH_ROOT
+from .research_context import build_compressed_context
 
 
 PROMPT_VERSION = "fundamental-v1"
@@ -65,7 +66,7 @@ def _extract_pdf(path: Path) -> str:
         raise AnalystInputError(f"cannot extract PDF {path.name}: {type(exc).__name__}") from exc
 
 
-def build_context(directory: Path, snapshot: dict[str, Any], evidence: dict[str, Any]) -> tuple[str, set[str]]:
+def build_raw_context(directory: Path, snapshot: dict[str, Any], evidence: dict[str, Any]) -> tuple[str, set[str]]:
     blocks: list[str] = []
     total = 0
     evidence_ids: set[str] = set()
@@ -99,6 +100,18 @@ def build_context(directory: Path, snapshot: dict[str, Any], evidence: dict[str,
     return "\n".join(blocks), evidence_ids
 
 
+def build_context(directory: Path, snapshot: dict[str, Any], evidence: dict[str, Any], role: str = "analyst",
+                  preferred_evidence_ids: set[str] | None = None) -> tuple[str, set[str]]:
+    try:
+            return build_compressed_context(directory, evidence, role=role, preferred_evidence_ids=preferred_evidence_ids)
+    except (OSError, ValueError):
+        return build_raw_context(directory, snapshot, evidence)
+
+
+def context_mode(context: str) -> str:
+    return "compressed" if context.startswith("[CONTEXT_MODE: compressed]") else "raw_fallback"
+
+
 class FundamentalAnalyst:
     def __init__(self, *, provider: StructuredProvider | None = None, research_root: Path = DEFAULT_RESEARCH_ROOT) -> None:
         self.provider, self.research_root = provider, research_root
@@ -120,7 +133,7 @@ class FundamentalAnalyst:
         company = read_json(directory.parents[1] / "company.json")
         request = self._user_prompt(snapshot, company, actual_version, context)
         if dry_run:
-            return {"symbol": symbol.upper(), "version": actual_version, "context_characters": len(context), "evidence_ids": sorted(evidence_ids), "dry_run": True}
+            return {"symbol": symbol.upper(), "version": actual_version, "context_mode": context_mode(context), "context_characters": len(context), "evidence_ids": sorted(evidence_ids), "dry_run": True}
         provider = self.provider or create_provider(role="analyst")
         raw = self._generate_with_one_retry(provider, system_prompt, request)
         try:
@@ -139,6 +152,7 @@ class FundamentalAnalyst:
                 raw = repaired
             except Exception as repair_error:
                 raise AnalystInputError(f"LLM output failed schema/semantic validation: {str(repair_error).splitlines()[0]}") from first_error
+        document.generation.update(context_mode=context_mode(context), context_characters=len(context))
         write_json_atomic(output, document.model_dump(mode="json"))
         return {"symbol": symbol.upper(), "version": actual_version, "path": str(output), "claims": len(document.claims), "generation": document.generation}
 

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .fundamental_analyst import FundamentalAnalyst
+from .evidence_compressor import EvidenceCompressor
 from .input_pack_builder import InputPackBuilder
 from .json_store import read_json, write_json_atomic
 from .portfolio_manager import PortfolioManager
@@ -24,10 +25,10 @@ from .valuation_input_builder import ValuationInputBuilder
 
 
 STEP_PLANS = {
-    ExecutionPlan.FULL_REFRESH: {"source_collection": "RUN", "input_pack": "REFRESHED", "analyst": "RUN", "skeptic": "RUN", "valuation_input": "REFRESHED", "valuation": "RUN", "portfolio_manager": "RUN"},
-    ExecutionPlan.VALUATION_REFRESH: {"source_collection": "SKIPPED", "input_pack": "REFRESHED", "analyst": "REUSED", "skeptic": "REUSED", "valuation_input": "REFRESHED", "valuation": "RUN", "portfolio_manager": "RUN"},
-    ExecutionPlan.DECISION_ONLY: {"source_collection": "SKIPPED", "input_pack": "REFRESHED", "analyst": "REUSED", "skeptic": "REUSED", "valuation_input": "REUSED", "valuation": "REUSED", "portfolio_manager": "RUN"},
-    ExecutionPlan.NO_ACTION: {"source_collection": "SKIPPED", "input_pack": "SKIPPED", "analyst": "SKIPPED", "skeptic": "SKIPPED", "valuation_input": "SKIPPED", "valuation": "SKIPPED", "portfolio_manager": "SKIPPED"},
+    ExecutionPlan.FULL_REFRESH: {"source_collection": "RUN", "input_pack": "REFRESHED", "evidence_compression": "RUN", "analyst": "RUN", "skeptic": "RUN", "valuation_input": "REFRESHED", "valuation": "RUN", "portfolio_manager": "RUN"},
+    ExecutionPlan.VALUATION_REFRESH: {"source_collection": "SKIPPED", "input_pack": "REFRESHED", "evidence_compression": "REUSED", "analyst": "REUSED", "skeptic": "REUSED", "valuation_input": "REFRESHED", "valuation": "RUN", "portfolio_manager": "RUN"},
+    ExecutionPlan.DECISION_ONLY: {"source_collection": "SKIPPED", "input_pack": "REFRESHED", "evidence_compression": "REUSED", "analyst": "REUSED", "skeptic": "REUSED", "valuation_input": "REUSED", "valuation": "REUSED", "portfolio_manager": "RUN"},
+    ExecutionPlan.NO_ACTION: {"source_collection": "SKIPPED", "input_pack": "SKIPPED", "evidence_compression": "SKIPPED", "analyst": "SKIPPED", "skeptic": "SKIPPED", "valuation_input": "SKIPPED", "valuation": "SKIPPED", "portfolio_manager": "SKIPPED"},
 }
 
 
@@ -79,6 +80,13 @@ class ResearchOrchestrator:
             folder = Path(built["directory"]); version = str(built["version"])
             run = self._run_document(plan, version, "PLANNED", actual_calls)
             write_json_atomic(folder / "run.json", run.model_dump(mode="json"))
+            current_step = "evidence_compression"
+            if plan.execution_plan == ExecutionPlan.FULL_REFRESH:
+                EvidenceCompressor(research_root=self.research_root).compress(plan.symbol, version)
+            elif (previous / "evidence_summary.json").exists():
+                reused_summary = read_json(previous / "evidence_summary.json")
+                reused_summary["analysis_version"] = version
+                write_json_atomic(folder / "evidence_summary.json", reused_summary)
             if plan.execution_plan != ExecutionPlan.FULL_REFRESH:
                 if not previous.is_dir(): raise ValueError("previous completed analysis version is unavailable for reuse")
                 for name in ("analyst.json", "skeptic.json"):
@@ -156,7 +164,7 @@ class ResearchOrchestrator:
 
     @staticmethod
     def _run_document(plan: ResearchPlan, version: str, status: str, actual_calls: int, failed_step: str | None = None) -> RunDocument:
-        reused = {} if plan.execution_plan == ExecutionPlan.FULL_REFRESH else {name: str(plan.previous_analysis_version) for name in ("analyst", "skeptic")}
+        reused = {} if plan.execution_plan == ExecutionPlan.FULL_REFRESH else {name: str(plan.previous_analysis_version) for name in ("evidence_summary", "analyst", "skeptic")}
         if plan.execution_plan == ExecutionPlan.DECISION_ONLY: reused["valuation"] = str(plan.previous_analysis_version)
         return RunDocument(schema_version=1, symbol=plan.symbol, analysis_version=version,
                            created_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),

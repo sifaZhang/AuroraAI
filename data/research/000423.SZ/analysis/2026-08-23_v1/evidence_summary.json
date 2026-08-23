@@ -1,0 +1,3396 @@
+{
+  "analysis_version": "2026-08-23_v1",
+  "compression": {
+    "compressed_character_count": 29988,
+    "compression_ratio": 0.088747,
+    "estimated_tokens_after": 7497,
+    "estimated_tokens_before": 84477,
+    "included_evidence_count": 5,
+    "max_characters": 30000,
+    "method": "deterministic-v1",
+    "source_character_count": 337906,
+    "source_evidence_count": 10
+  },
+  "evidence_index": {
+    "announcement:1225075935": {
+      "file": "../../sources/announcements/20260402_share_repurchase_1225075935.pdf",
+      "included_fact_count": 0,
+      "included_sections": [],
+      "period": null,
+      "sha256": "617f230fa079699fc8e5e63bdf7a61ebba7fc58422590da27ef6edde93eaec54",
+      "source_type": "announcement"
+    },
+    "announcement:1225282195": {
+      "file": "../../sources/announcements/20260507_share_repurchase_1225282195.pdf",
+      "included_fact_count": 0,
+      "included_sections": [],
+      "period": null,
+      "sha256": "2b1ba5ad8e56ebc90b20bd604079fa0f7b4fdbfeff155348d2277cfbc058830b",
+      "source_type": "announcement"
+    },
+    "announcement:1225313517": {
+      "file": "../../sources/announcements/20260518_dividend_1225313517.pdf",
+      "included_fact_count": 3,
+      "included_sections": [
+        "dividend"
+      ],
+      "period": null,
+      "sha256": "96253bdd6b58e5d751259966468b75c1d63e71d6d91e88cf93b8fe9f709df990",
+      "source_type": "announcement"
+    },
+    "announcement:1225342914": {
+      "file": "../../sources/announcements/20260601_share_repurchase_1225342914.pdf",
+      "included_fact_count": 0,
+      "included_sections": [],
+      "period": null,
+      "sha256": "9a1959ceef18621ebd88287db6b257082012db5ec198f77b7a764f6aa7f3f142",
+      "source_type": "announcement"
+    },
+    "announcement:1225385490": {
+      "file": "../../sources/announcements/20260624_share_repurchase_1225385490.pdf",
+      "included_fact_count": 0,
+      "included_sections": [],
+      "period": null,
+      "sha256": "72cad2b603466b02afd9c6d3648080624b908305118f3d203273ec33cefd1304",
+      "source_type": "announcement"
+    },
+    "announcement:1225403693": {
+      "file": "../../sources/announcements/20260701_share_repurchase_1225403693.pdf",
+      "included_fact_count": 0,
+      "included_sections": [],
+      "period": null,
+      "sha256": "136722a31a0ca29d7378a46aac0dbe4469d88a3ae134cf517415767834dec307",
+      "source_type": "announcement"
+    },
+    "announcement:1225484992": {
+      "file": "../../sources/announcements/20260820_dividend_1225484992.pdf",
+      "included_fact_count": 3,
+      "included_sections": [
+        "dividend"
+      ],
+      "period": null,
+      "sha256": "7ec9a66b5e8ca45b9db1472a9b0cb815d813dbae19d92c03c80b433db69fcff1",
+      "source_type": "announcement"
+    },
+    "dividend_snapshot:2026-08-22": {
+      "file": null,
+      "included_fact_count": 1,
+      "included_sections": [
+        "dividend"
+      ],
+      "period": null,
+      "sha256": null,
+      "source_type": "database_snapshot"
+    },
+    "financial_report:2025:annual_report": {
+      "file": "../../sources/financial_reports/2025_annual.pdf",
+      "included_fact_count": 241,
+      "included_sections": [
+        "accounting",
+        "balance_sheet",
+        "business",
+        "cash_flow",
+        "dividend",
+        "financial_performance",
+        "governance",
+        "risk_disclosures"
+      ],
+      "period": "2025",
+      "sha256": "d1ce791faa85e60d7f0d27ebafe20303ab32fc5d1075e9a303f179a3e9acd1a0",
+      "source_type": "financial_report"
+    },
+    "financial_report:2026H1:half_year_report": {
+      "file": "../../sources/financial_reports/2026_h1.pdf",
+      "included_fact_count": 440,
+      "included_sections": [
+        "accounting",
+        "balance_sheet",
+        "business",
+        "cash_flow",
+        "dividend",
+        "financial_performance",
+        "governance",
+        "material_events",
+        "risk_disclosures"
+      ],
+      "period": "2026H1",
+      "sha256": "59a579d82d54c7bdb2085574cecf3f61d91a9bb0985be3e63fe871a741f30057",
+      "source_type": "financial_report"
+    }
+  },
+  "generated_at": "2026-08-23T08:01:05+00:00",
+  "schema_version": 1,
+  "sections": {
+    "accounting": [
+      {
+        "evidence_id": "financial_report:2026H1:half_year_report",
+        "facts": [
+          {
+            "source_anchor": "page:8",
+            "text": "公司是否需追溯调整或重述以前年度会计数据"
+          },
+          {
+            "source_anchor": "page:122",
+            "text": "计相应的内部控制程序，以监控本集团的风险水平。本集团会定期审阅这些风险管理政策及有关内部控制系统，以适应"
+          },
+          {
+            "source_anchor": "page:75",
+            "text": "编制财务报表时，本集团管理层需要运用估计和假设，这些估计和假设会对会计政策的应用及资产、负债、收入及费用"
+          },
+          {
+            "source_anchor": "page:54",
+            "text": "以及收入的确认和计量的相关会计政策是根据本集团相关业务经营特点制定的，具体政策参见相关附注。"
+          },
+          {
+            "source_anchor": "page:122",
+            "text": "市场情况或本集团经营活动的改变。本集团的内部审计部门也定期或随机检查内部控制系统的执行是否符合风险管理政"
+          },
+          {
+            "source_anchor": "page:70",
+            "text": "按照业务类型披露收入确认和计量所采用的会计政策"
+          },
+          {
+            "source_anchor": "page:75",
+            "text": "本集团在运用会计政策过程中做出的重要判断如下："
+          },
+          {
+            "source_anchor": "page:74",
+            "text": "本集团在编制分部报告时，分部间交易收入按实际交易价格为基础计量。编制分部报告所采用的会计政策与编制本集团"
+          },
+          {
+            "source_anchor": "page:73",
+            "text": "10 所述的会计政策进行会计处理。未纳入租赁投资净额计量的可变租赁付款额在实际发生时计入当期损益。"
+          },
+          {
+            "source_anchor": "page:70",
+            "text": "与本集团取得收入的主要活动相关的具体会计政策描述如下："
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": "2026H1",
+        "priority": 108,
+        "published_at": "2026-08-20",
+        "section": "accounting",
+        "source_type": "financial_report"
+      },
+      {
+        "evidence_id": "financial_report:2025:annual_report",
+        "facts": [
+          {
+            "source_anchor": "page:52",
+            "text": "六、与上年度财务报告相比，会计政策、会计估计变更或重大会计差错更正的情况说明"
+          },
+          {
+            "source_anchor": "page:52",
+            "text": "公司报告期无会计政策、会计估计变更或重大会计差错更正的情况。"
+          },
+          {
+            "source_anchor": "page:50",
+            "text": "报告期或上年度是否被出具内部控制非标准审计意见"
+          },
+          {
+            "source_anchor": "page:68",
+            "text": "表发表审计意见。我们负责指导、监督和执行集团审计，并对审计意见承担全部责任。"
+          },
+          {
+            "source_anchor": "page:48",
+            "text": "十三、内部控制评价报告或内部控制审计报告"
+          },
+          {
+            "source_anchor": "page:48",
+            "text": "内部控制评价报告全文披露索引 详见巨潮资讯网《2025 年度内部控制评价报告》 。"
+          },
+          {
+            "source_anchor": "page:66",
+            "text": "请参阅财务报表附注“三、重要会计政策及会计估计”24 所述的会计政策及“五、合并财务报表"
+          },
+          {
+            "source_anchor": "page:136",
+            "text": "3） 、由于重大会计差错更正，影响期初未分配利润0.00 元。"
+          },
+          {
+            "source_anchor": "page:48",
+            "text": "十一、报告期内的内部控制制度建设及实施情况"
+          },
+          {
+            "source_anchor": "page:67",
+            "text": "我们对财务报表发表的审计意见不涵盖其他信息，我们也不对其他信息发表任何形式的鉴证结论。"
+          },
+          {
+            "source_anchor": "page:48",
+            "text": "公司按照企业内部控制规范体系和相关规定的要求，在所有重大方面保持了有效的财务报告内部控"
+          },
+          {
+            "source_anchor": "page:48",
+            "text": "2、报告期内发现的内部控制重大缺陷的具体情况"
+          },
+          {
+            "source_anchor": "page:89",
+            "text": "于未包含重大融资成分或不考虑不超过一年的合同中的融资成分的应收账款，本集团按照根据附注五、25 的会计政策确"
+          },
+          {
+            "source_anchor": "page:48",
+            "text": "内部控制评价报告全文披露日期 2026 年03 月 20 日"
+          },
+          {
+            "source_anchor": "page:67",
+            "text": "要的内部控制，以使财务报表不存在由于舞弊或错误导致的重大错报。"
+          },
+          {
+            "source_anchor": "page:136",
+            "text": "1） 、由于《企业会计准则》及其相关新规定进行追溯调整，影响期初未分配利润0.00 元。"
+          },
+          {
+            "source_anchor": "page:49",
+            "text": "⑦ 已发现的内部控制重要缺陷未整改或整改"
+          },
+          {
+            "source_anchor": "page:136",
+            "text": "2） 、由于会计政策变更，影响期初未分配利润0.00 元。"
+          },
+          {
+            "source_anchor": "page:86",
+            "text": "条件以及收入的确认和计量的相关会计政策是根据本集团相关业务经营特点制定的，具体政策参见相关附注。"
+          },
+          {
+            "source_anchor": "page:67",
+            "text": "包含审计意见的审计报告。合理保证是高水平的保证，但并不能保证按照审计准则执行的审计在某一重"
+          },
+          {
+            "source_anchor": "page:48",
+            "text": "组合：① 制度严重缺失，内部控制系统性失"
+          },
+          {
+            "source_anchor": "page:53",
+            "text": "聘请内部控制审计会计师事务所、财务顾问或保荐人情况"
+          },
+          {
+            "source_anchor": "page:65",
+            "text": "方面的其他责任。我们相信，我们获取的审计证据是充分、适当的，为发表审计意见提供了基础。"
+          },
+          {
+            "source_anchor": "page:65",
+            "text": "以对财务报表整体进行审计并形成审计意见为背景，我们不对这些事项单独发表意见。"
+          },
+          {
+            "source_anchor": "page:67",
+            "text": "这些风险，并获取充分、适当的审计证据，作为发表审计意见的基础。由于舞弊可能涉及串"
+          },
+          {
+            "source_anchor": "page:67",
+            "text": "通、伪造、故意遗漏、虚假陈述或凌驾于内部控制之上，未能发现由于舞弊导致的重大错报"
+          },
+          {
+            "source_anchor": "page:49",
+            "text": "东阿阿胶股份有限公司于 2025 年 12 月 31 日按照《企业内部控制基本规范》和相关规定在所有重大方面保持了有效的财务报告"
+          },
+          {
+            "source_anchor": "page:67",
+            "text": "(2) 了解与审计相关的内部控制，以设计恰当的审计程序。"
+          },
+          {
+            "source_anchor": "page:48",
+            "text": "⑦ 已发现的内部控制重大缺陷未整改或整改"
+          },
+          {
+            "source_anchor": "page:49",
+            "text": "内部控制审计报告全文披露日期 2026 年03 月 20 日"
+          },
+          {
+            "source_anchor": "page:158",
+            "text": "的公允价值 (已重述) 估值技术 不可观察输入值 范围区间"
+          },
+          {
+            "source_anchor": "page:67",
+            "text": "(3) 评价管理层选用会计政策的恰当性和作出会计估计及相关披露的合理性。"
+          },
+          {
+            "source_anchor": "page:49",
+            "text": "内部控制审计报告全文披露索引 巨潮资讯网（www.cninfo.com.cn） 《东阿阿胶股份有限公司"
+          },
+          {
+            "source_anchor": "page:49",
+            "text": "会计师事务所是否出具非标准意见的内部控制审计报告"
+          },
+          {
+            "source_anchor": "page:49",
+            "text": "会计师事务所出具的内部控制审计报告与董事会的自我评价报告意见是否一致"
+          },
+          {
+            "source_anchor": "page:48",
+            "text": "① 公司制度、内部控制系统存在较大缺陷，"
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": "2025",
+        "priority": 102,
+        "published_at": "2026-03-19",
+        "section": "accounting",
+        "source_type": "financial_report"
+      }
+    ],
+    "balance_sheet": [
+      {
+        "evidence_id": "financial_report:2026H1:half_year_report",
+        "facts": [
+          {
+            "source_anchor": "page:60",
+            "text": "除应收票据、应收账款、应收款项融资和租赁应收款外，本集团对满足下列情形的金融工具按照相当于未来 12"
+          },
+          {
+            "source_anchor": "page:122",
+            "text": "况主要源自本集团存在对个别客户的重大应收账款。于资产负债表日，本集团的前五大客户的应收账款占本集团应收账"
+          },
+          {
+            "source_anchor": "page:62",
+            "text": "(5) 存货跌价准备的确认标准和计提方法：资产负债表日，存货按照成本与可变现净值孰低计量。按存货类别计"
+          },
+          {
+            "source_anchor": "page:60",
+            "text": "本集团其他应收款主要包括应收押金和保证金、应收备用金、应收关联方往来款"
+          },
+          {
+            "source_anchor": "page:60",
+            "text": "本集团对于应收票据、应收账款、应收款项融资、其他应收款，通常按照信用风险特征组合计量其损失准备。若"
+          },
+          {
+            "source_anchor": "page:60",
+            "text": "对于因销售商品、提供劳务等日常经营活动形成的应收票据、应收账款、应收款项融资，以及租赁交易形成的租"
+          },
+          {
+            "source_anchor": "page:60",
+            "text": "应收款项融资 本集团应收款项融资为有双重持有目的的应收银行承兑汇票。由于承兑银行均为"
+          },
+          {
+            "source_anchor": "page:57",
+            "text": "对境外经营的财务报表进行折算时，资产负债表中的资产和负债项目，采用资产负债表日的即期汇率折算，股东权益项"
+          },
+          {
+            "source_anchor": "page:54",
+            "text": "本集团应收款项坏账准备的确认和计量、发出存货的计量、固定资产的折旧、无形资产的摊销、研发费用的资本化条件"
+          },
+          {
+            "source_anchor": "page:66",
+            "text": "资产负债表日，消耗性生物资产按照成本与可变现净值孰低计量，并采用与确认存货跌价准备(参见附注五、11) 一致的"
+          },
+          {
+            "source_anchor": "page:79",
+            "text": "（4） 期末公司已背书或贴现且在资产负债表日尚未到期的应收票据"
+          },
+          {
+            "source_anchor": "page:57",
+            "text": "本集团的金融工具包括货币资金、除长期股权投资 (参见附注五、12) 以外的股权投资、应收款项、应付款项及股"
+          },
+          {
+            "source_anchor": "page:75",
+            "text": "(i) 附注五、10(5) 、附注七、3 和附注七、6-金融资产和金融负债的终止确认、应收票据和应收款项融资；"
+          },
+          {
+            "source_anchor": "page:82",
+            "text": "（2） 期末公司已背书或贴现且在资产负债表日尚未到期的应收款项融资"
+          },
+          {
+            "source_anchor": "page:112",
+            "text": "（4） 不属于现金及现金等价物的货币资金"
+          },
+          {
+            "source_anchor": "page:62",
+            "text": "（1）存货类别：存货包括原材料、在产品、半成品、发出商品及消耗性生物资产、产成品以及周转材料。周转"
+          },
+          {
+            "source_anchor": "page:60",
+            "text": "应收票据 根据承兑人信用风险特征的不同，本集团将应收票据划分银行承兑汇票和商业承"
+          },
+          {
+            "source_anchor": "page:56",
+            "text": "于资产负债表日，外币货币性项目采用该日的即期汇率折算。除与购建符合资本化条件资产有关的专门借款本金和利息"
+          },
+          {
+            "source_anchor": "page:60",
+            "text": "本集团将全部应收账款作为一个组合，在计算应收账款的坏账准备时未进一步区"
+          },
+          {
+            "source_anchor": "page:62",
+            "text": "合同而持有的存货，其可变现净值以合同价格为基础计算。当持有存货的数量多于相关合同订购数量的，超出部"
+          },
+          {
+            "source_anchor": "page:60",
+            "text": "因此本集团将全部其他应收款作为一个组合，在计算其他应收款的坏账准备时未"
+          },
+          {
+            "source_anchor": "page:70",
+            "text": "本集团拥有的、无条件 (仅取决于时间流逝) 向客户收取对价的权利作为应收款项列示。本集团已收或应收客户对价而"
+          },
+          {
+            "source_anchor": "page:125",
+            "text": "应收款项融资因剩余期限不长，公允价值与账面价值相若。"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收票据 华润河南医药有限公司 7,807,906.50"
+          },
+          {
+            "source_anchor": "page:61",
+            "text": "方款项按照单项计提损失准备。例如，当某对手方发生严重财务困难，应收该对手方款项的预期信用损失率已显"
+          },
+          {
+            "source_anchor": "page:81",
+            "text": "本集团始终按照相当于整个存续期内预期信用损失的金额计量应收账款的减值准备，并以账龄与预期信用损失率对照表"
+          },
+          {
+            "source_anchor": "page:39",
+            "text": "货币资金 4,978,913,585.70 5,239,335,084.96"
+          },
+          {
+            "source_anchor": "page:15",
+            "text": "货币资金 5,011,024,977.94 39.44% 5,267,456,076.17 39.36% 0.08%"
+          },
+          {
+            "source_anchor": "page:36",
+            "text": "货币资金 5,011,024,977.94 5,267,456,076.17"
+          },
+          {
+            "source_anchor": "page:55",
+            "text": "重要的单项计提坏账的应收款项 单项金额≥人民币 2,000 万元"
+          },
+          {
+            "source_anchor": "page:82",
+            "text": "（5） 按欠款方归集的期末余额前五名的应收账款和合同资产情况"
+          },
+          {
+            "source_anchor": "page:141",
+            "text": "其他应收款 717,777,586.17 443,445.44 10,510,057.44 0.00 0.00 707,710,974.17"
+          },
+          {
+            "source_anchor": "page:85",
+            "text": "其他应收款 97,028,687.43 1,121,453.94 5,603,760.10 660.85 92,547,042.12"
+          },
+          {
+            "source_anchor": "page:77",
+            "text": "其他货币资金 30,645,735.54 73,371,113.87"
+          },
+          {
+            "source_anchor": "page:80",
+            "text": "准备的应收账款 285,527,892.98 31.62% 285,527,892.98 100.00% 0.00 285,527,892.98 67.11% 285,527,892.98 100.00% 0.00"
+          },
+          {
+            "source_anchor": "page:79",
+            "text": "应收票据 1,392,272.90 47,499.59 1,392,272.90 47,499.59"
+          },
+          {
+            "source_anchor": "page:15",
+            "text": "应收账款 588,596,585.49 4.63% 132,242,688.40 0.99% 3.64%"
+          },
+          {
+            "source_anchor": "page:138",
+            "text": "按组合计提的应收账款 926,410.18 15,030,501.65 51,498.09 15,905,413.74"
+          },
+          {
+            "source_anchor": "page:78",
+            "text": "的应收票据 2,373,138.62 100.00% 47,499.59 2.00% 2,325,639.03 54,174,043.05 100.00% 1,392,272.90 2.57% 52,781,770.15"
+          },
+          {
+            "source_anchor": "page:137",
+            "text": "的应收账款 642,499,276.34 100.00% 15,905,413.74 2.48% 626,593,862.60 437,106,200.21 100.00% 926,410.18 0.21% 436,179,790.03"
+          },
+          {
+            "source_anchor": "page:80",
+            "text": "准备的应收账款 617,340,541.26 68.38% 28,743,955.77 4.66% 588,596,585.49 139,943,264.00 32.89% 7,700,575.60 5.50% 132,242,688.40"
+          },
+          {
+            "source_anchor": "page:15",
+            "text": "存货 897,486,503.30 7.06% 835,537,856.48 6.24% 0.82%"
+          },
+          {
+            "source_anchor": "page:36",
+            "text": "应收票据 2,325,639.03 52,781,770.15"
+          },
+          {
+            "source_anchor": "page:39",
+            "text": "应收票据 592,513.15 43,210,830.30"
+          },
+          {
+            "source_anchor": "page:69",
+            "text": "本集团在资产负债表日对预计负债的账面价值进行复核，并按照当前最佳估计数对该账面价值进行调整。"
+          },
+          {
+            "source_anchor": "page:112",
+            "text": "现金及现金等价物净增加额 -223,469,009.41 1,281,627,015.72"
+          },
+          {
+            "source_anchor": "page:59",
+            "text": "金融资产和金融负债在资产负债表内分别列示，没有相互抵销。但是，同时满足下列条件的，以相互抵销后的净"
+          },
+          {
+            "source_anchor": "page:85",
+            "text": "5） 按欠款方归集的期末余额前五名的其他应收款情况"
+          },
+          {
+            "source_anchor": "page:40",
+            "text": "合同负债 357,789,213.26 571,570,534.01"
+          },
+          {
+            "source_anchor": "page:78",
+            "text": "应收票据 2,373,138.62 47,499.59 2.00%"
+          },
+          {
+            "source_anchor": "page:36",
+            "text": "应收账款 588,596,585.49 132,242,688.40"
+          },
+          {
+            "source_anchor": "page:39",
+            "text": "应收账款 626,593,862.60 436,179,790.03"
+          },
+          {
+            "source_anchor": "page:137",
+            "text": "按组合计提坏账准备类别名称：按组合计提的应收账款"
+          },
+          {
+            "source_anchor": "page:73",
+            "text": "率的，采用本集团增量借款利率作为折现率。"
+          },
+          {
+            "source_anchor": "page:116",
+            "text": "货币资金 490,359.69 490,359.69"
+          },
+          {
+            "source_anchor": "page:112",
+            "text": "减：购买日子公司持有的现金及现金等价物 355,719.87"
+          },
+          {
+            "source_anchor": "page:116",
+            "text": "应收款项 274,141.75 274,141.75"
+          },
+          {
+            "source_anchor": "page:39",
+            "text": "应收款项融资 5,551,186.19 172,863,878.55"
+          },
+          {
+            "source_anchor": "page:36",
+            "text": "应收款项融资 6,237,284.07 267,606,964.45"
+          },
+          {
+            "source_anchor": "page:137",
+            "text": "应收账款 642,499,276.34 15,905,413.74 2.48%"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润科伦医药(四川)有限公司 1,080,451.33"
+          },
+          {
+            "source_anchor": "page:60",
+            "text": "未来 12 个月内预期信用损失，是指因资产负债表日后12 个月内 (若金融工具的预计存续期少于 12 个月，则为"
+          },
+          {
+            "source_anchor": "page:61",
+            "text": "本集团通过比较金融工具在资产负债表日发生违约的风险与在初始确认日发生违约的风险，以评估金融工具的信"
+          },
+          {
+            "source_anchor": "page:69",
+            "text": "予后完成等待期内的服务或达到规定业绩条件才可行权的股份支付交易，本集团在等待期内的每个资产负债表日，"
+          },
+          {
+            "source_anchor": "page:78",
+            "text": "如是按照预期信用损失一般模型计提应收票据坏账准备："
+          },
+          {
+            "source_anchor": "page:81",
+            "text": "如是按照预期信用损失一般模型计提应收账款坏账准备："
+          },
+          {
+            "source_anchor": "page:116",
+            "text": "存货 8,308,503.67 8,388,103.67"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润燃气产业发展有限公司 78,819.00 3,120.00"
+          },
+          {
+            "source_anchor": "page:16",
+            "text": "（1）于 2026 年6 月30 日，本集团账面价值为人民币20,000,000.00 元(2025 年 12 月31 日：人民币20,000,000.00 元)的货币资金所有权受到限制，作为直销企业保证金。"
+          },
+          {
+            "source_anchor": "page:39",
+            "text": "其他应收款 119,527,790.10 117,415,697.62"
+          },
+          {
+            "source_anchor": "page:36",
+            "text": "其他应收款 50,208,673.64 44,037,179.10"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润生物医药有限公司 3,441.27"
+          },
+          {
+            "source_anchor": "page:122",
+            "text": "金、应收账款、合同资产和债券投资等。管理层会持续监控这些信用风险的敞口。"
+          },
+          {
+            "source_anchor": "page:57",
+            "text": "金融资产和金融负债在本集团成为相关金融工具合同条款的一方时，于资产负债表内确认。"
+          },
+          {
+            "source_anchor": "page:16",
+            "text": "（2）于 2026 年6 月30 日，本集团之子公司东阿阿胶(吉林)药业有限公司账面价值 16,796,617.55 元的固定资产因抵押借款10,000,000.00 元而所有权受到限制。"
+          },
+          {
+            "source_anchor": "page:89",
+            "text": "（2）存货\\固定资产\\在建工程转入 550.00 550.00"
+          },
+          {
+            "source_anchor": "page:39",
+            "text": "存货 717,663,043.66 677,487,841.37"
+          },
+          {
+            "source_anchor": "page:36",
+            "text": "存货 897,486,503.30 835,537,856.48"
+          },
+          {
+            "source_anchor": "page:82",
+            "text": "应收票据 6,237,284.07 267,606,964.45"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润网络(深圳)有限公司 2,651.00"
+          },
+          {
+            "source_anchor": "page:122",
+            "text": "本集团除现金以外的货币资金主要存放于信用良好的金融机构，管理层认为其不存在重大的信用风险，预期不会因为"
+          },
+          {
+            "source_anchor": "page:60",
+            "text": "赁应收款，本集团始终按照相当于整个存续期内预期信用损失的金额计量其损失准备。本集团基于历史信用损失"
+          },
+          {
+            "source_anchor": "page:72",
+            "text": "资产负债表日，如果本集团拥有以净额结算的法定权利并且意图以净额结算或取得资产、清偿负债同时进行，那么当期"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润守正招标有限公司 19,012.00 803.96"
+          },
+          {
+            "source_anchor": "page:122",
+            "text": "本集团所承受的最大信用风险敞口为资产负债表中每项金融资产的账面金额。除附注十六所载本集团作出的财务担保"
+          },
+          {
+            "source_anchor": "page:15",
+            "text": "短期借款 10,004,166.67 0.08% 0.08%"
+          },
+          {
+            "source_anchor": "page:60",
+            "text": "经验、使用准备矩阵计算上述金融资产的预期信用损失，相关历史经验根据资产负债表日债务人的特定因素、以"
+          },
+          {
+            "source_anchor": "page:67",
+            "text": "—存货》等规定，对相关的收入和成本分别进行会计处理，计入当期损益。"
+          },
+          {
+            "source_anchor": "page:116",
+            "text": "其他应收款 7,916,321.35 7,916,321.35"
+          },
+          {
+            "source_anchor": "page:112",
+            "text": "可随时用于支付的其他货币资金 10,645,735.54 18,816,265.61"
+          },
+          {
+            "source_anchor": "page:15",
+            "text": "合同负债 433,238,768.19 3.41% 692,718,033.71 5.18% -1.77%"
+          },
+          {
+            "source_anchor": "page:122",
+            "text": "外，本集团没有提供任何其他可能令本集团承受信用风险的担保。于资产负债表日就上述财务担保承受的最大信用风险"
+          },
+          {
+            "source_anchor": "page:57",
+            "text": "对于未包含重大融资成分或不考虑不超过一年的合同中的融资成分的应收账款，本集团按照根据附注五、25 的会"
+          },
+          {
+            "source_anchor": "page:98",
+            "text": "应收土地补偿 42,752,546.13 6,412,881.92 42,752,546.13 6,412,881.92"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润置地(山东)有限公司青岛万象城 3,386.17"
+          },
+          {
+            "source_anchor": "page:112",
+            "text": "三、期末现金及现金等价物余额 3,182,179,671.10 3,405,648,680.51"
+          },
+          {
+            "source_anchor": "page:71",
+            "text": "为履行合同发生的成本，不属于存货等其他企业会计准则规范范围且同时满足下列条件的，本集团将其作为合同履约成"
+          },
+          {
+            "source_anchor": "page:108",
+            "text": "应收票据坏账损失 1,344,773.31 6,662,778.45"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润(大连)医药有限公司 39,060.00"
+          },
+          {
+            "source_anchor": "page:65",
+            "text": "自行建造的固定资产的成本包括工程用物资、直接人工、符合资本化条件的借款费用和使该项资产达到预定可使用状态"
+          },
+          {
+            "source_anchor": "page:124",
+            "text": "应收款项融资 6,237,284.07 6,237,284.07"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润河北医药有限公司 287,542.58"
+          },
+          {
+            "source_anchor": "page:108",
+            "text": "应收账款坏账损失 -21,043,380.26 -3,619,225.22"
+          },
+          {
+            "source_anchor": "page:67",
+            "text": "本集团对商誉不摊销，以成本减累计减值准备 (参见附注五、20) 在资产负债表内列示。"
+          },
+          {
+            "source_anchor": "page:60",
+            "text": "- 该金融工具在资产负债表日只具有较低的信用风险；或"
+          },
+          {
+            "source_anchor": "page:108",
+            "text": "其他应收款坏账损失 4,482,306.16 1,340,923.27"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润普仁鸿(北京)医药有限公司 4,199,548.00 1,041,480.00"
+          },
+          {
+            "source_anchor": "page:61",
+            "text": "本集团在资产负债表日评估以摊余成本计量的金融资产和以公允价值计量且其变动计入其他综合收益的债权投资"
+          },
+          {
+            "source_anchor": "page:112",
+            "text": "项目 本期金额 上期金额 不属于现金及现金等价物的"
+          },
+          {
+            "source_anchor": "page:123",
+            "text": "- 货币资金 0.01% - 3.00% 5,011,024,977.94"
+          },
+          {
+            "source_anchor": "page:116",
+            "text": "借款 10,004,166.67 10,004,166.67"
+          },
+          {
+            "source_anchor": "page:122",
+            "text": "对于应收账款，本集团领导层已根据实际情况制定了信用政策，对客户进行信用评估以确定赊销额度与信用期限。信"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润辽宁医药有限公司 168,139.35 0.00"
+          },
+          {
+            "source_anchor": "page:108",
+            "text": "一、存货跌价损失及合同履约成本减值损失 -35,073.57 3,541,534.93"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润吉林医药有限公司 5,500.80"
+          },
+          {
+            "source_anchor": "page:67",
+            "text": "本集团在资产负债表日根据内部及外部信息以确定下列资产是否存在减值的迹象，包括："
+          },
+          {
+            "source_anchor": "page:37",
+            "text": "短期借款 10,004,166.67 0.00"
+          },
+          {
+            "source_anchor": "page:56",
+            "text": "资产的差额，均调整合并资产负债表中的资本公积 (股本溢价)，资本公积 (股本溢价) 不足冲减的，依次冲减盈余公积、"
+          },
+          {
+            "source_anchor": "page:86",
+            "text": "（2） 存货跌价准备和合同履约成本减值准备"
+          },
+          {
+            "source_anchor": "page:62",
+            "text": "(2) 发出计价方法：发出存货的实际成本采用加权平均法计量。"
+          },
+          {
+            "source_anchor": "page:116",
+            "text": "合同负债 5,159.73 5,159.73"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润湖南医药有限公司 2,823,995.80"
+          },
+          {
+            "source_anchor": "page:122",
+            "text": "有关应收账款的具体信息，请参见附注七、4 的相关披露。"
+          },
+          {
+            "source_anchor": "page:72",
+            "text": "资产负债表日，本集团根据递延所得税资产和负债的预期收回或结算方式，依据已颁布的税法规定，按照预期收回该资"
+          },
+          {
+            "source_anchor": "page:62",
+            "text": "(3) 盘存制度：本集团存货盘存制度为永续盘存制。"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润置地(济南)有限公司济南万象城 94,798.58"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润天津医药有限公司 380,080.16 287,801.21"
+          },
+          {
+            "source_anchor": "page:122",
+            "text": "的现金管理工作，包括现金盈余的短期投资和筹措贷款以应付预计现金需求 (如果借款额超过某些预设授权上限，便需"
+          },
+          {
+            "source_anchor": "page:72",
+            "text": "资产负债表日，本集团对递延所得税资产的账面价值进行复核。如果未来期间很可能无法获得足够的应纳税所得额用以"
+          },
+          {
+            "source_anchor": "page:37",
+            "text": "合同负债 433,238,768.19 692,718,033.71"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润江苏医药有限公司 8,351,283.58 1,869,641.54"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润万家商贸(深圳)有限公司 460,184.54 5,988,672.60"
+          },
+          {
+            "source_anchor": "page:73",
+            "text": "融资租赁下，在租赁期开始日，本集团对融资租赁确认应收融资租赁款，并终止确认融资租赁资产。"
+          },
+          {
+            "source_anchor": "page:99",
+            "text": "货币资金 20,000,000.00 20,000,000.00 保证"
+          },
+          {
+            "source_anchor": "page:61",
+            "text": "为反映金融工具的信用风险自初始确认后的变化，本集团在每个资产负债表日重新计量预期信用损失，由此形成"
+          },
+          {
+            "source_anchor": "page:60",
+            "text": "信用等级较高的银行，本集团将全部应收款项融资作为一个组合。"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润立方药业(安徽)有限公司 2,215,144.06 227,765.02"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润立方药业(安徽)有限公司 183,810.00"
+          },
+          {
+            "source_anchor": "page:73",
+            "text": "本集团按照固定的周期性利率计算并确认租赁期内各个期间的利息收入。应收融资租赁款的终止确认和减值按附注五、"
+          },
+          {
+            "source_anchor": "page:62",
+            "text": "算的成本高于其可变现净值的差额，计提存货跌价准备，计入当期损益。"
+          },
+          {
+            "source_anchor": "page:72",
+            "text": "资产负债表日，递延所得税资产及递延所得税负债在同时满足以下条件时以抵销后的净额列示："
+          },
+          {
+            "source_anchor": "page:70",
+            "text": "人还是代理人。本集团在向客户转让商品或服务前能够控制该商品或服务的，本集团为主要责任人，按照已收或应收对"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润科伦医药(四川)有限公司 1,822,944.72 3,214,450.70"
+          },
+          {
+            "source_anchor": "page:111",
+            "text": "存货的减少（增加以“－”号填列） -62,050,606.66 10,000,798.71"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 润嘉物业管理(北京)有限公司 44,276.00 44,812.00"
+          },
+          {
+            "source_anchor": "page:71",
+            "text": "政府补助为货币性资产的，按照收到或应收的金额计量。政府补助为非货币性资产的，按照公允价值计量。"
+          },
+          {
+            "source_anchor": "page:123",
+            "text": "移给另一方 应收款项融资 206,254,848.55 终止确认 本集团已经转移了其几乎所有的风险"
+          },
+          {
+            "source_anchor": "page:70",
+            "text": "价总额确认收入；否则，本集团为代理人，按照预期有权收取的佣金或手续费的金额确认收入，该金额按照已收或应收"
+          },
+          {
+            "source_anchor": "page:65",
+            "text": "会计准则第 1 号——存货》等规定，对相关的收入和成本分别进行会计处理，计入当期损益。"
+          },
+          {
+            "source_anchor": "page:61",
+            "text": "准备抵减该金融资产在资产负债表中列示的账面价值；对于以公允价值计量且其变动计入其他综合收益的债权投"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润山西医药有限公司 1,244,910.09 54,215.40"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润万家有限公司 2,265,966.46 2,298,460.62"
+          },
+          {
+            "source_anchor": "page:123",
+            "text": "移给另一方 应收票据 1,730,963.40 继续涉入 本集团保留了其几乎所有的风险和报"
+          },
+          {
+            "source_anchor": "page:111",
+            "text": "经营性应收项目的减少（增加以“－”号填列） -158,747,293.81 438,634,527.71"
+          },
+          {
+            "source_anchor": "page:45",
+            "text": "五、现金及现金等价物净增加额 -223,469,009.41 1,281,627,015.72"
+          },
+          {
+            "source_anchor": "page:62",
+            "text": "分的存货的可变现净值以一般销售价格为基础计算。"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润辽宁医药有限公司 416,985.24 10,476,989.19"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润河南医药有限公司 22,193,404.66 877,448.00"
+          },
+          {
+            "source_anchor": "page:45",
+            "text": "加：期初现金及现金等价物余额 3,405,648,680.51 2,727,867,485.09"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润山东医药有限公司 373,603.84 330,622.87"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润湖北金马医药有限公司 991,908.00"
+          },
+          {
+            "source_anchor": "page:99",
+            "text": "价值 16,796,617.55 元的固定资产因抵押借款 10,000,000.00 元而所有权受到限制。"
+          },
+          {
+            "source_anchor": "page:45",
+            "text": "六、期末现金及现金等价物余额 3,182,179,671.10 4,009,494,500.81"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润湖北医药有限公司 313,861.64 400,894.83"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润昂德生物药业有限公司 1,838.00 1,838.00"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润吉林医药有限公司 230,355.19 235,288.83"
+          },
+          {
+            "source_anchor": "page:70",
+            "text": "应向客户转让商品或服务的义务作为合同负债列示。"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 江苏惠邻商贸有限公司 20,044.56 353,003.08"
+          },
+          {
+            "source_anchor": "page:60",
+            "text": "某一对手方信用风险特征与组合中其他对手方显著不同，或该对手方信用风险特征发生显著变化，对应收该对手"
+          },
+          {
+            "source_anchor": "page:46",
+            "text": "五、现金及现金等价物净增加额 -227,458,410.45 1,289,208,544.53"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润新龙(北京)医药有限公司 126,672.48"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润山东医药有限公司 1,870,638.40 1,632,808.80"
+          },
+          {
+            "source_anchor": "page:46",
+            "text": "加：期初现金及现金等价物余额 3,377,527,689.30 2,704,742,212.99"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润湖南医药有限公司 126,222.40 2,955,849.65"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润医药商业集团有限公司 18,468,025.26 21,198,860.47"
+          },
+          {
+            "source_anchor": "page:46",
+            "text": "六、期末现金及现金等价物余额 3,150,069,278.85 3,993,950,757.52"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润泰安医药有限公司 78,757.98 65,874.32"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润医药控股有限公司 19,658.00 8,718.00"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 天津华润万家生活超市有限公司 43,218.91"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 华润置地(济南)有限公司 108,175.47"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润河北医药有限公司 11,714.23 339,948.30"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "应收账款 青岛嘉昇润城商业管理有限公司 103,970.28"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润博雅生物制药集团股份有限公司 6,600.00"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "其他应收款 华润置地(济南)有限公司济南万象城 295,577.02 295,489.87"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润医药集团有限公司 2,171.38"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "其他应收款 华润万家(深圳)发展有限公司 985,096.80 985,096.80"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润医药商业集团上海医药有限公司 160.00 160.00"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "其他应收款 华润置地(山东)有限公司青岛万象城 206,949.41 207,046.17"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润河南医药有限公司 220,884.96"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "其他应收款 华润深圳湾发展有限公司 2,350,989.00 2,350,989.00"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润医药商业集团医疗器械有限公司 35,112.00"
+          },
+          {
+            "source_anchor": "page:132",
+            "text": "其他应收款 华润昂德生物药业有限公司 1,118,190.46 275,781.84"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润堂(深圳)医药连锁有限公司 500,464.00"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润湖北金马医药有限公司 467,568.00"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润万家有限公司 -38,632.74"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润国邦 (上海) 医药有限公司 572,600.00"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润震元医药（浙江）有限公司 412,560.00"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 阜阳华润燃气有限公司 35,000.00"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润科伦医药（广元）有限公司 28,704.00"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 华润 (大连) 医药有限公司 5,451.78"
+          },
+          {
+            "source_anchor": "page:133",
+            "text": "合同负债 枣庄山亭华润燃气有限公司 5,392.00"
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": "2026H1",
+        "priority": 100,
+        "published_at": "2026-08-20",
+        "section": "balance_sheet",
+        "source_type": "financial_report"
+      },
+      {
+        "evidence_id": "financial_report:2025:annual_report",
+        "facts": [
+          {
+            "source_anchor": "page:91",
+            "text": "其他应收款 本集团其他应收款主要包括应收押金和保证金、应收备用金、应收关联方往来款等。根据本集团的"
+          },
+          {
+            "source_anchor": "page:91",
+            "text": "除应收票据、应收账款、应收款项融资和租赁应收款外，本集团对满足下列情形的金融工具按照相当于未来 12 个月"
+          },
+          {
+            "source_anchor": "page:91",
+            "text": "本集团对于应收票据、应收账款、应收款项融资、其他应收款，通常按照信用风险特征组合计量其损失准备。若某"
+          },
+          {
+            "source_anchor": "page:92",
+            "text": "存货跌价准备的确认标准和计提方法：资产负债表日，存货按照成本与可变现净值孰低计量。按存货类别计算的成"
+          },
+          {
+            "source_anchor": "page:91",
+            "text": "对于因销售商品、提供劳务等日常经营活动形成的应收票据、应收账款、应收款项融资，以及租赁交易形成的租赁"
+          },
+          {
+            "source_anchor": "page:91",
+            "text": "应收款项融资 本集团应收款项融资为有双重持有目的的应收银行承兑汇票。由于承兑银行均为信用等级较高的银"
+          },
+          {
+            "source_anchor": "page:92",
+            "text": "同而持有的存货，其可变现净值以合同价格为基础计算。当持有存货的数量多于相关合同订购数量的，超出部分的存货"
+          },
+          {
+            "source_anchor": "page:86",
+            "text": "本集团应收款项坏账准备的确认和计量、发出存货的计量、固定资产的折旧、无形资产的摊销、研发费用的资本化"
+          },
+          {
+            "source_anchor": "page:91",
+            "text": "应收票据 根据承兑人信用风险特征的不同，本集团将应收票据划分银行承兑汇票和商业承兑汇票两个组合。"
+          },
+          {
+            "source_anchor": "page:91",
+            "text": "应收账款 根据本集团的历史经验，不同细分客户群体发生损失的情况没有显著差异，因此本集团将全部应收账款"
+          },
+          {
+            "source_anchor": "page:66",
+            "text": "• 在抽样的基础上，对资产负债表日的应收账"
+          },
+          {
+            "source_anchor": "page:88",
+            "text": "于资产负债表日，外币货币性项目采用该日的即期汇率折算。除与购建符合资本化条件资产有关的专门借款本金和"
+          },
+          {
+            "source_anchor": "page:92",
+            "text": "存货类别：存货包括原材料、在产品、半成品、发出商品及消耗性生物资产、产成品以及周转材料。周转材料指能"
+          },
+          {
+            "source_anchor": "page:88",
+            "text": "对境外经营的财务报表进行折算时，资产负债表中的资产和负债项目，采用资产负债表日的即期汇率折算，股东权"
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": "2025",
+        "priority": 94,
+        "published_at": "2026-03-19",
+        "section": "balance_sheet",
+        "source_type": "financial_report"
+      }
+    ],
+    "business": [
+      {
+        "evidence_id": "financial_report:2026H1:half_year_report",
+        "facts": [
+          {
+            "source_anchor": "page:122",
+            "text": "本集团信用风险主要是受每个客户自身特性的影响，而不是客户所在的行业或国家和地区。因此重大信用风险集中的情"
+          },
+          {
+            "source_anchor": "page:71",
+            "text": "本集团按与客户之间提供服务合同确认履约义务，由于本集团履约的同时客户即取得并消耗本集团履约所带来的"
+          },
+          {
+            "source_anchor": "page:122",
+            "text": "用评估主要根据客户的财务状况、外部评级及银行信用记录 (如有可能) 。在一般情况下，本集团不会要求客户提供抵"
+          },
+          {
+            "source_anchor": "page:14",
+            "text": "公司主营业务数据统计口径在报告期发生调整的情况下，公司最近 1 期按报告期末口径调整后的主营业务数据"
+          },
+          {
+            "source_anchor": "page:144",
+            "text": "主营业务 2,446,721,289.29 601,538,526.27 2,373,388,116.95 641,460,120.28"
+          },
+          {
+            "source_anchor": "page:71",
+            "text": "本集团与客户之间的销售商品合同通常仅包含转让商品的履约义务。本集团通常在综合考虑了下列因素的基础上，"
+          },
+          {
+            "source_anchor": "page:81",
+            "text": "为基础计算其预期信用损失。根据本集团的历史经验，不同细分客户群体发生损失的情况没有显著差异，因此在根据账"
+          },
+          {
+            "source_anchor": "page:136",
+            "text": "信息见下表。对外交易收入是按接受服务或购买产品的客户的所在地进行划分的。非流动资产是按照资产实物所在"
+          },
+          {
+            "source_anchor": "page:82",
+            "text": "客户 1 283,620,482.18 283,620,482.18 31.41% 283,620,482.18"
+          },
+          {
+            "source_anchor": "page:86",
+            "text": "客户 1 3,090,076.52 15.06"
+          },
+          {
+            "source_anchor": "page:10",
+            "text": "胶”为品牌核心定位，秉持药品+健康消费品、文化+产业“双轮驱动”战略，是阿胶行业标准制定引领"
+          },
+          {
+            "source_anchor": "page:106",
+            "text": "主营业务 3,145,422,784.96 787,438,947.35 3,034,521,804.85 810,759,456.65"
+          },
+          {
+            "source_anchor": "page:71",
+            "text": "和报酬的转移、商品的法定所有权的转移、商品实物资产的转移、客户接受该商品。"
+          },
+          {
+            "source_anchor": "page:82",
+            "text": "客户 2 100,309,309.38 100,309,309.38 11.11% 5,015,465.47"
+          },
+          {
+            "source_anchor": "page:86",
+            "text": "客户 2 2,727,078.40 13.29"
+          },
+          {
+            "source_anchor": "page:81",
+            "text": "龄信息计算减值准备时未进一步区分不同的客户群体。"
+          },
+          {
+            "source_anchor": "page:11",
+            "text": "为团队立志、为行业立范、为生民立命、为民族立魂”的承诺，以“大众最信赖的滋补健康引领者”为"
+          },
+          {
+            "source_anchor": "page:86",
+            "text": "客户 3 2,660,490.36 12.97"
+          },
+          {
+            "source_anchor": "page:82",
+            "text": "客户 3 72,998,124.20 72,998,124.20 8.09% 3,649,906.21"
+          },
+          {
+            "source_anchor": "page:138",
+            "text": "客户 1 156,071,895.42 156,071,895.42 24.29%"
+          },
+          {
+            "source_anchor": "page:86",
+            "text": "客户 4 2,040,000.00 9.94"
+          },
+          {
+            "source_anchor": "page:82",
+            "text": "客户 4 71,439,016.44 71,439,016.44 7.91% 3,571,950.82"
+          },
+          {
+            "source_anchor": "page:11",
+            "text": "愿景，以客户需求与体验为关注焦点，持续巩固“滋补国宝 东阿阿胶”品牌定位，不断汲取三千年中"
+          },
+          {
+            "source_anchor": "page:17",
+            "text": "及行业 本报告期投入金额 截至报告期末累"
+          },
+          {
+            "source_anchor": "page:80",
+            "text": "客户 1 283,620,482.18 283,620,482.18 283,620,482.18 283,620,482.18 100.00% 预计无法收回"
+          },
+          {
+            "source_anchor": "page:138",
+            "text": "客户 2 100,309,309.38 100,309,309.38 15.61% 5,015,465.47"
+          },
+          {
+            "source_anchor": "page:86",
+            "text": "客户 5 1,488,187.04 7.25"
+          },
+          {
+            "source_anchor": "page:82",
+            "text": "客户 5 42,282,440.06 42,282,440.06 4.68% 2,114,122.00"
+          },
+          {
+            "source_anchor": "page:14",
+            "text": "阿胶及系列产品 2,832,685,594.03 89.78% 2,845,391,822.71 93.24% -0.45%"
+          },
+          {
+            "source_anchor": "page:80",
+            "text": "客户 2 1,907,410.80 1,907,410.80 1,907,410.80 1,907,410.80 100.00% 预计无法收回"
+          },
+          {
+            "source_anchor": "page:138",
+            "text": "客户 3 72,998,124.20 72,998,124.20 11.36% 3,649,906.21"
+          },
+          {
+            "source_anchor": "page:11",
+            "text": "打造具有中华民族特色和国际视野的滋补行业引领品牌。"
+          },
+          {
+            "source_anchor": "page:20",
+            "text": "2.投资能力提升。一方面，优化投资团队人员结构，强化行业研究与项目拓展能力，打造复合型专"
+          },
+          {
+            "source_anchor": "page:138",
+            "text": "客户 4 42,282,440.06 42,282,440.06 6.58%"
+          },
+          {
+            "source_anchor": "page:12",
+            "text": "解决制约胶类行业发展的卡脖子关键共性问题，引领中式滋补健康创新发展，上半年主持或参与山东省"
+          },
+          {
+            "source_anchor": "page:138",
+            "text": "客户 5 40,476,564.73 40,476,564.73 6.30% 2,023,828.24"
+          },
+          {
+            "source_anchor": "page:11",
+            "text": "展促进共同体核心企业，行业引领地位稳固。深耕三千年中医药传统文化与滋补养生精粹，通过文化"
+          },
+          {
+            "source_anchor": "page:70",
+            "text": "本集团在履行了合同中的履约义务，即在客户取得相关商品或服务的控制权时，确认收入。"
+          },
+          {
+            "source_anchor": "page:71",
+            "text": "- 该成本与一份当前或预期取得的合同直接相关，包括直接人工、直接材料、制造费用 (或类似费用) 、明确由客户"
+          },
+          {
+            "source_anchor": "page:74",
+            "text": "同时在各单项产品或劳务的性质、生产过程的性质、产品或劳务的客户类型、销售产品或提供劳务的方式、生产产品及"
+          },
+          {
+            "source_anchor": "page:70",
+            "text": "交易价格是本集团因向客户转让商品或服务而预期有权收取的对价金额，不包括代第三方收取的款项。本集团确认的交"
+          },
+          {
+            "source_anchor": "page:135",
+            "text": "理要求及内部报告制度，本集团的经营业务确定仅有一个从事阿胶及系列产品整体运营的经营分部和报告分部。因此，"
+          },
+          {
+            "source_anchor": "page:70",
+            "text": "- 客户在本集团履约的同时即取得并消耗本集团履约所带来的经济利益；"
+          },
+          {
+            "source_anchor": "page:60",
+            "text": "根据本集团的历史经验，不同细分客户群体发生损失的情况没有显著差异，因此"
+          },
+          {
+            "source_anchor": "page:70",
+            "text": "- 客户能够控制本集团履约过程中在建的商品；"
+          },
+          {
+            "source_anchor": "page:14",
+            "text": "阿胶及系列产品 2,832,685,594.03 643,104,648.60 77.30% -0.45% -10.19% 2.47%"
+          },
+          {
+            "source_anchor": "page:70",
+            "text": "本集团根据在向客户转让商品或服务前是否拥有对该商品或服务的控制权，来判断本集团从事交易时的身份是主要责任"
+          },
+          {
+            "source_anchor": "page:60",
+            "text": "等。根据本集团的历史经验，不同细分客户群体发生损失的情况没有显著差异，"
+          },
+          {
+            "source_anchor": "page:70",
+            "text": "本集团已向客户转让商品或服务而有权收取对价的权利 (且该权利取决于时间流逝之外的其他因素) 作为合同资产列示。"
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": "2026H1",
+        "priority": 94,
+        "published_at": "2026-08-20",
+        "section": "business",
+        "source_type": "financial_report"
+      },
+      {
+        "evidence_id": "financial_report:2025:annual_report",
+        "facts": [
+          {
+            "source_anchor": "page:27",
+            "text": "2.短期风险。行业方面，医药行业受政策影响较大，如医保政策、药品监管政策等，若相关政策"
+          },
+          {
+            "source_anchor": "page:17",
+            "text": "公司主营业务数据统计口径在报告期发生调整的情况下，公司最近 1 年按报告期末口径调整后的主营业务数据"
+          },
+          {
+            "source_anchor": "page:14",
+            "text": "中国医药行业 QC 成果一等奖等奖项，荣获全国医药行业质量管理小组活动优秀企业，进一步巩固公司"
+          },
+          {
+            "source_anchor": "page:27",
+            "text": "战略体系，以创新体验驱动企业稳健前行；同时主导阿胶行业标准制定，强化行业自律机制，引领产"
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": "2025",
+        "priority": 80,
+        "published_at": "2026-03-19",
+        "section": "business",
+        "source_type": "financial_report"
+      }
+    ],
+    "cash_flow": [
+      {
+        "evidence_id": "financial_report:2026H1:half_year_report",
+        "facts": [
+          {
+            "source_anchor": "page:60",
+            "text": "实际利率折现的、根据合同应收的所有合同现金流量与预期收取的所有现金流量之间的差额，即全部现金短缺的"
+          },
+          {
+            "source_anchor": "page:54",
+            "text": "2026 年 6 月 30 日的合并财务状况和财务状况、2026 年上半年度的合并经营成果和经营成果及合并现金流量和现金流量。"
+          },
+          {
+            "source_anchor": "page:45",
+            "text": "经营活动产生的现金流量净额 81,567,258.59 966,238,927.23"
+          },
+          {
+            "source_anchor": "page:8",
+            "text": "经营活动产生的现金流量净额（元） 81,567,258.59 965,435,214.80 966,238,927.23 -91.56%"
+          },
+          {
+            "source_anchor": "page:58",
+            "text": "本集团对金融资产的合同现金流量特征进行评估，以确定相关金融资产在特定日期产生的合同现金流量是否仅为对"
+          },
+          {
+            "source_anchor": "page:68",
+            "text": "资产预计未来现金流量的现值，按照资产在持续使用过程中和最终处置时所产生的预计未来现金流量，选择恰当的税前"
+          },
+          {
+            "source_anchor": "page:46",
+            "text": "经营活动产生的现金流量净额 428,752,494.20 1,111,219,335.70"
+          },
+          {
+            "source_anchor": "page:62",
+            "text": "如果本集团不再合理预期金融资产合同现金流量能够全部或部分收回，则直接减记该金融资产的账面余额。这种"
+          },
+          {
+            "source_anchor": "page:123",
+            "text": "本集团于资产负债表日的金融负债按未折现的合同现金流量 (包括按合同利率 (如果是浮动利率则按 6 月 30 日的现"
+          },
+          {
+            "source_anchor": "page:124",
+            "text": "应收款项融资 将收取金融资产现金流量的权利转移"
+          },
+          {
+            "source_anchor": "page:46",
+            "text": "销售商品、提供劳务收到的现金 2,463,281,007.36 2,924,029,895.38"
+          },
+          {
+            "source_anchor": "page:61",
+            "text": "如果金融工具的违约风险较低，借款人在短期内履行其合同现金流量义务的能力很强，并且即便较长时期内经济"
+          },
+          {
+            "source_anchor": "page:56",
+            "text": "的财务状况、经营成果和现金流量由控制开始日起至控制结束日止包含于合并财务报表中。"
+          },
+          {
+            "source_anchor": "page:58",
+            "text": "管理金融资产的业务模式，是指本集团如何管理金融资产以产生现金流量。业务模式决定本集团所管理金融资产现"
+          },
+          {
+            "source_anchor": "page:44",
+            "text": "销售商品、提供劳务收到的现金 2,840,302,224.69 3,258,892,555.55"
+          },
+          {
+            "source_anchor": "page:123",
+            "text": "项目 2026 年上半年未折现的合同现金流量 资产负债表日"
+          },
+          {
+            "source_anchor": "page:61",
+            "text": "形势和经营环境存在不利变化但未必一定降低借款人履行其合同现金流量义务的能力，该金融工具被视为具有较"
+          },
+          {
+            "source_anchor": "page:58",
+            "text": "金流量的来源是收取合同现金流量、出售金融资产还是两者兼有。本集团以客观事实为依据、以关键管理人员决定"
+          },
+          {
+            "source_anchor": "page:124",
+            "text": "应收票据 将收取金融资产现金流量的权利转移"
+          },
+          {
+            "source_anchor": "page:59",
+            "text": "- 收取该金融资产现金流量的合同权利终止；"
+          },
+          {
+            "source_anchor": "page:19",
+            "text": "东阿阿胶马记药业（吉林）有限公司 并购 已合并该子公司购买日后的利润表和现金流量表。公司合并对当期经营及业绩影响较小。"
+          },
+          {
+            "source_anchor": "page:19",
+            "text": "东阿阿胶健康产业科技(深圳)有限公司 新设 已合并该子公司设立后的利润表和现金流量表。公司新设对当期经营及业绩影响较小。"
+          },
+          {
+            "source_anchor": "page:13",
+            "text": "现金流量净额 81,567,258.59 966,238,927.23 -91.56%"
+          },
+          {
+            "source_anchor": "page:58",
+            "text": "集团对可能导致金融资产合同现金流量的时间分布或金额发生变更的合同条款进行评估，以确定其是否满足上述合"
+          },
+          {
+            "source_anchor": "page:123",
+            "text": "固定利率和浮动利率的带息金融工具分别使本集团面临公允价值利率风险及现金流量利率风险。本集团根据市场环境"
+          },
+          {
+            "source_anchor": "page:68",
+            "text": "处置费用后的净额 (如可确定的) 、该资产预计未来现金流量的现值 (如可确定的) 和零三者之中最高者。"
+          },
+          {
+            "source_anchor": "page:57",
+            "text": "本集团通常根据管理金融资产的业务模式和金融资产的合同现金流量特征，在初始确认时将金融资产分为不同类别："
+          },
+          {
+            "source_anchor": "page:45",
+            "text": "投资活动产生的现金流量净额 758,901,276.65 1,106,835,667.05"
+          },
+          {
+            "source_anchor": "page:61",
+            "text": "是否已发生信用减值。当对金融资产预期未来现金流量具有不利影响的一项或多项事件发生时，该金融资产成为"
+          },
+          {
+            "source_anchor": "page:57",
+            "text": "-本集团管理该金融资产的业务模式是以收取合同现金流量为目标；"
+          },
+          {
+            "source_anchor": "page:57",
+            "text": "-该金融资产的合同条款规定，在特定日期产生的现金流量，仅为对本金和以未偿付本金金额为基础的利息的支付。"
+          },
+          {
+            "source_anchor": "page:13",
+            "text": "现金流量净额 758,901,276.65 1,106,835,667.05 -31.44%"
+          },
+          {
+            "source_anchor": "page:103",
+            "text": "设定受益计划的内容及与之相关风险、对公司未来现金流量、时间和不确定性的影响说明："
+          },
+          {
+            "source_anchor": "page:124",
+            "text": "这些银行产品的经验以及对这些产品盈利的预期，本集团采用约定的预期收益率计算的未来现金流量折现的方法估算公"
+          },
+          {
+            "source_anchor": "page:57",
+            "text": "-本集团管理该金融资产的业务模式既以收取合同现金流量为目标又以出售该金融资产为目标；"
+          },
+          {
+            "source_anchor": "page:46",
+            "text": "投资活动产生的现金流量净额 705,073,249.02 1,107,976,505.50"
+          },
+          {
+            "source_anchor": "page:68",
+            "text": "未来现金流量折现后的金额确定。在确定最佳估计数时，本集团综合考虑了与或有事项有关的风险、不确定性和货币时"
+          },
+          {
+            "source_anchor": "page:45",
+            "text": "筹资活动产生的现金流量净额 -1,063,941,407.76 -791,447,578.56"
+          },
+          {
+            "source_anchor": "page:13",
+            "text": "现金流量净额 -1,063,941,407.76 -791,447,578.56 -34.43%"
+          },
+          {
+            "source_anchor": "page:46",
+            "text": "筹资活动产生的现金流量净额 -1,361,284,153.67 -929,987,296.67"
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": "2026H1",
+        "priority": 103,
+        "published_at": "2026-08-20",
+        "section": "cash_flow",
+        "source_type": "financial_report"
+      },
+      {
+        "evidence_id": "financial_report:2025:annual_report",
+        "facts": [
+          {
+            "source_anchor": "page:21",
+            "text": "有限公司 100%股权，该公司上年度经营活动现金流量净额 679,906,918.18 元，影响本期经营活动产生的现金流量净额"
+          },
+          {
+            "source_anchor": "page:152",
+            "text": "额 经营活动现金流量 营业收入 净利润 综合收益总额 经营活动现金流量"
+          },
+          {
+            "source_anchor": "page:9",
+            "text": "经营活动产生的现金流量净额（元） 2,289,207,775.27 2,170,810,025.93 5.45% 2,850,716,944.11 -19.70% 1,953,438,009.50 1,813,849,199.54"
+          },
+          {
+            "source_anchor": "page:77",
+            "text": "经营活动产生的现金流量净额 2,289,207,775.27 2,850,716,944.11"
+          },
+          {
+            "source_anchor": "page:86",
+            "text": "公司 2025 年 12 月 31 日的合并财务状况和财务状况、2025 年度的合并经营成果和经营成果及合并现金流量和现金流量。"
+          },
+          {
+            "source_anchor": "page:10",
+            "text": "经营活动产生的现金流量净额 -304,127,676.76 1,269,562,891.56 344,303,460.80 979,469,099.67"
+          },
+          {
+            "source_anchor": "page:21",
+            "text": "经营活动产生的现金流量净额 2,289,207,775.27 2,850,716,944.11 -19.70%"
+          },
+          {
+            "source_anchor": "page:21",
+            "text": "（1）经营活动产生的现金流量净额：同比下降 19.7%。主要原因：本年通过同一控制下企业合并取得东阿阿胶国际(BVI)"
+          },
+          {
+            "source_anchor": "page:21",
+            "text": "同比下降。同口径对比，经营活动产生的现金流量净额同比增长 5.45%。"
+          },
+          {
+            "source_anchor": "page:78",
+            "text": "经营活动产生的现金流量净额 2,338,696,788.60 1,441,429,780.81"
+          },
+          {
+            "source_anchor": "page:89",
+            "text": "能导致金融资产合同现金流量的时间分布或金额发生变更的合同条款进行评估，以确定其是否满足上述合同现金流量特"
+          },
+          {
+            "source_anchor": "page:90",
+            "text": "际利率折现的、根据合同应收的所有合同现金流量与预期收取的所有现金流量之间的差额，即全部现金短缺的现值。"
+          },
+          {
+            "source_anchor": "page:77",
+            "text": "销售商品、提供劳务收到的现金 7,096,300,758.59 7,358,438,671.82"
+          },
+          {
+            "source_anchor": "page:142",
+            "text": "（4） 不涉及当期现金收支、但影响企业财务状况或在未来可能影响企业现金流量的重大活动及财务"
+          },
+          {
+            "source_anchor": "page:88",
+            "text": "公司的财务状况、经营成果和现金流量由控制开始日起至控制结束日止包含于合并财务报表中。"
+          },
+          {
+            "source_anchor": "page:78",
+            "text": "投资活动产生的现金流量净额 105,719,407.82 -3,266,447,967.38"
+          },
+          {
+            "source_anchor": "page:65",
+            "text": "月 31 日的合并及母公司资产负债表，2025 年度的合并及母公司利润表、合并及母公司现金流量表、合"
+          },
+          {
+            "source_anchor": "page:26",
+            "text": "东阿阿胶医药 (天津)有限公司 注销 已合并该子公司年初至注销日期间的利润表和现金流量表。公司注销对经营及业绩影响较小。"
+          },
+          {
+            "source_anchor": "page:26",
+            "text": "东阿圣水水疗有限公司 注销 已合并该子公司年初至注销日期间的利润表和现金流量表。公司注销对经营及业绩影响较小。"
+          },
+          {
+            "source_anchor": "page:92",
+            "text": "如果本集团不再合理预期金融资产合同现金流量能够全部或部分收回，则直接减记该金融资产的账面余额。这种减"
+          },
+          {
+            "source_anchor": "page:26",
+            "text": "苏州东阿阿胶健康产业有限公司 新设 已合并该子公司设立后的利润表和现金流量表。公司新设对当期经营及业绩影响较小。"
+          },
+          {
+            "source_anchor": "page:92",
+            "text": "记构成相关金融资产的终止确认。这种情况通常发生在本集团确定债务人没有资产或收入来源可产生足够的现金流量以"
+          },
+          {
+            "source_anchor": "page:26",
+            "text": "东阿阿胶国际(BVI)有限公司 同一控制合并 已合并该子公司全年度的利润表和现金流量表。公司合并对当期经营及业绩影响较小。"
+          },
+          {
+            "source_anchor": "page:65",
+            "text": "状况以及2025年度的合并及母公司经营成果和现金流量。"
+          },
+          {
+            "source_anchor": "page:26",
+            "text": "内蒙古阿拉善苁蓉集团有限责任公司 非同一控制合并 已合并该子公司购买日后的利润表和现金流量表。公司合并对当期经营及业绩影响较小。"
+          },
+          {
+            "source_anchor": "page:79",
+            "text": "投资活动产生的现金流量净额 211,085,081.27 -3,154,225,288.81"
+          },
+          {
+            "source_anchor": "page:156",
+            "text": "固定利率和浮动利率的带息金融工具分别使本集团面临公允价值利率风险及现金流量利率风险。本集团根据市场环"
+          },
+          {
+            "source_anchor": "page:78",
+            "text": "筹资活动产生的现金流量净额 -1,716,989,972.35 -2,670,704,888.73"
+          },
+          {
+            "source_anchor": "page:21",
+            "text": "投资活动产生的现金流量净额 105,719,407.82 -3,266,447,967.38 103.24%"
+          },
+          {
+            "source_anchor": "page:79",
+            "text": "筹资活动产生的现金流量净额 -1,876,996,393.56 -1,358,554,490.88"
+          },
+          {
+            "source_anchor": "page:149",
+            "text": "编制本年度合并财务报表时，已合并上述公司年初至注销日期间的利润表和现金流量表。"
+          },
+          {
+            "source_anchor": "page:78",
+            "text": "销售商品、提供劳务收到的现金 6,194,941,319.64 4,652,334,702.71"
+          },
+          {
+            "source_anchor": "page:21",
+            "text": "筹资活动产生的现金流量净额 -1,716,989,972.35 -2,670,704,888.73 35.71%"
+          },
+          {
+            "source_anchor": "page:155",
+            "text": "本集团于资产负债表日的金融负债按未折现的合同现金流量 (包括按合同利率 (如果是浮动利率则按 12 月 31 日的"
+          },
+          {
+            "source_anchor": "page:91",
+            "text": "如果金融工具的违约风险较低，借款人在短期内履行其合同现金流量义务的能力很强，并且即便较长时期内经济形"
+          },
+          {
+            "source_anchor": "page:89",
+            "text": "金流量的来源是收取合同现金流量、出售金融资产还是两者兼有。本集团以客观事实为依据、以关键管理人员决定的对"
+          },
+          {
+            "source_anchor": "page:91",
+            "text": "势和经营环境存在不利变化但未必一定降低借款人履行其合同现金流量义务的能力，该金融工具被视为具有较低的信用"
+          },
+          {
+            "source_anchor": "page:21",
+            "text": "（2）投资活动产生的现金流量净额：同比增长 103.24%。主要原因：本期收到的理财产品赎回及到期大额存单较同期增"
+          },
+          {
+            "source_anchor": "page:21",
+            "text": "（3）筹资活动产生的现金流量净额：同比增长 35.71%。主要原因：本年通过同一控制下企业合并取得东阿阿胶国际"
+          },
+          {
+            "source_anchor": "page:21",
+            "text": "(BVI)有限公司 100%股权，该公司上年度筹资活动现金流量净额-692,209,806.16 元。同口径对比，筹资活动产生的现金"
+          },
+          {
+            "source_anchor": "page:91",
+            "text": "否已发生信用减值。当对金融资产预期未来现金流量具有不利影响的一项或多项事件发生时，该金融资产成为已发生信"
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": "2025",
+        "priority": 97,
+        "published_at": "2026-03-19",
+        "section": "cash_flow",
+        "source_type": "financial_report"
+      }
+    ],
+    "dividend": [
+      {
+        "evidence_id": "dividend_snapshot:2026-08-22",
+        "facts": [
+          {
+            "source_anchor": "database_snapshot",
+            "text": "{\"dividend_history\": [{\"calendar_year\": 2023, \"cash_dividend_per_share\": 1.7841902, \"current_basis_dps\": 1.7841902, \"share_basis_as_of\": \"2026-08-16\"}, {\"calendar_year\": 2024, \"cash_dividend_per_share\": 2.4196826, \"current_basis_dps\": 2.4196826, \"share_basis_as_of\": \"2026-08-16\"}, {\"calendar_year\": 2025, \"cash_dividend_per_share\": 2.7055822999999997, \"current_basis_dps\": 2.7055822999999997, \"share_basis_as_of\": \"2026-08-16\"}], \"yield_context\": {\"add_yield\": 4.0, \"entry_yield\": 3.5, \"heavy_yield\": 4.5, \"latest_price\": 48.35, \"price_date\": \"2026-08-21\", \"three_year_average_dps\": 2.3031517, \"three_year_average_yield\": 0.0476349886246122, \"yield_signal\": \"heavy\"}}"
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": null,
+        "priority": 160,
+        "published_at": null,
+        "section": "dividend",
+        "source_type": "database_snapshot"
+      },
+      {
+        "evidence_id": "financial_report:2026H1:half_year_report",
+        "facts": [
+          {
+            "source_anchor": "page:22",
+            "text": "公司发展阶段属成熟期且无重大资金支出安排的，进行利润分配时，现金分红在本次利润分配中所占比例最低应达到"
+          },
+          {
+            "source_anchor": "page:22",
+            "text": "本次利润分配方案实施时，如享有利润分配权的股份总额发生变动，则以实施分配方案时，股权登记日享有利润分配权"
+          },
+          {
+            "source_anchor": "page:74",
+            "text": "资产负债表日后，经审议批准的利润分配方案中拟分配的股利或利润，不确认为资产负债表日的负债，在附注中单独披"
+          },
+          {
+            "source_anchor": "page:22",
+            "text": "现金分红总额（含其他方式）占利润分配总额的比例 100%"
+          },
+          {
+            "source_anchor": "page:48",
+            "text": "（三）利润分配 -921,530,380.34 -921,530,380.34 -921,530,380.34"
+          },
+          {
+            "source_anchor": "page:106",
+            "text": "14.31 元（含税），现金分红总额为921,530,835.14 元，实际分配金额921,530,380.34 元。"
+          },
+          {
+            "source_anchor": "page:53",
+            "text": "（三）利润分配 -817,850,101.54 -817,850,101.54"
+          },
+          {
+            "source_anchor": "page:22",
+            "text": "二、本报告期利润分配及资本公积金转增股本情况"
+          },
+          {
+            "source_anchor": "page:135",
+            "text": "拟分配每 10 股派息数（元） 13.44"
+          },
+          {
+            "source_anchor": "page:22",
+            "text": "每 10 股派息数（元） （含税） 13.44"
+          },
+          {
+            "source_anchor": "page:135",
+            "text": "经审议批准宣告发放的每 10 股派息数（元） 13.44"
+          },
+          {
+            "source_anchor": "page:135",
+            "text": "2026 年中期利润分配方案，以2026 年6 月30 日总股本 639,826,824"
+          },
+          {
+            "source_anchor": "page:3",
+            "text": "公司经本次董事会审议通过的利润分配预案为：以 639,826,824 股为基"
+          },
+          {
+            "source_anchor": "page:22",
+            "text": "现金分红金额（元） （含税） 859,927,251.46"
+          },
+          {
+            "source_anchor": "page:22",
+            "text": "以其他方式（如回购股份）现金分红金额（元） 119,997,105.61"
+          },
+          {
+            "source_anchor": "page:135",
+            "text": "股为基数，向全体股东每 10 股派发现金13.44 元（含税） ，现金分红总"
+          },
+          {
+            "source_anchor": "page:62",
+            "text": "存股不参与利润分配，在资产负债表中作为股东权益的备抵项目列示。"
+          },
+          {
+            "source_anchor": "page:22",
+            "text": "现金分红总额（含其他方式） （元） 979,924,357.07"
+          },
+          {
+            "source_anchor": "page:51",
+            "text": "（三）利润分配 -921,530,380.34 -921,530,380.34"
+          },
+          {
+            "source_anchor": "page:49",
+            "text": "（三）利润分配 -817,850,101.54 -817,850,101.54 -817,850,101.54"
+          },
+          {
+            "source_anchor": "page:58",
+            "text": "初始确认后，对于该类金融资产以公允价值进行后续计量，产生的利得或损失 (包括利息和股利收入) 计入当期"
+          },
+          {
+            "source_anchor": "page:63",
+            "text": "现金股利或利润由本公司享有的部分确认为当期投资收益。"
+          },
+          {
+            "source_anchor": "page:22",
+            "text": "利润分配或资本公积金转增预案的详细情况说明"
+          },
+          {
+            "source_anchor": "page:22",
+            "text": "2026 年中期利润分配方案为：以2026 年 6 月 30 日总股本639,826,824 股为基数，向全体股东每10 股派发现金13.44"
+          },
+          {
+            "source_anchor": "page:22",
+            "text": "元（含税） ，现金分红总额为859,927,251.46 元。本次派发现金红利后，剩余母公司未分配利润8,072,186,541.82"
+          },
+          {
+            "source_anchor": "page:22",
+            "text": "的股份总额为基数，按照分配总额不变的原则对每股分红金额进行调整。"
+          },
+          {
+            "source_anchor": "page:63",
+            "text": "股利计算应分得的部分，相应减少长期股权投资的账面价值。对合营企业或联营企业除净损益、其他综合收益和"
+          },
+          {
+            "source_anchor": "page:63",
+            "text": "利润分配以外所有者权益的其他变动 (以下简称“其他所有者权益变动”) ，本集团按照应享有或应分担的份额"
+          },
+          {
+            "source_anchor": "page:105",
+            "text": "应付普通股股利 921,530,380.34 817,850,101.54"
+          },
+          {
+            "source_anchor": "page:22",
+            "text": "独立董事专门会议审议通过了上述利润分配方案，并同意将其提交公司第十一届董事会第二十二次会议审议。公司董事"
+          },
+          {
+            "source_anchor": "page:22",
+            "text": "会根据 2025 年年度股东会授权制定的上述利润分配方案符合《公司法》 《上市公司监管指引第 3 号——上市公司现金"
+          },
+          {
+            "source_anchor": "page:58",
+            "text": "初始确认后，对于该类金融资产以公允价值进行后续计量。股利收入计入损益，其他利得或损失计入其他综"
+          },
+          {
+            "source_anchor": "page:13",
+            "text": "同比减少 2.72 亿元。其中：因分红政策影响，本期分"
+          },
+          {
+            "source_anchor": "page:13",
+            "text": "配股利支出较上年增加 1.04 亿元；因回购股份影响，"
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": "2026H1",
+        "priority": 107,
+        "published_at": "2026-08-20",
+        "section": "dividend",
+        "source_type": "financial_report"
+      },
+      {
+        "evidence_id": "financial_report:2025:annual_report",
+        "facts": [
+          {
+            "source_anchor": "page:44",
+            "text": "公司发展阶段属成熟期且无重大资金支出安排的，进行利润分配时，现金分红在本次利润分配中所占比例最低应达"
+          },
+          {
+            "source_anchor": "page:43",
+            "text": "报告期内利润分配政策，特别是现金分红政策的制定、执行或调整情况"
+          },
+          {
+            "source_anchor": "page:43",
+            "text": "公司利润分配方案，严格按照《公司章程》中关于现金分红政策予以执行，符合相关规定要求，并充分听取了独立董事"
+          },
+          {
+            "source_anchor": "page:44",
+            "text": "利润分配权的股份总额为基数，按照分配总额不变的原则对每股分红金额进行调整。"
+          },
+          {
+            "source_anchor": "page:43",
+            "text": "现金分红政策进行调整或变更的，条件及程序是否合规、透明： 是"
+          },
+          {
+            "source_anchor": "page:44",
+            "text": "本报告期利润分配及资本公积金转增股本情况"
+          },
+          {
+            "source_anchor": "page:44",
+            "text": "每 10 股派息数（元） （含税） 14.31"
+          },
+          {
+            "source_anchor": "page:44",
+            "text": "现金分红金额（元） （含税） 921,530,835.14"
+          },
+          {
+            "source_anchor": "page:44",
+            "text": "以其他方式（如回购股份）现金分红金额（元） 79,992,687.96"
+          },
+          {
+            "source_anchor": "page:90",
+            "text": "初始确认后，对于该类金融资产以公允价值进行后续计量。股利收入计入损益，其他利得或损失计入其他综合收益。"
+          },
+          {
+            "source_anchor": "page:136",
+            "text": "应付普通股股利 1,635,056,087.76 1,930,953,750.55"
+          },
+          {
+            "source_anchor": "page:171",
+            "text": "拟分配每 10 股派息数（元） 14.31"
+          },
+          {
+            "source_anchor": "page:44",
+            "text": "现金分红总额（含其他方式） （元） 1,001,523,523.10"
+          },
+          {
+            "source_anchor": "page:85",
+            "text": "（三）利润分配 -1,882,987,553.57 -1,882,987,553.57"
+          },
+          {
+            "source_anchor": "page:3",
+            "text": "公司经本次董事会审议通过的利润分配预案为：以 643,976,824 股为基"
+          },
+          {
+            "source_anchor": "page:171",
+            "text": "2025 年度利润分配预案，以2025 年末总股本643,976,824 股为基数，"
+          },
+          {
+            "source_anchor": "page:80",
+            "text": "（三）利润分配 -1,635,056,087.76 -1,635,056,087.76 -1,635,056,087.76"
+          },
+          {
+            "source_anchor": "page:171",
+            "text": "向全体股东每 10 股派发现金14.31 元 (含税)，共计分配现金股利人民"
+          },
+          {
+            "source_anchor": "page:83",
+            "text": "（三）利润分配 -1,635,056,087.76 -1,635,056,087.76"
+          },
+          {
+            "source_anchor": "page:43",
+            "text": "九、公司利润分配及资本公积金转增股本情况"
+          },
+          {
+            "source_anchor": "page:44",
+            "text": "2025 年度利润分配预案为：以2025 年末总股本 643,976,824股为基数，向全体股东每 10 股派发现金 14.31 元（含"
+          },
+          {
+            "source_anchor": "page:44",
+            "text": "税） ，现金分红总额为921,530,835.14 元。本次派发现金红利占上市公司 2025 年当年尚未分配归属于股东净利润的"
+          },
+          {
+            "source_anchor": "page:92",
+            "text": "股不参与利润分配，在资产负债表中作为股东权益的备抵项目列示。"
+          },
+          {
+            "source_anchor": "page:44",
+            "text": "在实施权益分派的股权登记日前，如享有利润分配权的股份总额发生变动，则以实施分配方案时股权登记日的享有"
+          },
+          {
+            "source_anchor": "page:43",
+            "text": "公司未进行现金分红的，应当披露具体原因，以及下一步为增强投资者回报水平拟采取的举措： 不适用"
+          },
+          {
+            "source_anchor": "page:89",
+            "text": "初始确认后，对于该类金融资产以公允价值进行后续计量，产生的利得或损失 (包括利息和股利收入) 计入当期损"
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": "2025",
+        "priority": 97,
+        "published_at": "2026-03-19",
+        "section": "dividend",
+        "source_type": "financial_report"
+      },
+      {
+        "evidence_id": "announcement:1225313517",
+        "facts": [
+          {
+            "source_anchor": "page:3",
+            "text": "按照利润分配总额不变原则，对每股分红金额进行调整。因此，按公司总股本折"
+          },
+          {
+            "source_anchor": "page:3",
+            "text": "算的每股现金分红（含税）=实际现金分红总额÷总股本，即（14.354904 元÷"
+          },
+          {
+            "source_anchor": "page:1",
+            "text": "921,530,835.14 元。本次利润分配方案实施时，如享有利润分配权的股份总额"
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": null,
+        "priority": 83,
+        "published_at": "2026-05-18",
+        "section": "dividend",
+        "source_type": "announcement"
+      },
+      {
+        "evidence_id": "announcement:1225484992",
+        "facts": [
+          {
+            "source_anchor": "page:2",
+            "text": "本次利润分配方案实施时，如享有利润分配权的股份总额发生变动，则以实"
+          },
+          {
+            "source_anchor": "page:2",
+            "text": "上市公司现金分红》及《公司章程》等相关规定。2026 年中期利润分配方案的"
+          },
+          {
+            "source_anchor": "page:1",
+            "text": "本次利润分配方案为 2026 年半年度利润分配，依照《公司法》和《公司章"
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": null,
+        "priority": 83,
+        "published_at": "2026-08-20",
+        "section": "dividend",
+        "source_type": "announcement"
+      }
+    ],
+    "financial_performance": [
+      {
+        "evidence_id": "financial_report:2026H1:half_year_report",
+        "facts": [
+          {
+            "source_anchor": "page:119",
+            "text": "营业收入 净利润 综合收益总额 经营活动现金流量 营业收入 净利润 综合收益总额 经营活动现金流量"
+          },
+          {
+            "source_anchor": "page:14",
+            "text": "金额 占营业收入比重 金额 占营业收入比重"
+          },
+          {
+            "source_anchor": "page:19",
+            "text": "公司名称 公司类型 主要业务 注册资本 总资产 净资产 营业收入 营业利润 净利润"
+          },
+          {
+            "source_anchor": "page:8",
+            "text": "归属于上市公司股东的净利润（元） 860,377,588.81 817,717,365.38 814,303,895.42 5.66%"
+          },
+          {
+            "source_anchor": "page:31",
+            "text": "股份变动对最近一年和最近一期基本每股收益和稀释每股收益、归属于公司普通股股东的每股净资产等财务指标的影响"
+          },
+          {
+            "source_anchor": "page:31",
+            "text": "639,826,824 股计算，公司最近一年和最近一期基本每股收益和稀释每股收益、归属于公司普通股股东"
+          },
+          {
+            "source_anchor": "page:145",
+            "text": "基本每股收益（元/股） 稀释每股收益（元/股）"
+          },
+          {
+            "source_anchor": "page:14",
+            "text": "营业收入 营业成本 毛利率 营业收入比上年"
+          },
+          {
+            "source_anchor": "page:42",
+            "text": "本期发生同一控制下企业合并的，被合并方在合并前实现的净利润为：0.00 元，上期被合并方实现的净利润为："
+          },
+          {
+            "source_anchor": "page:19",
+            "text": "主要子公司及对公司净利润影响达 10%以上的参股公司情况"
+          },
+          {
+            "source_anchor": "page:13",
+            "text": "营业收入 3,155,143,496.50 3,051,583,802.55 3.39%"
+          },
+          {
+            "source_anchor": "page:14",
+            "text": "营业收入合计 3,155,143,496.50 100% 3,051,583,802.55 100% 3.39%"
+          },
+          {
+            "source_anchor": "page:8",
+            "text": "营业收入（元） 3,155,143,496.50 3,050,717,291.69 3,051,583,802.55 3.39%"
+          },
+          {
+            "source_anchor": "page:43",
+            "text": "一、营业收入 2,533,311,535.70 2,449,687,517.26"
+          },
+          {
+            "source_anchor": "page:41",
+            "text": "其中：营业收入 3,155,143,496.50 3,051,583,802.55"
+          },
+          {
+            "source_anchor": "page:64",
+            "text": "现净利润的，本集团在收益分享额弥补未确认的亏损分担额后，恢复确认收益分享额。"
+          },
+          {
+            "source_anchor": "page:121",
+            "text": "--净利润 295,397.23 86,870.79"
+          },
+          {
+            "source_anchor": "page:8",
+            "text": "净利润（元） 819,872,358.90 787,561,668.40 784,148,198.44 4.56%"
+          },
+          {
+            "source_anchor": "page:111",
+            "text": "净利润 860,294,338.77 814,315,976.68"
+          },
+          {
+            "source_anchor": "page:8",
+            "text": "基本每股收益（元/股） 1.3400 1.2698 1.2645 5.97%"
+          },
+          {
+            "source_anchor": "page:8",
+            "text": "稀释每股收益（元/股） 1.3400 1.2698 1.2645 5.97%"
+          },
+          {
+            "source_anchor": "page:8",
+            "text": "加权平均净资产收益率 8.12% 7.73% 7.69% 上升 0.43 个"
+          },
+          {
+            "source_anchor": "page:13",
+            "text": "同比减少 8.85 亿元。其中：受授信政策阶段性使用影"
+          },
+          {
+            "source_anchor": "page:8",
+            "text": "归属于上市公司股东的净资产（元） 10,158,536,554.08 10,336,303,915.94 10,336,303,915.94 -1.72%"
+          },
+          {
+            "source_anchor": "page:8",
+            "text": "1、同时按照国际会计准则与按照中国会计准则披露的财务报告中净利润和净资产差异情况"
+          },
+          {
+            "source_anchor": "page:13",
+            "text": "响，本期销售回款同比减少 4.19 亿元；为满足生产经"
+          },
+          {
+            "source_anchor": "page:8",
+            "text": "公司报告期不存在按照国际会计准则与按照中国会计准则披露的财务报告中净利润和净资产差异情况。"
+          },
+          {
+            "source_anchor": "page:8",
+            "text": "2、同时按照境外会计准则与按照中国会计准则披露的财务报告中净利润和净资产差异情况"
+          },
+          {
+            "source_anchor": "page:145",
+            "text": "归属于公司普通股股东的净利润 8.12% 1.3400 1.3400"
+          },
+          {
+            "source_anchor": "page:8",
+            "text": "公司报告期不存在按照境外会计准则与按照中国会计准则披露的财务报告中净利润和净资产差异情况。"
+          },
+          {
+            "source_anchor": "page:145",
+            "text": "普通股股东的净利润 7.73% 1.2769 1.2769"
+          },
+          {
+            "source_anchor": "page:145",
+            "text": "（1） 同时按照国际会计准则与按中国会计准则披露的财务报告中净利润和净资产差异情况"
+          },
+          {
+            "source_anchor": "page:14",
+            "text": "占公司营业收入或营业利润 10%以上的行业、产品或地区情况"
+          },
+          {
+            "source_anchor": "page:145",
+            "text": "（2） 同时按照境外会计准则与按中国会计准则披露的财务报告中净利润和净资产差异情况"
+          },
+          {
+            "source_anchor": "page:42",
+            "text": "（一）基本每股收益 1.3400 1.2645"
+          },
+          {
+            "source_anchor": "page:105",
+            "text": "加：本期归属于母公司所有者的净利润 860,377,588.81 814,303,895.42"
+          },
+          {
+            "source_anchor": "page:42",
+            "text": "（二）稀释每股收益 1.3400 1.2645"
+          },
+          {
+            "source_anchor": "page:13",
+            "text": "同比减少 3.48 亿元。其中：受健康产业园项目土地及"
+          },
+          {
+            "source_anchor": "page:120",
+            "text": "营业收入 14,401,484.21 25,561,697.72"
+          },
+          {
+            "source_anchor": "page:120",
+            "text": "净利润 -9,417,322.37 -7,721,046.56"
+          },
+          {
+            "source_anchor": "page:13",
+            "text": "配套费用、其他长期资产构建影响，支付资金同比增"
+          },
+          {
+            "source_anchor": "page:13",
+            "text": "营业单位支付的现金净额同比增加 0.2 亿元；因理财"
+          },
+          {
+            "source_anchor": "page:13",
+            "text": "产品实际运作影响，净流入同比减少 1.45 亿元。"
+          },
+          {
+            "source_anchor": "page:13",
+            "text": "物净增加额 -223,469,009.41 1,281,627,015.72 -117.44% 同比减少 15.05 亿元。主要受经营活动、投资活动、"
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": "2026H1",
+        "priority": 106,
+        "published_at": "2026-08-20",
+        "section": "financial_performance",
+        "source_type": "financial_report"
+      },
+      {
+        "evidence_id": "financial_report:2025:annual_report",
+        "facts": [
+          {
+            "source_anchor": "page:9",
+            "text": "注：2025 年，公司实现营业收入 67.00 亿元，同比上升 13.17%；归属于上市公司股东的净利润 17.39 亿元，同比上升 11.67%；经营活动产生的现"
+          },
+          {
+            "source_anchor": "page:15",
+            "text": "上升 13.17%；归属于上市公司股东的净利润 17.39 亿元，同比上升 11.67%；归属于上市公司股东的扣"
+          },
+          {
+            "source_anchor": "page:10",
+            "text": "公司报告期内经审计利润总额、净利润、扣除非经常性损益后的净利润三者孰低为负值"
+          },
+          {
+            "source_anchor": "page:9",
+            "text": "的企业合并，根据会计准则等相关规定，需重述合并财务报表相关数据。重述后，营业收入、归属于上市公司股东的净利润、经营活动产生的现金流量"
+          },
+          {
+            "source_anchor": "page:10",
+            "text": "公司最近三个会计年度扣除非经常性损益前后净利润孰低者均为负值，且最近一年审计报告显示公司持续经营能力存在"
+          },
+          {
+            "source_anchor": "page:17",
+            "text": "营业收入 营业成本 毛利率 营业收入比上"
+          },
+          {
+            "source_anchor": "page:9",
+            "text": "归属于上市公司股东的净利润（元） 1,738,741,090.72 1,557,000,775.65 11.67% 1,557,132,327.91 11.66% 1,150,878,550.46 1,156,957,243.58"
+          },
+          {
+            "source_anchor": "page:15",
+            "text": "质量。剔除因同一控制下企业合并而重述相关数据因素，2025 年公司实现营业收入 67.00 亿元，同比"
+          },
+          {
+            "source_anchor": "page:15",
+            "text": "除非经常性损益的净利润16.38亿元，同比增长13.62%。"
+          },
+          {
+            "source_anchor": "page:10",
+            "text": "归属于上市公司股东的净利润 424,976,597.42 392,740,767.96 456,102,730.06 464,920,995.28"
+          },
+          {
+            "source_anchor": "page:75",
+            "text": "2.终止经营净利润（净亏损以“－”号填列）"
+          },
+          {
+            "source_anchor": "page:22",
+            "text": "报告期内公司经营活动产生的现金净流量与本年度净利润存在重大差异的原因说明"
+          },
+          {
+            "source_anchor": "page:75",
+            "text": "1.归属于母公司股东的净利润 1,738,741,090.72 1,557,132,327.91"
+          },
+          {
+            "source_anchor": "page:74",
+            "text": "其中：营业收入 6,700,474,184.47 6,156,708,052.00"
+          },
+          {
+            "source_anchor": "page:19",
+            "text": "报告期内公司贸易业务收入占营业收入比例超过 10%"
+          },
+          {
+            "source_anchor": "page:21",
+            "text": "研发投入占营业收入比例 5.03% 3.41% 增长 1.62 个百分点"
+          },
+          {
+            "source_anchor": "page:22",
+            "text": "经营活动现金净流量和净利润差异主要是加快营运资金周转、降低营运资金占压及计提折旧摊销等因素影响。"
+          },
+          {
+            "source_anchor": "page:19",
+            "text": "2025 年 2024 年 同比增减 重大变动说明"
+          },
+          {
+            "source_anchor": "page:142",
+            "text": "净利润 1,738,672,209.60 1,557,303,610.84"
+          },
+          {
+            "source_anchor": "page:9",
+            "text": "营业收入（元） 6,700,474,184.47 5,920,785,955.41 13.17% 6,156,708,052.00 8.83% 4,715,265,729.50 5,863,706,702.80"
+          },
+          {
+            "source_anchor": "page:136",
+            "text": "加：本期归属于母公司所有者的净利润 1,738,741,090.72 1,557,132,327.91"
+          },
+          {
+            "source_anchor": "page:16",
+            "text": "营业收入合计 6,700,474,184.47 100% 6,156,708,052.00 100% 8.83%"
+          },
+          {
+            "source_anchor": "page:9",
+            "text": "非经常性损益的净利润（元） 1,638,084,776.94 1,441,714,437.09 13.62% 1,441,714,437.09 13.62% 1,082,628,480.93 1,088,707,174.05"
+          },
+          {
+            "source_anchor": "page:21",
+            "text": "研发投入总额占营业收入的比重较上年发生显著变化的原因"
+          },
+          {
+            "source_anchor": "page:9",
+            "text": "基本每股收益（元/股） 2.70 2.42 11.57% 2.42 11.57% 1.79 1.80"
+          },
+          {
+            "source_anchor": "page:10",
+            "text": "营业收入 1,718,524,479.25 1,332,192,812.44 1,715,653,351.83 1,934,103,540.95"
+          },
+          {
+            "source_anchor": "page:9",
+            "text": "稀释每股收益（元/股） 2.70 2.42 11.57% 2.42 11.57% 1.79 1.80"
+          },
+          {
+            "source_anchor": "page:9",
+            "text": "加权平均净资产收益率 16.66% 14.60% 增长 2.06 个百分点 14.56% 增长 2.10 个百分点 11.12% 11.13%"
+          },
+          {
+            "source_anchor": "page:48",
+            "text": "合并财务报表营业收入的比例 100.00%"
+          },
+          {
+            "source_anchor": "page:10",
+            "text": "非经常性损益的净利润 416,362,477.57 371,199,190.83 367,622,109.51 482,900,999.03"
+          },
+          {
+            "source_anchor": "page:21",
+            "text": "项目 2025 年 2024 年 同比增减"
+          },
+          {
+            "source_anchor": "page:17",
+            "text": "行业分类 项目 单位 2025 年 2024 年 同比增减"
+          },
+          {
+            "source_anchor": "page:9",
+            "text": "归属于上市公司股东的净资产（元） 10,336,303,915.94 10,310,173,764.03 0.25% 10,315,835,995.15 0.20% 10,719,014,633.60 10,772,491,869.72"
+          },
+          {
+            "source_anchor": "page:153",
+            "text": "营业收入 48,626,966.66 42,539,016.54"
+          },
+          {
+            "source_anchor": "page:153",
+            "text": "净利润 -35,250,674.99 -27,581,653.58"
+          },
+          {
+            "source_anchor": "page:75",
+            "text": "本期发生同一控制下企业合并的，被合并方在合并前实现的净利润为：-3,413,469.97 元，上期被合并方实现的净"
+          },
+          {
+            "source_anchor": "page:183",
+            "text": "净利润 16.66% 2.70 2.70"
+          },
+          {
+            "source_anchor": "page:17",
+            "text": "相关数据同比发生变动 30%以上的原因说明"
+          },
+          {
+            "source_anchor": "page:9",
+            "text": "金流量净额22.89 亿元，同比上升5.45%。"
+          },
+          {
+            "source_anchor": "page:75",
+            "text": "一、营业收入 5,469,405,849.68 4,972,843,214.73"
+          },
+          {
+            "source_anchor": "page:183",
+            "text": "公司普通股股东的净利润 15.78% 2.55 2.55"
+          },
+          {
+            "source_anchor": "page:76",
+            "text": "四、净利润（净亏损以“－”号填列） 1,662,631,972.71 1,448,039,440.61"
+          },
+          {
+            "source_anchor": "page:135",
+            "text": "根据公司法、本公司章程的规定，本公司按净利润的 10%提取法定盈余公积金。法定盈余公积累计额为本公司注册资"
+          },
+          {
+            "source_anchor": "page:76",
+            "text": "（一）持续经营净利润（净亏损以“－”号填列） 1,662,631,972.71 1,448,039,440.61"
+          },
+          {
+            "source_anchor": "page:153",
+            "text": "--净利润 836,358.43 524,399.40"
+          },
+          {
+            "source_anchor": "page:16",
+            "text": "（2） 占公司营业收入或营业利润 10%以上的行业、产品、地区、销售模式的情况"
+          },
+          {
+            "source_anchor": "page:76",
+            "text": "（二）终止经营净利润（净亏损以“－”号填列）"
+          },
+          {
+            "source_anchor": "page:21",
+            "text": "相关数据同比发生重大变动的主要影响因素说明"
+          },
+          {
+            "source_anchor": "page:156",
+            "text": "76,666,555.96 元 (2024 年：人民币 72,226,017.37 元) ，净利润减少人民币 76,666,555.96 元 (2024 年：人民币"
+          },
+          {
+            "source_anchor": "page:74",
+            "text": "五、净利润（净亏损以“－”号填列） 1,738,672,209.60 1,557,303,610.84"
+          },
+          {
+            "source_anchor": "page:74",
+            "text": "1.持续经营净利润（净亏损以“－”号填列） 1,738,672,209.60 1,557,303,610.84"
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": "2025",
+        "priority": 100,
+        "published_at": "2026-03-19",
+        "section": "financial_performance",
+        "source_type": "financial_report"
+      }
+    ],
+    "governance": [
+      {
+        "evidence_id": "financial_report:2025:annual_report",
+        "facts": [
+          {
+            "source_anchor": "page:30",
+            "text": "的议案》，公司不再设置监事会和监事，监事会法定职权由董事会审计委员会行使，同时在董事会中增"
+          },
+          {
+            "source_anchor": "page:30",
+            "text": "控制制度和体系。公司治理实际情况符合上市公司治理规则的相关要求。"
+          },
+          {
+            "source_anchor": "page:31",
+            "text": "公司治理的实际状况与法律、行政法规和中国证监会发布的关于上市公司治理的规定是否存在重大差异"
+          },
+          {
+            "source_anchor": "page:31",
+            "text": "公司治理的实际状况与法律、行政法规和中国证监会发布的关于上市公司治理的规定不存在重大差异。"
+          },
+          {
+            "source_anchor": "page:30",
+            "text": "根据《上市公司治理准则》等要求，公司董事会下设战略委员会、提名委员会、审计委员会和薪酬"
+          },
+          {
+            "source_anchor": "page:30",
+            "text": "举董事，持续优化董事会人员结构。本届董事会共9 名成员，其中独立董事3 名，占董事会成员的三分"
+          },
+          {
+            "source_anchor": "page:31",
+            "text": "治理结构，董事会与高级管理人员按照《公司章程》及有关规定行使各自的职责。"
+          },
+          {
+            "source_anchor": "page:3",
+            "text": "公司董事会及董事、高级管理人员保证年度报告内容的真实、准确、完整，"
+          },
+          {
+            "source_anchor": "page:30",
+            "text": "报告期内，公司严格按照《公司法》《证券法》《上市公司治理准则》《深圳证券交易所股票上市"
+          },
+          {
+            "source_anchor": "page:50",
+            "text": "十四、上市公司治理专项行动自查问题整改情况"
+          },
+          {
+            "source_anchor": "page:37",
+            "text": "（1）董事、高级管理人员报酬的决策程序：董事报酬经公司董事会、股东会审议批准；高级管理"
+          },
+          {
+            "source_anchor": "page:37",
+            "text": "人员报酬经公司董事会审议批准；限制性股票激励方案经公司董事会、股东会审议批准。"
+          },
+          {
+            "source_anchor": "page:68",
+            "text": "我们还就已遵守与独立性相关的职业道德要求向治理层提供声明，并与治理层沟通可能被合理认"
+          },
+          {
+            "source_anchor": "page:50",
+            "text": "相关内容，请见公司2025年度环境、社会和公司治理（ESG）报告全文。"
+          },
+          {
+            "source_anchor": "page:33",
+            "text": "届董事会战略委员会、审计委员会委员职务。"
+          },
+          {
+            "source_anchor": "page:30",
+            "text": "议；审计委员会主要负责公司内外部审计的沟通、监督和核查工作，并行使《公司法》规定的监事会的"
+          },
+          {
+            "source_anchor": "page:30",
+            "text": "查公司董事及高级管理人员的薪酬政策与方案，对董事会负责。"
+          },
+          {
+            "source_anchor": "page:37",
+            "text": "注：以上数据，为董事和高级管理人员在报告期内担任董事和高级管理人员期间获取的薪酬总额。"
+          },
+          {
+            "source_anchor": "page:37",
+            "text": "公司现任及报告期内离任董事和高级管理人员近三年证券监管机构处罚的情况"
+          },
+          {
+            "source_anchor": "page:34",
+            "text": "公司现任董事、高级管理人员专业背景、主要工作经历以及目前在公司的主要职责"
+          },
+          {
+            "source_anchor": "page:46",
+            "text": "公司董事、高级管理人员获得的股权激励情况"
+          },
+          {
+            "source_anchor": "page:41",
+            "text": "审计委员会在报告期内的监督活动中发现公司是否存在风险"
+          },
+          {
+            "source_anchor": "page:33",
+            "text": "报告期是否存在任期内董事和高级管理人员离任的情况"
+          },
+          {
+            "source_anchor": "page:38",
+            "text": "报告期末全体董事和高级管理人员实际获得薪酬的考核依据 依据《东阿阿胶股份有限公司管理团队成员绩效管理"
+          },
+          {
+            "source_anchor": "page:47",
+            "text": "结合年度管理主题与“1238”战略要求，以“里程碑”分解落实责任，对高级管理人员年度重点工"
+          },
+          {
+            "source_anchor": "page:38",
+            "text": "报告期末全体董事和高级管理人员实际获得薪酬的考核完成情况"
+          },
+          {
+            "source_anchor": "page:33",
+            "text": "申劲锋 董事 离任 2025 年02 月 25 日 由于工作变动原因，申请辞去公司第十一届董事会董事职务。"
+          },
+          {
+            "source_anchor": "page:32",
+            "text": "程杰 男 47 董事长 现任 2024 年10 月 22 日 2027 年08 月 06 日"
+          },
+          {
+            "source_anchor": "page:37",
+            "text": "董事、高级管理人员薪酬的决策程序、确定依据、实际支付情况"
+          },
+          {
+            "source_anchor": "page:30",
+            "text": "范性文件的要求，结合公司实际情况，持续优化法人治理结构，不断提高公司规范运作水平，健全内部"
+          },
+          {
+            "source_anchor": "page:46",
+            "text": "财务总监、董事会秘书 0 0 24,776 35.95 24,776"
+          },
+          {
+            "source_anchor": "page:68",
+            "text": "我们与治理层就计划的审计范围、时间安排和重大审计发现等事项进行沟通，包括沟通我们在审"
+          },
+          {
+            "source_anchor": "page:38",
+            "text": "最终薪酬确认事宜，待董事会薪酬与考核委员会审"
+          },
+          {
+            "source_anchor": "page:49",
+            "text": "⑤ 中高级管理人员和关键技术人员流失率较"
+          },
+          {
+            "source_anchor": "page:39",
+            "text": "六、董事会下设专门委员会在报告期内的情况"
+          },
+          {
+            "source_anchor": "page:3",
+            "text": "是否存在部分董事未亲自出席审议本次年报的董事会会议的情形"
+          },
+          {
+            "source_anchor": "page:135",
+            "text": "本集团第十一届董事会第十五次会议审议通过了《关于以集中竞价方式回购公司股份的议案》，公司拟使用自有资金以"
+          },
+          {
+            "source_anchor": "page:33",
+            "text": "由于工作变动原因，申请辞去公司第十一届董事会董事职务，同时一并辞去第十一"
+          },
+          {
+            "source_anchor": "page:38",
+            "text": "议、董事会审批后完成。本次年报披露的薪酬金额为"
+          },
+          {
+            "source_anchor": "page:37",
+            "text": "（2）董事、高级管理人员报酬确定依据：公司独立董事、外部董事报酬，按照履行职责所承担的"
+          },
+          {
+            "source_anchor": "page:47",
+            "text": "一标基准值，承担经济指标高级管理人员均设立二标挑战值，牵引领导干部主动加压、促进东阿阿胶十"
+          },
+          {
+            "source_anchor": "page:34",
+            "text": "事、总裁，东阿阿胶股份有限公司党委书记、董事长。"
+          },
+          {
+            "source_anchor": "page:52",
+            "text": "四、董事会对最近一期“非标准审计报告”相关情况的说明"
+          },
+          {
+            "source_anchor": "page:33",
+            "text": "届董事会战略委员会、薪酬与考核委员会委员职务。"
+          },
+          {
+            "source_anchor": "page:37",
+            "text": "责任，为公司决策贡献以及参考同行业上市公司等标准确定；公司高级管理人员报酬，根据公司规模、"
+          },
+          {
+            "source_anchor": "page:3",
+            "text": "除下列董事外，其他董事亲自出席了审议本次年报的董事会会议"
+          },
+          {
+            "source_anchor": "page:171",
+            "text": "于 2026 年 3月 18 日，本公司第十一届董事会召开第十八次会议，提出"
+          },
+          {
+            "source_anchor": "page:52",
+            "text": "五、董事会、独立董事（如有）对会计师事务所本报告期“非标准审计报告”的说明"
+          },
+          {
+            "source_anchor": "page:68",
+            "text": "从与治理层沟通过的事项中，我们确定哪些事项对本期财务报表审计最为重要，因而构成关键审"
+          },
+          {
+            "source_anchor": "page:38",
+            "text": "报告期末全体董事和高级管理人员实际获得薪酬的递延支付安排 任期激励分两年支付，最后一年按照任期绩效挂钩系"
+          },
+          {
+            "source_anchor": "page:38",
+            "text": "报告期末全体董事和高级管理人员实际获得薪酬的止付追索情况 报告期内，未产生董事和高级管理人止付追索情况。"
+          },
+          {
+            "source_anchor": "page:37",
+            "text": "（3）董事、高级管理人员报酬的实际支付情况：公司独立董事、外部董事报酬，按照股东会审议"
+          },
+          {
+            "source_anchor": "page:67",
+            "text": "治理层负责监督东阿阿胶公司的财务报告过程。"
+          },
+          {
+            "source_anchor": "page:57",
+            "text": "董事会完成第一期限制性股票激励计划首次授予限制性股票的登记事宜，向172 名激励对象以35.95元"
+          },
+          {
+            "source_anchor": "page:37",
+            "text": "通过的津贴标准定期发放；公司高级管理人员报酬，基本薪酬每月发放一次，年度绩效奖金发放继续强"
+          },
+          {
+            "source_anchor": "page:36",
+            "text": "控股股东、实际控制人同时担任上市公司董事长和总经理的情况"
+          },
+          {
+            "source_anchor": "page:35",
+            "text": "丁红岩：本公司副总裁、财务总监、董事会秘书，具体情况请参见本小节前述“董事”从业经历"
+          },
+          {
+            "source_anchor": "page:171",
+            "text": "于 2026 年 2 月9 日，本公司第十一届董事会召开第十七次会议，审议通过了《关于投资建设健康消费品产业园项目的议"
+          },
+          {
+            "source_anchor": "page:47",
+            "text": "公司高级管理人员的薪酬结构，由“基本工资+年度绩效+任期激励”三部分组成。基本薪酬每月发"
+          },
+          {
+            "source_anchor": "page:57",
+            "text": "市日，公司董事会完成第一期限制性股票激励计划预留授予限制性股票的登记事宜，向 31 名激励对象"
+          },
+          {
+            "source_anchor": "page:32",
+            "text": "丁红岩 男 55 董事会秘书 现任 2023 年08 月 24 日 2027 年08 月 06 日"
+          },
+          {
+            "source_anchor": "page:7",
+            "text": "公司年度报告备置地点 山东省东阿县阿胶街 78 号 董事会办公室"
+          },
+          {
+            "source_anchor": "page:37",
+            "text": "程杰 男 47 董事长、董事 现任 111.75 是"
+          },
+          {
+            "source_anchor": "page:33",
+            "text": "由于个人原因，申请辞去公司第十一届董事会独立董事职务，同时辞去第十一届董"
+          },
+          {
+            "source_anchor": "page:33",
+            "text": "事会薪酬与考核委员会主任委员、提名委员会委员、审计委员会委员职务。"
+          },
+          {
+            "source_anchor": "page:30",
+            "text": "之一；公司董事会人数和人员构成符合法律、法规的要求；各位董事能够以认真负责的态度出席公司董"
+          },
+          {
+            "source_anchor": "page:158",
+            "text": "团队直接向财务总监和审计委员会汇报。该团队于每年中期和年末编制公允价值计量的变动分析报告，并经"
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": "2025",
+        "priority": 96,
+        "published_at": "2026-03-19",
+        "section": "governance",
+        "source_type": "financial_report"
+      },
+      {
+        "evidence_id": "financial_report:2026H1:half_year_report",
+        "facts": [
+          {
+            "source_anchor": "page:3",
+            "text": "公司董事会及董事、高级管理人员保证半年度报告内容的真实、准确、"
+          },
+          {
+            "source_anchor": "page:23",
+            "text": "（1）2025 年 1 月 10 日，公司召开第十一届董事会第五次会议和第十一届监事会第五次会议，审"
+          },
+          {
+            "source_anchor": "page:4",
+            "text": "第四节 公司治理、环境和社会 .................................................."
+          },
+          {
+            "source_anchor": "page:23",
+            "text": "（3）2025 年 4 月 25 日，公司召开第十一届董事会第八次会议和第十一届监事会第七次会议，审"
+          },
+          {
+            "source_anchor": "page:30",
+            "text": "2025 年 6 月 18 日，公司召开第十一届董事会第九次会议和第十一届监事会第八次会议，审议通过"
+          },
+          {
+            "source_anchor": "page:131",
+            "text": "本公司于 2025 年 7 月 17 日召开第十一届董事会第十次会议、第十一届监事会第九次会议，审议通过了《关于参与"
+          },
+          {
+            "source_anchor": "page:23",
+            "text": "（6）2025 年 6 月 18 日，公司召开第十一届董事会第九次会议和第十一届监事会第八次会议，审"
+          },
+          {
+            "source_anchor": "page:22",
+            "text": "丁红岩 副董事长 被选举 2026 年05 月 18 日 工作调动"
+          },
+          {
+            "source_anchor": "page:105",
+            "text": "本集团第十一届董事会第十五次会议审议通过了《关于以集中竞价方式回购公司股份方案的议案》，公司拟使用自有资"
+          },
+          {
+            "source_anchor": "page:101",
+            "text": "2019 年 3 月 12 日，本公司第九届董事会第四次会议审议通过《关于公司提取 2018 年度激励基金的议案》，提取 2018"
+          },
+          {
+            "source_anchor": "page:18",
+            "text": "证券投资审批董事会公告披露日期 2025 年07 月 17 日"
+          },
+          {
+            "source_anchor": "page:125",
+            "text": "财务总监和审计委员会汇报。该团队于每年中期和年末编制公允价值计量的变动分析报告，并经财务总监审阅和批准。"
+          },
+          {
+            "source_anchor": "page:135",
+            "text": "于 2026 年 8 月 19 日，公司第十一届董事会第二十二会议审议通过"
+          },
+          {
+            "source_anchor": "page:25",
+            "text": "五、董事会对会计师事务所本报告期“非标准审计报告”的说明"
+          },
+          {
+            "source_anchor": "page:3",
+            "text": "所有董事均已出席了审议本次半年报的董事会会议。"
+          },
+          {
+            "source_anchor": "page:125",
+            "text": "每年中期和年末，该团队均会与财务总监和审计委员会讨论估值流程和结果。"
+          },
+          {
+            "source_anchor": "page:25",
+            "text": "六、董事会对上年度“非标准审计报告”相关情况的说明"
+          },
+          {
+            "source_anchor": "page:23",
+            "text": "（4）2025 年 5 月 14 日，公司披露了《监事会关于公司第一期限制性股票激励计划首次授予激励对"
+          },
+          {
+            "source_anchor": "page:21",
+            "text": "股份有限公司市值管理制度》，经2025 年2 月25 日召开的公司第十一届董事会第六次会议审议通过后，"
+          },
+          {
+            "source_anchor": "page:101",
+            "text": "利润增长率。每年提取奖励基金的议案需经本公司董事会批准。该奖励基金由东阿县复兴企业管理咨询服务有限公司进"
+          },
+          {
+            "source_anchor": "page:29",
+            "text": "公司董事会完成第一期限制性股票激励计划预留授予限制性股票的登记事宜，向 31 名激励对象以"
+          },
+          {
+            "source_anchor": "page:135",
+            "text": "大会讨论通过的《东阿阿胶股份有限公司企业年金方案实施细则》。于 2019 年 3 月 12 日，本集团第九届董事会第四次"
+          },
+          {
+            "source_anchor": "page:21",
+            "text": "治理基础架构，全机制健全ESG 管理体系，全系统完善与投资者、分析师、媒体和监管者的“4R”协同"
+          },
+          {
+            "source_anchor": "page:30",
+            "text": "象首次授予限制性股票的议案》。公司监事会对本次激励计划首次授予激励对象名单进行核实并发表了"
+          },
+          {
+            "source_anchor": "page:30",
+            "text": "2025 年 12 月 4 日召开第十一届董事会第十五次会议，2025 年 12 月 22 日召开 2025 年第二次临时"
+          },
+          {
+            "source_anchor": "page:30",
+            "text": "2025 年 12 月 30 日，公司召开第十一届董事会第十六次会议，审议通过了《关于向第一期限制性"
+          },
+          {
+            "source_anchor": "page:23",
+            "text": "激励对象首次授予限制性股票的议案》。公司监事会对本次激励计划首次授予激励对象名单进行核实并"
+          },
+          {
+            "source_anchor": "page:30",
+            "text": "股票激励计划激励对象授予预留部分限制性股票的议案》。公司董事会薪酬与考核委员会对本次激励计"
+          },
+          {
+            "source_anchor": "page:23",
+            "text": "（8）2025 年 12 月 30 日，公司召开第十一届董事会第十六次会议，审议通过了《关于向第一期限"
+          },
+          {
+            "source_anchor": "page:23",
+            "text": "制性股票激励计划激励对象授予预留部分限制性股票的议案》。公司董事会薪酬与考核委员会对本次激"
+          },
+          {
+            "source_anchor": "page:122",
+            "text": "获得本公司董事会的批准) 。本集团的政策是定期监控短期和长期的流动资金需求，以及是否符合借款协议的规定，以"
+          },
+          {
+            "source_anchor": "page:33",
+            "text": "公司董事和高级管理人员在报告期持股情况没有发生变动，具体可参见 2025 年年报。"
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": "2026H1",
+        "priority": 94,
+        "published_at": "2026-08-20",
+        "section": "governance",
+        "source_type": "financial_report"
+      }
+    ],
+    "material_events": [
+      {
+        "evidence_id": "financial_report:2026H1:half_year_report",
+        "facts": [
+          {
+            "source_anchor": "page:34",
+            "text": "公司前期已披露实际控制人筹划控制权变更但尚未完成的，请说明控制权变更进展情况。"
+          },
+          {
+            "source_anchor": "page:31",
+            "text": "成交总金额为 199,989,793.57 元人民币（不含交易费用）。回购股份金额已达回购股份方案中回购总"
+          },
+          {
+            "source_anchor": "page:56",
+            "text": "本集团丧失对原有子公司控制权时，由此产生的任何处置收益或损失，计入丧失控制权当期的投资收益。对于剩余股权"
+          },
+          {
+            "source_anchor": "page:56",
+            "text": "投资，本集团按照其在丧失控制权日的公允价值进行重新计量，由此产生的任何收益或损失，也计入丧失控制权当期的"
+          },
+          {
+            "source_anchor": "page:30",
+            "text": "2026 年 6 月 30 日，公司在中国证券登记结算有限责任公司深圳分公司办理完毕上述回购股份注销"
+          },
+          {
+            "source_anchor": "page:31",
+            "text": "截至 2026 年6 月23 日，公司通过股票回购专用证券账户，以集中竞价交易方式累计回购股份数量"
+          },
+          {
+            "source_anchor": "page:30",
+            "text": "手续。详细内容，请见公司于 2026 年 7 月 2 日在巨潮资讯网披露的《关于回购股份注销完成暨股份变"
+          },
+          {
+            "source_anchor": "page:117",
+            "text": "是否存在通过多次交易分步实现企业合并且在报告期内取得控制权的交易"
+          },
+          {
+            "source_anchor": "page:63",
+            "text": "- 对于非同一控制下企业合并形成的对子公司的长期股权投资，本公司按照购买日取得对被购买方的控制权而"
+          },
+          {
+            "source_anchor": "page:111",
+            "text": "回购股份支付资金 119,997,105.61"
+          },
+          {
+            "source_anchor": "page:31",
+            "text": "年 6 月 25 日在巨潮资讯网披露的《关于股份回购实施结果暨股份变动的公告》。"
+          },
+          {
+            "source_anchor": "page:105",
+            "text": "截至 2026 年 6 月 30 日，本公司已在中国证券登记结算有限责任公司深圳分公司办理完毕回购股份 4,150,000 股的注销"
+          },
+          {
+            "source_anchor": "page:31",
+            "text": "2026 年 6 月 30 日，公司在中国证券登记结算有限责任公司深圳分公司办理完毕本次回购股份注销"
+          },
+          {
+            "source_anchor": "page:115",
+            "text": "控制权 561,026.60 -2,119,177.27 426,906.90"
+          },
+          {
+            "source_anchor": "page:64",
+            "text": "的活动) 必须经过分享控制权的参与方一致同意后才能决策。"
+          },
+          {
+            "source_anchor": "page:28",
+            "text": "公司报告期不存在需要说明的其他重大事项。"
+          },
+          {
+            "source_anchor": "page:62",
+            "text": "回购本公司股份时，回购的股份作为库存股管理，回购股份的全部支出转为库存股成本，同时进行备查登记。库"
+          },
+          {
+            "source_anchor": "page:31",
+            "text": "手续。具体内容，详见公司于 2026 年 7 月 2 日在巨潮资讯网披露的《关于回购股份注销完成暨股份变"
+          },
+          {
+            "source_anchor": "page:55",
+            "text": "本集团取得对另一个或多个企业 ( 或一组资产或净资产) 的控制权且其构成业务的，该交易或事项构成企业合并。企业"
+          },
+          {
+            "source_anchor": "page:31",
+            "text": "采用集中竞价方式减持回购股份的实施进展情况"
+          },
+          {
+            "source_anchor": "page:64",
+            "text": "- 涉及被投资单位相关活动的决策是否需要分享控制权参与方一致同意。"
+          },
+          {
+            "source_anchor": "page:104",
+            "text": "2026 年6 月30 日，公司在中国证券登记结算有限责任公司深圳分公司办理完毕回购股份4,150,000 股的注销手续。"
+          },
+          {
+            "source_anchor": "page:29",
+            "text": "竞价交易方式累计回购股份数量为 4,150,000 股，约占公司总股本的 0.64%，最高成交价为 50.30 元/"
+          },
+          {
+            "source_anchor": "page:56",
+            "text": "及在不丧失控制权的情况下因部分处置对子公司的股权投资而取得的处置价款与处置长期股权投资相对应享有子公司净"
+          },
+          {
+            "source_anchor": "page:29",
+            "text": "股，最低成交价为45.14 元/股，成交总金额为199,989,793.57 元人民币（不含交易费用）。回购股份"
+          },
+          {
+            "source_anchor": "page:29",
+            "text": "金额已达回购股份方案中回购总金额下限且未超过回购总金额上限，本次回购公司股份方案已实施完毕。"
+          },
+          {
+            "source_anchor": "page:104",
+            "text": "本公司本年实施股权激励计划，授予价格低于库存股回购价格导致资本公积减少人民币 3,503,496.96 元；回购股份注销"
+          },
+          {
+            "source_anchor": "page:55",
+            "text": "取得被购买方控制权而付出的资产 ( 包括购买日之前所持有的被购买方的股权) 、发生或承担的负债以及发行的权益性"
+          },
+          {
+            "source_anchor": "page:30",
+            "text": "股份的公告》。在回购股份实施期间，公司严格按照法律法规的相关要求，在每个月的前三个交易日公"
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": "2026H1",
+        "priority": 88,
+        "published_at": "2026-08-20",
+        "section": "material_events",
+        "source_type": "financial_report"
+      }
+    ],
+    "risk_disclosures": [
+      {
+        "evidence_id": "financial_report:2026H1:half_year_report",
+        "facts": [
+          {
+            "source_anchor": "page:70",
+            "text": "易价格不超过在相关不确定性消除时累计已确认收入极可能不会发生重大转回的金额。"
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": "2026H1",
+        "priority": 92,
+        "published_at": "2026-08-20",
+        "section": "risk_disclosures",
+        "source_type": "financial_report"
+      },
+      {
+        "evidence_id": "financial_report:2025:annual_report",
+        "facts": [
+          {
+            "source_anchor": "page:67",
+            "text": "致对东阿阿胶公司持续经营能力产生重大疑虑的事项或情况是否存在重大不确定性得出结论。"
+          },
+          {
+            "source_anchor": "page:67",
+            "text": "如果我们得出结论认为存在重大不确定性，审计准则要求我们在审计报告中提请报表使用者"
+          }
+        ],
+        "key_numbers": {
+          "adjusted_net_profit": null,
+          "capex": null,
+          "cash": null,
+          "contract_liabilities": null,
+          "debt": null,
+          "dividend": null,
+          "eps": null,
+          "inventory": null,
+          "net_profit_parent": null,
+          "operating_cash_flow": null,
+          "receivables": null,
+          "revenue": null,
+          "roe": null
+        },
+        "period": "2025",
+        "priority": 82,
+        "published_at": "2026-03-19",
+        "section": "risk_disclosures",
+        "source_type": "financial_report"
+      }
+    ]
+  },
+  "symbol": "000423.SZ"
+}

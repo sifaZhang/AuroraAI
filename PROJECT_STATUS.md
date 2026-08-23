@@ -316,3 +316,10 @@
 - Added metadata-only CNINFO discovery, enabled research-universe construction, plan-all-before-execute budgeting, per-symbol failure isolation, and daily JSON/step summaries.
 - Scheduled research explicitly executes; manual research defaults to dry-run. Only `data/research/**` can be staged and pushed with the GitHub token; no force push or PAT is used.
 - No database migration, research decision logic, Review Agent, UI, or new workflow was added. Development validation does not call DeepSeek or push Git changes.
+
+## 2026-08-23: PR-IR9 deterministic evidence compression (implemented, uncommitted)
+
+- Added validated `evidence_summary.json` artifacts that retain original evidence IDs and source anchors while selecting and deduplicating FACT-only source units under a deterministic character budget.
+- Added role-specific compressed contexts for Analyst, Skeptic, and Valuation. Skeptic selection prioritizes evidence cited by Analyst claims; missing or invalid summaries use the existing raw-context fallback and record the selected context mode.
+- Integrated zero-LLM compression into `FULL_REFRESH`; valuation/decision refreshes reuse the prior valid artifact and `NO_ACTION` does not regenerate it. The full-chain estimate remains four LLM calls.
+- Generated and golden-tested summaries only for the two approved POCs, `000858.SZ` and `000423.SZ`. No DeepSeek call, historical backfill, database/schema, UI, Yield Signal, or Portfolio Manager decision change is included.

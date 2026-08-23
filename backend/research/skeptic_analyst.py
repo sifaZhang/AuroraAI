@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .fundamental_analyst import AnalystInputError, build_context
+from .fundamental_analyst import AnalystInputError, build_context, context_mode
 from .json_store import read_json, write_json_atomic
 from .llm.base import LlmProviderError, StructuredProvider
 from .llm.factory import create_provider
@@ -43,10 +43,16 @@ class SkepticAnalyst:
         company = read_json(folder.parents[1] / "company.json")
         if not company or snapshot.get("symbol") != symbol.upper() or evidence.get("symbol") != symbol.upper() or analyst.get("symbol") != symbol.upper():
             raise AnalystInputError("company or analysis inputs do not match requested symbol")
-        context, evidence_ids = build_context(folder, snapshot, evidence)
         claims = analyst.get("claims")
         if not isinstance(claims, list):
             raise AnalystInputError("analyst.json has no readable claims")
+        preferred_evidence_ids = {
+            str(evidence_id)
+            for claim in claims
+            for evidence_id in claim.get("evidence_ids", [])
+            if isinstance(evidence_id, str)
+        }
+        context, evidence_ids = build_context(folder, snapshot, evidence, "skeptic", preferred_evidence_ids)
         return actual_version, folder, company, snapshot, analyst, context, evidence_ids, {str(item.get("claim_id")) for item in claims if item.get("claim_id")}
 
     def run(self, symbol: str, *, version: str | None = None, force: bool = False, dry_run: bool = False) -> dict[str, Any]:
@@ -57,7 +63,7 @@ class SkepticAnalyst:
         prompt = PROMPT_PATH.read_text(encoding="utf-8")
         request = self._request(company, snapshot, analyst, actual_version, context)
         if dry_run:
-            return {"symbol": symbol.upper(), "version": actual_version, "context_characters": len(context), "evidence_ids": sorted(evidence_ids), "analyst_claim_ids": sorted(claim_ids), "dry_run": True}
+            return {"symbol": symbol.upper(), "version": actual_version, "context_mode": context_mode(context), "context_characters": len(context), "evidence_ids": sorted(evidence_ids), "analyst_claim_ids": sorted(claim_ids), "dry_run": True}
         provider = self.provider or create_provider(role="skeptic")
         raw = self._generate(provider, prompt, request)
         try:
@@ -69,6 +75,7 @@ class SkepticAnalyst:
                 document = self._validate(json.loads(repaired.content), repaired, symbol.upper(), actual_version, evidence_ids, claim_ids)
             except Exception as repair_error:
                 raise AnalystInputError(f"LLM output failed schema/semantic validation: {str(repair_error).splitlines()[0]}") from first_error
+        document.generation.update(context_mode=context_mode(context), context_characters=len(context))
         write_json_atomic(output, document.model_dump(mode="json"))
         return {"symbol": symbol.upper(), "version": actual_version, "path": str(output), "challenged_claims": len(document.challenged_claims), "major_risks": len(document.major_risks), "generation": document.generation}
 
@@ -104,7 +111,7 @@ class SkepticAnalyst:
                     "governance_risk_assessment": {"summary": "", "confidence": 0.0, "evidence_ids": [], "missing_evidence": []},
                     "missing_evidence": [{"item": "", "importance": "HIGH", "reason": ""}], "recommended_research_cap": "ENTRY"}
         return ("Create skeptic JSON matching this exact shape (generation is added locally; do not include it):\n"
-                f"{json.dumps(skeleton, ensure_ascii=False)}\n\nCOMPANY PROFILE:\n{json.dumps(company, ensure_ascii=False)}\n\nINPUT SNAPSHOT:\n{json.dumps(snapshot, ensure_ascii=False)}\n\nFUNDAMENTAL ANALYST (challenge target, not evidence):\n{json.dumps(analyst, ensure_ascii=False)}\n\nRAW EVIDENCE:\n{context}")
+                f"{json.dumps(skeleton, ensure_ascii=False)}\n\nCOMPANY PROFILE:\n{json.dumps(company, ensure_ascii=False)}\n\nINPUT SNAPSHOT:\n{json.dumps(snapshot, ensure_ascii=False)}\n\nFUNDAMENTAL ANALYST (challenge target, not evidence):\n{json.dumps(analyst, ensure_ascii=False)}\n\nSOURCE EVIDENCE:\n{context}")
 
 
 def main(argv: list[str] | None = None) -> int:
