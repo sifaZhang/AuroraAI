@@ -1,0 +1,117 @@
+{
+  "analysis_version": "2026-08-23_v1",
+  "confidence": 0.35,
+  "dividend_cross_check": {
+    "assessment": "Three-year average DPS 2.30, current yield 4.76% (heavy signal). However, 2026H1 operating cash flow only 0.82亿 vs proposed interim dividend ~8.6亿, raising sustainability concerns. Sustainable dividend likely capped at 2.30 unless cash flow recovers.",
+    "current_yield": 0.0476,
+    "sustainable_dividend": 2.3,
+    "sustainable_yield": 0.0476
+  },
+  "fair_value_per_share": {
+    "base": 41.46,
+    "bear": 30.75,
+    "bull": 53.68
+  },
+  "generation": {
+    "generated_at": "2026-08-23T04:37:41+00:00",
+    "input_tokens": 27147,
+    "latency_ms": 17594,
+    "model": "deepseek-v4-pro",
+    "output_tokens": 1295,
+    "prompt_version": "valuation-v1",
+    "provider": "deepseek"
+  },
+  "limitations": [
+    "No management guidance for FY2026",
+    "2026H1 operating cash flow -91.56% YoY, dividend coverage weak",
+    "Receivables surge may indicate channel stuffing",
+    "Core product revenue declining, growth reliant on new products",
+    "Historical PE percentile extremely low but may reflect structural concerns"
+  ],
+  "multiples": {
+    "assumption_rationale": [
+      "Current PE 17.3x, historical percentile 1.4% (very low)",
+      "Bear 12x reflects cash flow and receivables risk, near historical trough",
+      "Base 15x assumes modest re-rating but below current due to quality concerns",
+      "Bull 18x assumes earnings quality normalizes and brand strength supports premium",
+      "Skeptic risks justify lower multiples than historical average"
+    ],
+    "base": 15.0,
+    "bear": 12.0,
+    "bull": 18.0,
+    "metric": "PE"
+  },
+  "normalized_earnings": {
+    "assumption_metadata": [
+      {
+        "evidence_ids": [
+          "financial_report:2025:annual_report",
+          "financial_report:2026H1:half_year_report"
+        ],
+        "historical_anchor": "FY2025 net profit 17.39亿, revenue 67.00亿, EPS 2.70",
+        "latest_period_anchor": "2026H1 net profit 8.60亿, +5.66% YoY; core product revenue -0.45%",
+        "limitations": "No management guidance; H1 cash flow weak; core product stagnation",
+        "method": "historical_anchor_with_latest_period_adjustment",
+        "risk_adjustment": "Bear -5% vs base due to cash flow deterioration and receivables surge; Bull +8% vs base on new product growth"
+      }
+    ],
+    "base": 17.8,
+    "bear": 16.5,
+    "bull": 19.2,
+    "confidence": 0.35,
+    "evidence_ids": [
+      "financial_report:2025:annual_report",
+      "financial_report:2026H1:half_year_report"
+    ],
+    "forecast_quality": "LOW",
+    "key_assumptions": [
+      "FY2025 net profit 17.39亿 as historical anchor",
+      "2026H1 net profit 8.60亿, +5.66% YoY",
+      "Core product revenue -0.45% in H1, but other products +86.69%",
+      "Skeptic risk: operating cash flow -91.56%, receivables +346%",
+      "Bear assumes flat to slight decline due to cash flow and core product weakness",
+      "Base assumes low single-digit growth consistent with H1",
+      "Bull assumes new product momentum offsets core weakness"
+    ],
+    "method": "historical_anchor_with_latest_period_adjustment",
+    "period": "FY2026E",
+    "unit": "CNY_100M"
+  },
+  "reverse_valuation": {
+    "current_market_cap": 30935625780.0,
+    "current_price": 48.35,
+    "implied_multiple": 17.33,
+    "implied_normalized_earnings": 17.85,
+    "interpretation": "Current price implies normalized earnings of 17.85亿 at current PE of 17.33x. This is close to base estimate but above bear estimate, indicating market is pricing in base-to-bull scenario despite near-term cash flow concerns.",
+    "scenarios": [
+      {
+        "implied_earnings": 25.78,
+        "interpretation": "At bear multiple, market implies normalized earnings of 25.78亿, far above bear estimate of 16.5亿, suggesting overvaluation if bear case materializes.",
+        "multiple": 12.0,
+        "scenario": "Bear"
+      },
+      {
+        "implied_earnings": 20.62,
+        "interpretation": "At base multiple, implied earnings 20.62亿 vs base estimate 17.8亿, indicating stock is slightly overvalued relative to base assumptions.",
+        "multiple": 15.0,
+        "scenario": "Base"
+      },
+      {
+        "implied_earnings": 17.19,
+        "interpretation": "At bull multiple, implied earnings 17.19亿 vs bull estimate 19.2亿, suggesting stock is undervalued if bull case holds.",
+        "multiple": 18.0,
+        "scenario": "Bull"
+      }
+    ]
+  },
+  "schema_version": 1,
+  "symbol": "000423.SZ",
+  "valuation_method": {
+    "multiple_source": "assumption",
+    "primary": "normalized_pe",
+    "reasoning": "Consumer brand with stable earnings history; PE percentile currently low (1.4%) but earnings quality concerns warrant conservative multiple. Dividend cross-check used as secondary due to high payout.",
+    "secondary": [
+      "dividend_yield_cross_check"
+    ]
+  }
+}

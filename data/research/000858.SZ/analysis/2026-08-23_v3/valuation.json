@@ -1,0 +1,116 @@
+{
+  "analysis_version": "2026-08-23_v3",
+  "confidence": 0.3,
+  "dividend_cross_check": {
+    "assessment": "Current yield of 7.29% is above heavy yield threshold of 7.0%, indicating potential value but also dividend sustainability risk. Sustainable dividend based on 2023 DPS of 4.67 yields 6.56%, still attractive. However, 2025 payout ratio exceeded 100% of earnings, and negative Q1 cash flow raises concerns. Dividend likely sustainable in near term due to large cash reserves, but long-term depends on earnings recovery.",
+    "current_yield": 0.0729,
+    "sustainable_dividend": 4.67,
+    "sustainable_yield": 0.0656
+  },
+  "fair_value_per_share": {
+    "base": 55.64,
+    "bear": 24.73,
+    "bull": 98.93
+  },
+  "generation": {
+    "generated_at": "2026-08-23T04:40:25+00:00",
+    "input_tokens": 26560,
+    "latency_ms": 18548,
+    "model": "deepseek-v4-pro",
+    "output_tokens": 1271,
+    "prompt_version": "valuation-v1",
+    "provider": "deepseek"
+  },
+  "limitations": [
+    "No management guidance or analyst consensus for FY2026 earnings",
+    "Accounting restatement creates uncertainty in historical comparisons",
+    "Negative operating cash flow in Q1 2026 may indicate channel stuffing or deteriorating collections",
+    "Industry downturn severity and duration uncertain",
+    "Governance concerns with acting chairman and accounting adjustments",
+    "Valuation multiples are assumptions based on historical percentiles and qualitative factors"
+  ],
+  "multiples": {
+    "assumption_rationale": [
+      "Historical PE percentile 47.4% suggests current PE around 22 is near median; but earnings are depressed, so normalized PE should be lower",
+      "Bear: 8x reflects severe earnings uncertainty, cash flow concerns, and governance risks",
+      "Base: 12x reflects moderate recovery and brand strength, but below historical average due to industry headwinds",
+      "Bull: 16x reflects successful recovery and buyback support, still below peak multiples"
+    ],
+    "base": 12.0,
+    "bear": 8.0,
+    "bull": 16.0,
+    "metric": "PE"
+  },
+  "normalized_earnings": {
+    "assumption_metadata": [
+      {
+        "evidence_ids": [
+          "financial_report:2025:annual_report",
+          "financial_report:2026Q1:q1_report"
+        ],
+        "historical_anchor": "2024 net profit 318.53亿, 2025 net profit 89.54亿, 2023 net profit 302.11亿",
+        "latest_period_anchor": "Q1 2026 net profit 80.63亿 (annualized 322.5亿 but unreliable due to seasonality and restatement)",
+        "limitations": "No management guidance; Q1 annualization unreliable; accounting restatement creates uncertainty",
+        "method": "Scenario-based normalized earnings using historical profitability and Q1 2026 run-rate, adjusted for industry downturn and cash flow concerns",
+        "risk_adjustment": "Skeptic risks: negative operating cash flow, inventory buildup, accounting restatement, governance uncertainty"
+      }
+    ],
+    "base": 180.0,
+    "bear": 120.0,
+    "bull": 240.0,
+    "confidence": 0.3,
+    "evidence_ids": [
+      "financial_report:2025:annual_report",
+      "financial_report:2026Q1:q1_report"
+    ],
+    "forecast_quality": "LOW",
+    "key_assumptions": [
+      "Bear: industry downturn persists, revenue declines further, margins compress",
+      "Base: partial recovery from 2025 trough, revenue stabilizes around 2023-2024 levels",
+      "Bull: strong recovery driven by brand strength and buyback, revenue approaches 2024 levels"
+    ],
+    "method": "scenario_based",
+    "period": "FY2026E",
+    "unit": "CNY_100M"
+  },
+  "reverse_valuation": {
+    "current_market_cap": 276331673520.0,
+    "current_price": 71.19,
+    "implied_multiple": 12.0,
+    "implied_normalized_earnings": 230.28,
+    "interpretation": "Current market cap implies normalized earnings of 230.28亿 at a 12x multiple, which is between 2025 and 2024 levels. This suggests the market is pricing in a partial recovery but not a full return to peak earnings.",
+    "scenarios": [
+      {
+        "implied_earnings": 345.41,
+        "interpretation": "At bear multiple of 8x, market cap implies normalized earnings of 345.41亿, which is above 2024 peak, unlikely in bear case",
+        "multiple": 8.0,
+        "name": null,
+        "scenario": "Bear"
+      },
+      {
+        "implied_earnings": 230.28,
+        "interpretation": "At base multiple of 12x, implied normalized earnings of 230.28亿 is between 2025 and 2024 levels, plausible",
+        "multiple": 12.0,
+        "name": null,
+        "scenario": "Base"
+      },
+      {
+        "implied_earnings": 172.71,
+        "interpretation": "At bull multiple of 16x, implied normalized earnings of 172.71亿 is below base case, suggesting market may be pricing in lower earnings or lower multiple",
+        "multiple": 16.0,
+        "name": null,
+        "scenario": "Bull"
+      }
+    ]
+  },
+  "schema_version": 1,
+  "symbol": "000858.SZ",
+  "valuation_method": {
+    "multiple_source": "assumption",
+    "primary": "normalized_pe",
+    "reasoning": "Consumer brand with stable historical earnings; PE multiple appropriate. Dividend cross-check used due to high dividend yield and cash cow characteristics.",
+    "secondary": [
+      "dividend_yield_cross_check"
+    ]
+  }
+}

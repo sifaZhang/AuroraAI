@@ -1,0 +1,612 @@
+{
+  "analysis_version": "2026-08-23_v1",
+  "as_of": "2026-08-23",
+  "balance_sheet": {
+    "cash_and_cash_equivalents": {
+      "derived": false,
+      "source_type": "tushare_api",
+      "value": 5267456076.17
+    },
+    "interest_bearing_debt": {
+      "derived": true,
+      "formula": "st_borr_plus_lt_borr_plus_bonds_pay_plus_current_debt",
+      "inputs": [],
+      "source_type": "derived",
+      "value": 20788859.52
+    },
+    "net_cash": {
+      "derived": true,
+      "formula": "cash_minus_interest_bearing_debt",
+      "inputs": [],
+      "source_type": "derived",
+      "value": 5246667216.65
+    },
+    "shareholders_equity": {
+      "derived": false,
+      "source_type": "tushare_api",
+      "value": 10336303915.94
+    },
+    "shares_outstanding": {
+      "derived": false,
+      "source_type": "tushare_api",
+      "value": 643976824.0
+    }
+  },
+  "dividend": {
+    "coverage_by_year": [
+      {
+        "dividend_to_fcf_ratio": {
+          "derived": true,
+          "formula": "cash_dividend_total_div_free_cash_flow",
+          "inputs": [
+            "cash_dividend_total",
+            "free_cash_flow"
+          ],
+          "source_type": "derived",
+          "value": null
+        },
+        "payout_ratio": {
+          "derived": true,
+          "formula": "cash_dividend_total_div_net_profit_parent",
+          "inputs": [
+            "cash_dividend_total",
+            "net_profit_parent"
+          ],
+          "source_type": "derived",
+          "value": null
+        },
+        "period": "2021"
+      },
+      {
+        "dividend_to_fcf_ratio": {
+          "derived": true,
+          "formula": "cash_dividend_total_div_free_cash_flow",
+          "inputs": [
+            "cash_dividend_total",
+            "free_cash_flow"
+          ],
+          "source_type": "derived",
+          "value": null
+        },
+        "payout_ratio": {
+          "derived": true,
+          "formula": "cash_dividend_total_div_net_profit_parent",
+          "inputs": [
+            "cash_dividend_total",
+            "net_profit_parent"
+          ],
+          "source_type": "derived",
+          "value": null
+        },
+        "period": "2022"
+      },
+      {
+        "dividend_to_fcf_ratio": {
+          "derived": true,
+          "formula": "cash_dividend_total_div_free_cash_flow",
+          "inputs": [
+            "cash_dividend_total",
+            "free_cash_flow"
+          ],
+          "source_type": "derived",
+          "value": 0.6050471044380749
+        },
+        "payout_ratio": {
+          "derived": true,
+          "formula": "cash_dividend_total_div_net_profit_parent",
+          "inputs": [
+            "cash_dividend_total",
+            "net_profit_parent"
+          ],
+          "source_type": "derived",
+          "value": 0.9983478603790858
+        },
+        "period": "2023"
+      },
+      {
+        "dividend_to_fcf_ratio": {
+          "derived": true,
+          "formula": "cash_dividend_total_div_free_cash_flow",
+          "inputs": [
+            "cash_dividend_total",
+            "free_cash_flow"
+          ],
+          "source_type": "derived",
+          "value": 0.7515247831196556
+        },
+        "payout_ratio": {
+          "derived": true,
+          "formula": "cash_dividend_total_div_net_profit_parent",
+          "inputs": [
+            "cash_dividend_total",
+            "net_profit_parent"
+          ],
+          "source_type": "derived",
+          "value": 1.0007827486056025
+        },
+        "period": "2024"
+      },
+      {
+        "dividend_to_fcf_ratio": {
+          "derived": true,
+          "formula": "cash_dividend_total_div_free_cash_flow",
+          "inputs": [
+            "cash_dividend_total",
+            "free_cash_flow"
+          ],
+          "source_type": "derived",
+          "value": 0.7896233722421474
+        },
+        "payout_ratio": {
+          "derived": true,
+          "formula": "cash_dividend_total_div_net_profit_parent",
+          "inputs": [
+            "cash_dividend_total",
+            "net_profit_parent"
+          ],
+          "source_type": "derived",
+          "value": 1.0020654057834038
+        },
+        "period": "2025"
+      }
+    ],
+    "history": [
+      {
+        "calendar_year": 2023,
+        "cash_dividend_per_share": 1.7841902,
+        "current_basis_dps": 1.7841902,
+        "share_basis_as_of": "2026-08-16"
+      },
+      {
+        "calendar_year": 2024,
+        "cash_dividend_per_share": 2.4196826,
+        "current_basis_dps": 2.4196826,
+        "share_basis_as_of": "2026-08-16"
+      },
+      {
+        "calendar_year": 2025,
+        "cash_dividend_per_share": 2.7055822999999997,
+        "current_basis_dps": 2.7055822999999997,
+        "share_basis_as_of": "2026-08-16"
+      }
+    ]
+  },
+  "earnings_history": [
+    {
+      "adjusted_net_profit": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": null
+      },
+      "capex": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 24696727.03
+      },
+      "cash_dividend_total": {
+        "derived": true,
+        "formula": "dps_times_total_share",
+        "inputs": [
+          "dividend_dps",
+          "shares_outstanding"
+        ],
+        "source_type": "derived",
+        "value": null
+      },
+      "dividend_to_fcf_ratio": {
+        "derived": true,
+        "formula": "cash_dividend_total_div_free_cash_flow",
+        "inputs": [
+          "cash_dividend_total",
+          "free_cash_flow"
+        ],
+        "source_type": "derived",
+        "value": null
+      },
+      "eps": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 0.68
+      },
+      "free_cash_flow": {
+        "derived": true,
+        "formula": "operating_cash_flow_minus_capex",
+        "inputs": [
+          "operating_cash_flow",
+          "capex"
+        ],
+        "source_type": "derived",
+        "value": 2776205801.22
+      },
+      "net_profit_parent": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 440439963.6
+      },
+      "operating_cash_flow": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 2800902528.25
+      },
+      "payout_ratio": {
+        "derived": true,
+        "formula": "cash_dividend_total_div_net_profit_parent",
+        "inputs": [
+          "cash_dividend_total",
+          "net_profit_parent"
+        ],
+        "source_type": "derived",
+        "value": null
+      },
+      "period": "2021",
+      "revenue": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 3848985686.56
+      },
+      "roe": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 4.4705
+      }
+    },
+    {
+      "adjusted_net_profit": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": null
+      },
+      "capex": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 45574466.97
+      },
+      "cash_dividend_total": {
+        "derived": true,
+        "formula": "dps_times_total_share",
+        "inputs": [
+          "dividend_dps",
+          "shares_outstanding"
+        ],
+        "source_type": "derived",
+        "value": null
+      },
+      "dividend_to_fcf_ratio": {
+        "derived": true,
+        "formula": "cash_dividend_total_div_free_cash_flow",
+        "inputs": [
+          "cash_dividend_total",
+          "free_cash_flow"
+        ],
+        "source_type": "derived",
+        "value": null
+      },
+      "eps": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 1.21
+      },
+      "free_cash_flow": {
+        "derived": true,
+        "formula": "operating_cash_flow_minus_capex",
+        "inputs": [
+          "operating_cash_flow",
+          "capex"
+        ],
+        "source_type": "derived",
+        "value": 2099303718.42
+      },
+      "net_profit_parent": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 779998116.1
+      },
+      "operating_cash_flow": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 2144878185.39
+      },
+      "payout_ratio": {
+        "derived": true,
+        "formula": "cash_dividend_total_div_net_profit_parent",
+        "inputs": [
+          "cash_dividend_total",
+          "net_profit_parent"
+        ],
+        "source_type": "derived",
+        "value": null
+      },
+      "period": "2022",
+      "revenue": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 4041818347.54
+      },
+      "roe": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 7.6838
+      }
+    },
+    {
+      "adjusted_net_profit": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": null
+      },
+      "capex": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 54450096.03
+      },
+      "cash_dividend_total": {
+        "derived": true,
+        "formula": "dps_times_total_share",
+        "inputs": [
+          "dividend_dps",
+          "shares_outstanding"
+        ],
+        "source_type": "derived",
+        "value": 1148977138.407925
+      },
+      "dividend_to_fcf_ratio": {
+        "derived": true,
+        "formula": "cash_dividend_total_div_free_cash_flow",
+        "inputs": [
+          "cash_dividend_total",
+          "free_cash_flow"
+        ],
+        "source_type": "derived",
+        "value": 0.6050471044380749
+      },
+      "eps": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 1.79
+      },
+      "free_cash_flow": {
+        "derived": true,
+        "formula": "operating_cash_flow_minus_capex",
+        "inputs": [
+          "operating_cash_flow",
+          "capex"
+        ],
+        "source_type": "derived",
+        "value": 1898987913.47
+      },
+      "net_profit_parent": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 1150878550.46
+      },
+      "operating_cash_flow": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 1953438009.5
+      },
+      "payout_ratio": {
+        "derived": true,
+        "formula": "cash_dividend_total_div_net_profit_parent",
+        "inputs": [
+          "cash_dividend_total",
+          "net_profit_parent"
+        ],
+        "source_type": "derived",
+        "value": 0.9983478603790858
+      },
+      "period": "2023",
+      "revenue": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 4715265729.5
+      },
+      "roe": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 10.9356
+      }
+    },
+    {
+      "adjusted_net_profit": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": null
+      },
+      "capex": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 97399340.3
+      },
+      "cash_dividend_total": {
+        "derived": true,
+        "formula": "dps_times_total_share",
+        "inputs": [
+          "dividend_dps",
+          "shares_outstanding"
+        ],
+        "source_type": "derived",
+        "value": 1558219515.8360622
+      },
+      "dividend_to_fcf_ratio": {
+        "derived": true,
+        "formula": "cash_dividend_total_div_free_cash_flow",
+        "inputs": [
+          "cash_dividend_total",
+          "free_cash_flow"
+        ],
+        "source_type": "derived",
+        "value": 0.7515247831196556
+      },
+      "eps": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 2.42
+      },
+      "free_cash_flow": {
+        "derived": true,
+        "formula": "operating_cash_flow_minus_capex",
+        "inputs": [
+          "operating_cash_flow",
+          "capex"
+        ],
+        "source_type": "derived",
+        "value": 2073410685.6299999
+      },
+      "net_profit_parent": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 1557000775.65
+      },
+      "operating_cash_flow": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 2170810025.93
+      },
+      "payout_ratio": {
+        "derived": true,
+        "formula": "cash_dividend_total_div_net_profit_parent",
+        "inputs": [
+          "cash_dividend_total",
+          "net_profit_parent"
+        ],
+        "source_type": "derived",
+        "value": 1.0007827486056025
+      },
+      "period": "2024",
+      "revenue": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 5920785955.41
+      },
+      "roe": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 14.808
+      }
+    },
+    {
+      "adjusted_net_profit": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": null
+      },
+      "capex": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 82671902.76
+      },
+      "cash_dividend_total": {
+        "derived": true,
+        "formula": "dps_times_total_share",
+        "inputs": [
+          "dividend_dps",
+          "shares_outstanding"
+        ],
+        "source_type": "derived",
+        "value": 1742332296.624615
+      },
+      "dividend_to_fcf_ratio": {
+        "derived": true,
+        "formula": "cash_dividend_total_div_free_cash_flow",
+        "inputs": [
+          "cash_dividend_total",
+          "free_cash_flow"
+        ],
+        "source_type": "derived",
+        "value": 0.7896233722421474
+      },
+      "eps": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 2.7
+      },
+      "free_cash_flow": {
+        "derived": true,
+        "formula": "operating_cash_flow_minus_capex",
+        "inputs": [
+          "operating_cash_flow",
+          "capex"
+        ],
+        "source_type": "derived",
+        "value": 2206535872.5099998
+      },
+      "net_profit_parent": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 1738741090.72
+      },
+      "operating_cash_flow": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 2289207775.27
+      },
+      "payout_ratio": {
+        "derived": true,
+        "formula": "cash_dividend_total_div_net_profit_parent",
+        "inputs": [
+          "cash_dividend_total",
+          "net_profit_parent"
+        ],
+        "source_type": "derived",
+        "value": 1.0020654057834038
+      },
+      "period": "2025",
+      "revenue": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 6700474184.47
+      },
+      "roe": {
+        "derived": false,
+        "source_type": "tushare_api",
+        "value": 16.843
+      }
+    }
+  ],
+  "market": {
+    "current_pb": {
+      "derived": false,
+      "source_type": "tushare_api",
+      "value": 3.0453
+    },
+    "current_pe": {
+      "derived": false,
+      "source_type": "tushare_api",
+      "value": 17.3327
+    },
+    "latest_price": {
+      "derived": false,
+      "evidence_id": "dividend_snapshot:2026-08-22",
+      "source_type": "dividend_snapshot",
+      "value": 48.35
+    },
+    "market_cap": {
+      "derived": false,
+      "source_type": "tushare_api",
+      "value": 30935625780.000004
+    },
+    "quality_flag": "normal"
+  },
+  "missing_data": [
+    "historical market data limited to Tushare daily_basic availability; no hidden winsorization"
+  ],
+  "research_type": {
+    "primary": "consumer_brand",
+    "secondary": "high_dividend_cash_cow",
+    "source": "symbol_override"
+  },
+  "schema_version": 1,
+  "symbol": "000423.SZ",
+  "valuation_history": {
+    "pb": {
+      "method": "positive_only",
+      "percentile": 0.4333821376281113,
+      "sample_count": 1366
+    },
+    "pe": {
+      "method": "positive_only",
+      "percentile": 0.013677811550151976,
+      "sample_count": 1316
+    }
+  }
+}
