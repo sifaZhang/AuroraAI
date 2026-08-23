@@ -1,5 +1,12 @@
 # AuroraAI 项目状态
 
+## 2026-08-23: PR-IR6 deterministic research orchestrator (implemented, uncommitted)
+
+- Added pure trigger planning and single-symbol execution for no-action, valuation-refresh, full-refresh, and manual decision-only plans.
+- Plans merge source, yield, price, and staleness triggers; estimate 0/1/2/4 LLM agents; enforce an optional call budget; and never create a version for no-action.
+- New `run.json` records triggers, step disposition, Analyst/Skeptic reuse provenance, market change, planned/actual calls, completion status, and failed step. Failed versions do not update `current.json`.
+- No database schema, migration, scheduler, GitHub Actions, Review Agent, UI, or trading behavior was added.
+
 ## 2026-08-23: PR-IR5 Portfolio Manager (implemented, uncommitted)
 
 - Added constrained version-local `decision.json` generation, strict decision schema, atomic writes, version selection, `--dry-run`, and `--force`.
