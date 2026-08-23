@@ -79,6 +79,7 @@ def test_zero_confidence_and_formal_yield_logic_are_preserved(tmp_path):
     write_version(tmp_path, "000423.SZ", "2026-08-23_v1", payload)
     item = ResearchSummaryRepository(connection, research_root=tmp_path).list_summaries()[0]
     assert item["decision_confidence"] == 0
+    assert item["confidence_source"] == "model_fallback"
     assert item["yield_signal"] == "heavy"
 
 
@@ -87,12 +88,14 @@ def test_real_poc_summaries_and_api_filters():
     payload = client.get("/api/research").json()
     by_symbol = {item["symbol"]: item for item in payload["items"]}
     assert (by_symbol["000858.SZ"]["yield_signal"], by_symbol["000858.SZ"]["research_decision"],
-            by_symbol["000858.SZ"]["decision_confidence"]) == ("heavy", "watch", .4)
+            by_symbol["000858.SZ"]["decision_confidence"]) == ("heavy", "watch", .55)
+    assert (by_symbol["000858.SZ"]["confidence_level"], by_symbol["000858.SZ"]["confidence_source"]) == ("MEDIUM", "calibrated")
     assert (by_symbol["000858.SZ"]["decision_cap"], by_symbol["000858.SZ"]["skeptic_verdict"],
             by_symbol["000858.SZ"]["valuation_status"], by_symbol["000858.SZ"]["forecast_quality"]) == (
                 "entry", "CAUTION", "FAIR_TO_EXPENSIVE", "LOW")
     assert (by_symbol["000423.SZ"]["yield_signal"], by_symbol["000423.SZ"]["research_decision"],
-            by_symbol["000423.SZ"]["decision_confidence"]) == ("heavy", "watch", 0)
+            by_symbol["000423.SZ"]["decision_confidence"]) == ("heavy", "watch", .60)
+    assert by_symbol["000423.SZ"]["confidence_source"] == "calibrated"
     assert client.get("/api/research", params={"decision": "watch", "q": "000858"}).json()["total"] == 1
     assert client.get("/api/research", params={"decision": "unknown"}).status_code == 422
 
@@ -103,10 +106,9 @@ def test_overview_route_and_dividend_ai_contract():
     assert page.status_code == 200 and page.headers["cache-control"] == "no-store"
     assert "Yield Signal" in page.text and "AI Research Decision" in page.text
     script = (ROOT / "frontend" / "dividend-universe.js").read_text(encoding="utf-8")
-    assert "AI建议" in script and "AI置信度" in script and "AI更新时间" in script
+    assert "AI建议" in script and "AI置信度" not in script and "AI更新时间" not in script
     assert "未分析" in script
     assert "/dividend/ai-research/${encodeURIComponent(item.symbol)}" in script
-    assert "research?.decision_confidence" in script
     overview = (ROOT / "frontend" / "ai-research.js").read_text(encoding="utf-8")
     assert "detailUrl(item.symbol)" in overview
     assert "new URLSearchParams(location.search).get('symbol')" in overview

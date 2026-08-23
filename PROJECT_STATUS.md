@@ -1,5 +1,13 @@
 # AuroraAI 项目状态
 
+## 2026-08-23: PR-IR12 Research Confidence Calibration (implemented, uncommitted)
+
+- Added deterministic five-component Research Confidence calibration with strict schema, atomic artifact output, documented scoring rules, explicit insufficiency handling, and zero LLM calls.
+- FULL_REFRESH, VALUATION_REFRESH, and DECISION_ONLY recalibrate after Portfolio Manager without changing their 4/2/1 call budgets; NO_ACTION creates no calibration.
+- Overview and Detail APIs prefer calibrated confidence and explicitly fall back to legacy model confidence. Detail UI shows score, level, component breakdown, deterministic strengths/blockers, and raw model confidence only in technical details.
+- Offline POC: `000858.SZ` = 55 MEDIUM (model 40%); `000423.SZ` = 60 MEDIUM (model 0%). No rule was changed to target these results.
+- No prompts, research decisions, caps, yield signals, database schema, migrations, trigger policy, external data, or DeepSeek calls were changed or added.
+
 ## 2026-08-23: PR-IR6 deterministic research orchestrator (implemented, uncommitted)
 
 - Added pure trigger planning and single-symbol execution for no-action, valuation-refresh, full-refresh, and manual decision-only plans.

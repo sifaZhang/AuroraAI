@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .fundamental_analyst import FundamentalAnalyst
+from .confidence_calibrator import ConfidenceCalibrator
 from .evidence_compressor import EvidenceCompressor
 from .input_pack_builder import InputPackBuilder
 from .json_store import read_json, write_json_atomic
@@ -26,10 +27,10 @@ from .valuation_input_builder import ValuationInputBuilder
 
 
 STEP_PLANS = {
-    ExecutionPlan.FULL_REFRESH: {"source_collection": "RUN", "input_pack": "REFRESHED", "evidence_compression": "RUN", "analyst": "RUN", "skeptic": "RUN", "valuation_input": "REFRESHED", "valuation": "RUN", "portfolio_manager": "RUN"},
-    ExecutionPlan.VALUATION_REFRESH: {"source_collection": "SKIPPED", "input_pack": "REFRESHED", "evidence_compression": "REUSED", "analyst": "REUSED", "skeptic": "REUSED", "valuation_input": "REFRESHED", "valuation": "RUN", "portfolio_manager": "RUN"},
-    ExecutionPlan.DECISION_ONLY: {"source_collection": "SKIPPED", "input_pack": "REFRESHED", "evidence_compression": "REUSED", "analyst": "REUSED", "skeptic": "REUSED", "valuation_input": "REUSED", "valuation": "REUSED", "portfolio_manager": "RUN"},
-    ExecutionPlan.NO_ACTION: {"source_collection": "SKIPPED", "input_pack": "SKIPPED", "evidence_compression": "SKIPPED", "analyst": "SKIPPED", "skeptic": "SKIPPED", "valuation_input": "SKIPPED", "valuation": "SKIPPED", "portfolio_manager": "SKIPPED"},
+    ExecutionPlan.FULL_REFRESH: {"source_collection": "RUN", "input_pack": "REFRESHED", "evidence_compression": "RUN", "analyst": "RUN", "skeptic": "RUN", "valuation_input": "REFRESHED", "valuation": "RUN", "portfolio_manager": "RUN", "confidence_calibration": "RUN"},
+    ExecutionPlan.VALUATION_REFRESH: {"source_collection": "SKIPPED", "input_pack": "REFRESHED", "evidence_compression": "REUSED", "analyst": "REUSED", "skeptic": "REUSED", "valuation_input": "REFRESHED", "valuation": "RUN", "portfolio_manager": "RUN", "confidence_calibration": "RUN"},
+    ExecutionPlan.DECISION_ONLY: {"source_collection": "SKIPPED", "input_pack": "REFRESHED", "evidence_compression": "REUSED", "analyst": "REUSED", "skeptic": "REUSED", "valuation_input": "REUSED", "valuation": "REUSED", "portfolio_manager": "RUN", "confidence_calibration": "RUN"},
+    ExecutionPlan.NO_ACTION: {"source_collection": "SKIPPED", "input_pack": "SKIPPED", "evidence_compression": "SKIPPED", "analyst": "SKIPPED", "skeptic": "SKIPPED", "valuation_input": "SKIPPED", "valuation": "SKIPPED", "portfolio_manager": "SKIPPED", "confidence_calibration": "SKIPPED"},
 }
 
 
@@ -102,6 +103,7 @@ class ResearchOrchestrator:
                 current_step = "valuation_input"; ValuationInputBuilder(research_root=self.research_root).build(plan.symbol, version=version)
                 current_step = "valuation"; actual_calls += 1; ValuationAgent(research_root=self.research_root).run(plan.symbol, version=version)
             current_step = "portfolio_manager"; actual_calls += 1; PortfolioManager(research_root=self.research_root, repository=self.repository).run(plan.symbol, version=version)
+            current_step = "confidence_calibration"; ConfidenceCalibrator(research_root=self.research_root).run(plan.symbol, version)
             current_step = "trigger_state"
             TriggerStateStore(self.research_root).write_success(
                 symbol=plan.symbol,

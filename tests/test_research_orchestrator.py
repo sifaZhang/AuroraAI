@@ -105,6 +105,10 @@ def test_compression_step_routing_does_not_add_llm_calls():
     assert STEP_PLANS[ExecutionPlan.VALUATION_REFRESH]["evidence_compression"] == "REUSED"
     assert STEP_PLANS[ExecutionPlan.DECISION_ONLY]["evidence_compression"] == "REUSED"
     assert STEP_PLANS[ExecutionPlan.NO_ACTION]["evidence_compression"] == "SKIPPED"
+    assert STEP_PLANS[ExecutionPlan.FULL_REFRESH]["confidence_calibration"] == "RUN"
+    assert STEP_PLANS[ExecutionPlan.VALUATION_REFRESH]["confidence_calibration"] == "RUN"
+    assert STEP_PLANS[ExecutionPlan.DECISION_ONLY]["confidence_calibration"] == "RUN"
+    assert STEP_PLANS[ExecutionPlan.NO_ACTION]["confidence_calibration"] == "SKIPPED"
     assert plan(state(), state(reports=("new",))).estimated_llm_calls == 4
 
 
@@ -170,7 +174,7 @@ def test_successful_full_refresh_resets_price_anchor(tmp_path: Path, monkeypatch
     monkeypatch.setattr("backend.research.research_orchestrator.InputPackBuilder.build", lambda *_a, **_k: (folder.mkdir(parents=True), {"directory": str(folder), "version": folder.name})[-1])
     monkeypatch.setattr("backend.research.research_orchestrator.ResearchOrchestrator._collect_sources", lambda *_: None)
     for target in ("EvidenceCompressor.compress", "FundamentalAnalyst.run", "SkepticAnalyst.run",
-                   "ValuationInputBuilder.build", "ValuationAgent.run", "PortfolioManager.run"):
+                   "ValuationInputBuilder.build", "ValuationAgent.run", "PortfolioManager.run", "ConfidenceCalibrator.run"):
         monkeypatch.setattr("backend.research.research_orchestrator." + target, lambda *_a, **_k: {})
     result = plan(state(price=100, reports=("annual",)), state(price=105, reports=("annual", "h1")))
     outcome = ResearchOrchestrator(repository=Repo(), research_root=tmp_path).execute(result)

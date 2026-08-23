@@ -6,6 +6,9 @@ const {currentVsBase, groupClaims, percent, rangeModel, renderMarkup, sortRisks}
 
 const data = {
   symbol:"000423.SZ", company_name:"东阿阿胶", analysis_version:"2026-08-23_v1", research_date:"2026-08-23",
+  confidence:{score:60,level:"MEDIUM",source:"calibrated",model_reported:0,
+    components:{evidence_completeness:{score:100,weight:.25,reasons:["Complete"]},earnings_visibility:{score:40,weight:.25,reasons:["LOW"]}},
+    strengths:["Evidence is complete."],blockers:["Earnings visibility is low."]},
   market:{latest_price:48.35,yield_signal:"heavy",three_year_average_yield:.0476,grade:"A"},
   decision:{research_decision:"watch",decision_confidence:0,decision_cap:"entry",
     decision_rationale:{summary:"Remain on watch.",supporting_points:["Long-term earnings improved."],limiting_points:["Cash flow risk."]},
@@ -37,10 +40,10 @@ assert.ok(rangeModel(30.75,41.46,53.68,60));
 assert.strictEqual(rangeModel(null,41.46,53.68,48.35), null);
 
 const markup = renderMarkup(data);
-for (const text of ["东阿阿胶","HEAVY","WATCH","ENTRY","0%","FAIR TO EXPENSIVE","Current vs Base Fair Value",
+for (const text of ["东阿阿胶","HEAVY","WATCH","ENTRY","60%","MEDIUM","Model-reported Confidence: <strong>0%","FAIR TO EXPENSIVE","Current vs Base Fair Value",
   "Market-Implied Earnings","Dividend Cross-check","OCF risk","Dividend Trap Assessment","Evidence-backed Claims",
   "Revenue improved.","升级条件","降级条件","投资逻辑失效条件","Compressed evidence summary unavailable",
-  "Fundamental Analyst did not independently estimate normalized earnings."]) assert.ok(markup.includes(text), text);
+  "Fundamental Analyst did not independently estimate normalized earnings.","Confidence Strengths","Main Confidence Blockers"]) assert.ok(markup.includes(text), text);
 
 const html = fs.readFileSync(path.join(__dirname,"../../frontend/ai-research-detail.html"),"utf8");
 assert.ok(html.includes('href="/dividend/ai-research"'));

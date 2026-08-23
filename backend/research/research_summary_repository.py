@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from backend.dividend.position_levels import position_status
 
 from .analyst_schema import AnalystDocument
+from .confidence_calibration_schema import ConfidenceCalibration
 from .decision_schema import DecisionDocument
 from .evidence_summary_schema import validate_evidence_summary
 from .json_store import read_json
@@ -91,13 +92,16 @@ class ResearchSummaryRepository:
         raw_yield = dividend.get("three_year_average_yield")
         yield_pct = float(raw_yield) * 100 if raw_yield is not None else None
         generated_at = str(decision.generation.get("generated_at") or "") or None
+        confidence = self._confidence(folder, decision)
         return {
             "symbol": symbol,
             "company_name": dividend.get("company_name"),
             "yield_signal": position_status(yield_pct, dividend.get("entry_yield"),
                                             dividend.get("add_yield"), dividend.get("heavy_yield")),
             "research_decision": decision.research_decision,
-            "decision_confidence": decision.decision_confidence,
+            "decision_confidence": confidence["score"] / 100,
+            "confidence_level": confidence["level"],
+            "confidence_source": confidence["source"],
             "decision_cap": decision.decision_cap,
             "skeptic_verdict": decision.risk_assessment.skeptic_verdict,
             "valuation_status": decision.valuation_assessment.status,
@@ -138,6 +142,7 @@ class ResearchSummaryRepository:
             "valuation": valuation.generation,
             "portfolio": decision.generation,
         }
+        confidence = self._confidence(folder, decision)
         return {
             "symbol": decision.symbol,
             "company_name": dividend.get("company_name") or company.get("name"),
@@ -155,6 +160,7 @@ class ResearchSummaryRepository:
                 "grade": dividend.get("grade"),
             },
             "decision": decision.model_dump(mode="json"),
+            "confidence": confidence,
             "valuation": valuation.model_dump(mode="json"),
             "skeptic": skeptic.model_dump(mode="json"),
             "analyst": analyst.model_dump(mode="json"),
@@ -172,6 +178,36 @@ class ResearchSummaryRepository:
             "technical": {name: dict(metadata) for name, metadata in generations.items()},
             "history": {"completed_versions": len(self._analysis_folders(decision.symbol))},
         }
+
+    @staticmethod
+    def _confidence(folder: Path, decision: DecisionDocument) -> dict[str, Any]:
+        try:
+            calibration = ConfidenceCalibration.model_validate(read_json(folder / "confidence_calibration.json"))
+            if calibration.symbol != decision.symbol or calibration.analysis_version != folder.name:
+                raise ValueError("confidence calibration identity mismatch")
+            if calibration.model_reported_confidence != decision.decision_confidence:
+                raise ValueError("confidence calibration does not match decision artifact")
+            return {
+                "score": calibration.score,
+                "level": calibration.level,
+                "source": "calibrated",
+                "model_reported": calibration.model_reported_confidence,
+                "components": calibration.components.model_dump(mode="json"),
+                "strengths": calibration.strengths,
+                "blockers": calibration.blockers,
+                "method": calibration.method,
+            }
+        except (OSError, ValueError, ValidationError):
+            return {
+                "score": round(decision.decision_confidence * 100),
+                "level": None,
+                "source": "model_fallback",
+                "model_reported": decision.decision_confidence,
+                "components": None,
+                "strengths": [],
+                "blockers": [],
+                "method": None,
+            }
 
     def _analysis_folders(self, symbol: str) -> list[Path]:
         analysis = self.research_root / symbol / "analysis"

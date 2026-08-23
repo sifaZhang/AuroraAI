@@ -1,0 +1,77 @@
+{
+  "analysis_version": "2026-08-23_v1",
+  "blockers": [
+    "Risk Resolution: Unresolved HIGH risk R001 (-10).",
+    "Earnings Visibility: Analyst normalized earnings are insufficient (-5)."
+  ],
+  "components": {
+    "agent_consistency": {
+      "reasons": [
+        "Structured agent consistency starts at 50.",
+        "Portfolio decision complies with the decision cap (+10).",
+        "Portfolio direction is consistent with valuation status (+10).",
+        "Uncertain analyst view and watch decision are consistent (+5)."
+      ],
+      "score": 75,
+      "weight": 0.1
+    },
+    "earnings_visibility": {
+      "reasons": [
+        "Forecast quality LOW maps to 40.",
+        "Normalized-earnings scenario spread is at most 25% (+5).",
+        "Analyst normalized earnings are insufficient (-5)."
+      ],
+      "score": 40,
+      "weight": 0.25
+    },
+    "evidence_completeness": {
+      "reasons": [
+        "Latest financial report evidence is available.",
+        "Recent annual report evidence is available.",
+        "Cash-flow evidence is available.",
+        "Dividend evidence is available.",
+        "Balance-sheet evidence is available.",
+        "Governance or material-event evidence is available.",
+        "All key referenced evidence IDs resolve to the evidence index."
+      ],
+      "score": 100,
+      "weight": 0.25
+    },
+    "risk_resolution": {
+      "reasons": [
+        "Skeptic verdict CAUTION maps to 55.",
+        "Unresolved HIGH risk R001 (-10).",
+        "Unresolved HIGH risk R002 (-10).",
+        "Unresolved HIGH risk R003 (-10).",
+        "Unresolved MEDIUM risk R004 (-3).",
+        "Dividend-trap assessment UNKNOWN adjusts the score by +0.",
+        "No challenged claims are unsupported or contradicted."
+      ],
+      "score": 22,
+      "weight": 0.15
+    },
+    "valuation_reliability": {
+      "reasons": [
+        "Valuation-agent confidence supplies the 35-point base.",
+        "Bear/base/bull fair values are complete (+10).",
+        "Normalized-earnings scenarios are complete (+10).",
+        "Valuation multiple scenarios are complete (+5).",
+        "Reverse-valuation scenarios are available (+5).",
+        "Forecast quality LOW caps valuation reliability at 55."
+      ],
+      "score": 55,
+      "weight": 0.25
+    }
+  },
+  "generated_at": "2026-08-23T09:11:12+00:00",
+  "level": "MEDIUM",
+  "method": "deterministic-v1",
+  "model_reported_confidence": 0.0,
+  "schema_version": 1,
+  "score": 60,
+  "strengths": [
+    "Evidence Completeness: Latest financial report evidence is available.",
+    "Agent Consistency: Structured agent consistency starts at 50."
+  ],
+  "symbol": "000423.SZ"
+}

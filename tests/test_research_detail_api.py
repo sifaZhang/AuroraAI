@@ -63,6 +63,9 @@ def test_real_detail_api_for_both_pocs_preserves_zero_confidence():
     assert first["valuation"]["fair_value_per_share"] == {"bear": 24.73, "base": 55.64, "bull": 98.93}
     assert first["valuation"]["dividend_cross_check"]["sustainable_yield"] == .0656
     assert second["decision"]["decision_confidence"] == 0
+    assert (first["confidence"]["score"], first["confidence"]["level"], first["confidence"]["model_reported"]) == (55, "MEDIUM", .4)
+    assert (second["confidence"]["score"], second["confidence"]["level"], second["confidence"]["model_reported"]) == (60, "MEDIUM", 0)
+    assert first["confidence"]["source"] == second["confidence"]["source"] == "calibrated"
     assert second["valuation"]["fair_value_per_share"] == {"bear": 30.75, "base": 41.46, "bull": 53.68}
 
 
@@ -85,6 +88,7 @@ def test_missing_evidence_summary_is_nonfatal_and_pdf_content_is_not_returned(tm
     detail = ResearchSummaryRepository(connection, research_root=tmp_path).get_detail("000858.SZ")
     assert detail["evidence"]["summary_available"] is False
     assert detail["evidence"]["source_count"] == 11
+    assert detail["confidence"]["source"] == "model_fallback"
     serialized = json.dumps(detail, ensure_ascii=False)
     assert ".pdf" not in serialized and "source_anchor" not in serialized
 
