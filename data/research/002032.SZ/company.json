@@ -1,0 +1,20 @@
+{
+  "industry": {
+    "classification": "SW",
+    "classification_version": "2021",
+    "sw_l1_code": "801110",
+    "sw_l1_name": "家用电器",
+    "sw_l2_code": "801113",
+    "sw_l2_name": "小家电",
+    "sw_l3_code": "851131",
+    "sw_l3_name": "厨房小家电"
+  },
+  "name": "苏泊尔",
+  "research_type": {
+    "primary": null,
+    "secondary": null,
+    "source": "unresolved"
+  },
+  "schema_version": 1,
+  "symbol": "002032.SZ"
+}

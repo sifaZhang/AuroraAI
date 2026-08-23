@@ -1,0 +1,20 @@
+{
+  "industry": {
+    "classification": "SW",
+    "classification_version": "2021",
+    "sw_l1_code": "801760",
+    "sw_l1_name": "传媒",
+    "sw_l2_code": "801765",
+    "sw_l2_name": "广告营销",
+    "sw_l3_code": "857652",
+    "sw_l3_name": "广告媒体"
+  },
+  "name": "分众传媒",
+  "research_type": {
+    "primary": null,
+    "secondary": null,
+    "source": "unresolved"
+  },
+  "schema_version": 1,
+  "symbol": "002027.SZ"
+}

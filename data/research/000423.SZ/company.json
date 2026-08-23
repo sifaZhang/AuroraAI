@@ -1,0 +1,20 @@
+{
+  "industry": {
+    "classification": "SW",
+    "classification_version": "2021",
+    "sw_l1_code": "801150",
+    "sw_l1_name": "医药生物",
+    "sw_l2_code": "801155",
+    "sw_l2_name": "中药Ⅱ",
+    "sw_l3_code": "851521",
+    "sw_l3_name": "中药Ⅲ"
+  },
+  "name": "东阿阿胶",
+  "research_type": {
+    "primary": "consumer_brand",
+    "secondary": "high_dividend_cash_cow",
+    "source": "symbol_override"
+  },
+  "schema_version": 1,
+  "symbol": "000423.SZ"
+}

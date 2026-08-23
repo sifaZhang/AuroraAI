@@ -1,0 +1,20 @@
+{
+  "industry": {
+    "classification": "SW",
+    "classification_version": "2021",
+    "sw_l1_code": "801880",
+    "sw_l1_name": "汽车",
+    "sw_l2_code": "801096",
+    "sw_l2_name": "商用车",
+    "sw_l3_code": "850913",
+    "sw_l3_name": "商用载客车"
+  },
+  "name": "宇通客车",
+  "research_type": {
+    "primary": null,
+    "secondary": null,
+    "source": "unresolved"
+  },
+  "schema_version": 1,
+  "symbol": "600066.SH"
+}

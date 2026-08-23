@@ -1,0 +1,20 @@
+{
+  "industry": {
+    "classification": "SW",
+    "classification_version": "2021",
+    "sw_l1_code": "801780",
+    "sw_l1_name": "银行",
+    "sw_l2_code": "801783",
+    "sw_l2_name": "股份制银行Ⅱ",
+    "sw_l3_code": "857831",
+    "sw_l3_name": "股份制银行Ⅲ"
+  },
+  "name": "招商银行",
+  "research_type": {
+    "primary": null,
+    "secondary": null,
+    "source": "unresolved"
+  },
+  "schema_version": 1,
+  "symbol": "600036.SH"
+}

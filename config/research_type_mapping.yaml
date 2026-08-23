@@ -1,0 +1,24 @@
+by_sw_l3:
+  白酒Ⅲ:
+    primary: consumer_brand
+  水务及水治理:
+    primary: utility
+  国际工程:
+    primary: infrastructure_services
+
+overrides:
+  000423.SZ:
+    primary: consumer_brand
+    secondary: high_dividend_cash_cow
+  000858.SZ:
+    primary: consumer_brand
+    secondary: high_dividend_cash_cow
+  002372.SZ:
+    primary: consumer_building_material
+    secondary: high_dividend_cash_cow
+  600461.SH:
+    primary: utility
+    secondary: high_dividend_cash_cow
+  600970.SH:
+    primary: infrastructure_services
+    secondary: high_dividend_cash_cow

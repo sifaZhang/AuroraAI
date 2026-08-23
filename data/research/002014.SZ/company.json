@@ -1,0 +1,20 @@
+{
+  "industry": {
+    "classification": "SW",
+    "classification_version": "2021",
+    "sw_l1_code": "801140",
+    "sw_l1_name": "轻工制造",
+    "sw_l2_code": "801141",
+    "sw_l2_name": "包装印刷",
+    "sw_l3_code": "851424",
+    "sw_l3_name": "塑料包装"
+  },
+  "name": "永新股份",
+  "research_type": {
+    "primary": null,
+    "secondary": null,
+    "source": "unresolved"
+  },
+  "schema_version": 1,
+  "symbol": "002014.SZ"
+}

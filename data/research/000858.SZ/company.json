@@ -1,0 +1,20 @@
+{
+  "industry": {
+    "classification": "SW",
+    "classification_version": "2021",
+    "sw_l1_code": "801120",
+    "sw_l1_name": "食品饮料",
+    "sw_l2_code": "801125",
+    "sw_l2_name": "白酒Ⅱ",
+    "sw_l3_code": "851251",
+    "sw_l3_name": "白酒Ⅲ"
+  },
+  "name": "五粮液",
+  "research_type": {
+    "primary": "consumer_brand",
+    "secondary": "high_dividend_cash_cow",
+    "source": "symbol_override"
+  },
+  "schema_version": 1,
+  "symbol": "000858.SZ"
+}

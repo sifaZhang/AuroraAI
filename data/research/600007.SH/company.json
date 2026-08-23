@@ -1,0 +1,20 @@
+{
+  "industry": {
+    "classification": "SW",
+    "classification_version": "2021",
+    "sw_l1_code": "801180",
+    "sw_l1_name": "房地产",
+    "sw_l2_code": "801181",
+    "sw_l2_name": "房地产开发",
+    "sw_l3_code": "851812",
+    "sw_l3_name": "商业地产"
+  },
+  "name": "中国国贸",
+  "research_type": {
+    "primary": null,
+    "secondary": null,
+    "source": "unresolved"
+  },
+  "schema_version": 1,
+  "symbol": "600007.SH"
+}

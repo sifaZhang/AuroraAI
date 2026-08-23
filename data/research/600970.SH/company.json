@@ -1,0 +1,20 @@
+{
+  "industry": {
+    "classification": "SW",
+    "classification_version": "2021",
+    "sw_l1_code": "801720",
+    "sw_l1_name": "建筑装饰",
+    "sw_l2_code": "801724",
+    "sw_l2_name": "专业工程",
+    "sw_l3_code": "857243",
+    "sw_l3_name": "国际工程"
+  },
+  "name": "中材国际",
+  "research_type": {
+    "primary": "infrastructure_services",
+    "secondary": "high_dividend_cash_cow",
+    "source": "symbol_override"
+  },
+  "schema_version": 1,
+  "symbol": "600970.SH"
+}

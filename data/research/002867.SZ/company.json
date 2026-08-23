@@ -1,0 +1,20 @@
+{
+  "industry": {
+    "classification": "SW",
+    "classification_version": "2021",
+    "sw_l1_code": "801130",
+    "sw_l1_name": "纺织服饰",
+    "sw_l2_code": "801133",
+    "sw_l2_name": "饰品",
+    "sw_l3_code": "851331",
+    "sw_l3_name": "钟表珠宝"
+  },
+  "name": "周大生",
+  "research_type": {
+    "primary": null,
+    "secondary": null,
+    "source": "unresolved"
+  },
+  "schema_version": 1,
+  "symbol": "002867.SZ"
+}

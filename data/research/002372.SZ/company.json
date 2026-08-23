@@ -1,0 +1,20 @@
+{
+  "industry": {
+    "classification": "SW",
+    "classification_version": "2021",
+    "sw_l1_code": "801710",
+    "sw_l1_name": "建筑材料",
+    "sw_l2_code": "801713",
+    "sw_l2_name": "装修建材",
+    "sw_l3_code": "850616",
+    "sw_l3_name": "管材"
+  },
+  "name": "伟星新材",
+  "research_type": {
+    "primary": "consumer_building_material",
+    "secondary": "high_dividend_cash_cow",
+    "source": "symbol_override"
+  },
+  "schema_version": 1,
+  "symbol": "002372.SZ"
+}

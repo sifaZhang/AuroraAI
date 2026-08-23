@@ -1,0 +1,20 @@
+{
+  "industry": {
+    "classification": "SW",
+    "classification_version": "2021",
+    "sw_l1_code": "801120",
+    "sw_l1_name": "食品饮料",
+    "sw_l2_code": "801125",
+    "sw_l2_name": "白酒Ⅱ",
+    "sw_l3_code": "851251",
+    "sw_l3_name": "白酒Ⅲ"
+  },
+  "name": "泸州老窖",
+  "research_type": {
+    "primary": "consumer_brand",
+    "secondary": null,
+    "source": "sw_l3_mapping"
+  },
+  "schema_version": 1,
+  "symbol": "000568.SZ"
+}

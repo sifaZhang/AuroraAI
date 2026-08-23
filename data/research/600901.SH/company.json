@@ -1,0 +1,20 @@
+{
+  "industry": {
+    "classification": "SW",
+    "classification_version": "2021",
+    "sw_l1_code": "801790",
+    "sw_l1_name": "非银金融",
+    "sw_l2_code": "801191",
+    "sw_l2_name": "多元金融",
+    "sw_l3_code": "851925",
+    "sw_l3_name": "租赁"
+  },
+  "name": "江苏金租",
+  "research_type": {
+    "primary": null,
+    "secondary": null,
+    "source": "unresolved"
+  },
+  "schema_version": 1,
+  "symbol": "600901.SH"
+}

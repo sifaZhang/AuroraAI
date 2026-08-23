@@ -1,0 +1,20 @@
+{
+  "industry": {
+    "classification": "SW",
+    "classification_version": "2021",
+    "sw_l1_code": "801970",
+    "sw_l1_name": "环保",
+    "sw_l2_code": "801971",
+    "sw_l2_name": "环境治理",
+    "sw_l3_code": "859712",
+    "sw_l3_name": "水务及水治理"
+  },
+  "name": "洪城环境",
+  "research_type": {
+    "primary": "utility",
+    "secondary": "high_dividend_cash_cow",
+    "source": "symbol_override"
+  },
+  "schema_version": 1,
+  "symbol": "600461.SH"
+}

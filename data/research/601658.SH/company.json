@@ -1,0 +1,20 @@
+{
+  "industry": {
+    "classification": "SW",
+    "classification_version": "2021",
+    "sw_l1_code": "801780",
+    "sw_l1_name": "银行",
+    "sw_l2_code": "801782",
+    "sw_l2_name": "国有大型银行Ⅱ",
+    "sw_l3_code": "857821",
+    "sw_l3_name": "国有大型银行Ⅲ"
+  },
+  "name": "邮储银行",
+  "research_type": {
+    "primary": null,
+    "secondary": null,
+    "source": "unresolved"
+  },
+  "schema_version": 1,
+  "symbol": "601658.SH"
+}
