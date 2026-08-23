@@ -1,0 +1,171 @@
+{
+  "analysis_version": "2026-08-23_v3",
+  "conflicts": [
+    {
+      "analyst_view": "The Q1 2026 revenue growth of 33.67% suggests a recovery, and the negative operating cash flow is likely temporary due to seasonal factors and increased receivables.",
+      "portfolio_manager_resolution": "Given the accounting restatement and cash flow concerns, the recovery is not yet confirmed. The watch decision reflects the need for more evidence of sustainable earnings and cash flow improvement.",
+      "skeptic_view": "The revenue growth is partly due to a restated low base, and the negative cash flow with a 65% decline in cash received indicates potential channel stuffing and deteriorating collections.",
+      "topic": "earnings recovery"
+    },
+    {
+      "analyst_view": "The high dividend yield of 7.29% is attractive and supported by strong cash reserves and a commitment to shareholder returns.",
+      "portfolio_manager_resolution": "The dividend may be sustainable in the near term due to cash reserves, but long-term sustainability depends on earnings recovery. The watch decision balances the high yield against the risk of dividend cuts.",
+      "skeptic_view": "The dividend is not covered by 2025 earnings (payout ratio >100%) and negative cash flow raises doubts about sustainability.",
+      "topic": "dividend sustainability"
+    },
+    {
+      "analyst_view": "The stock appears attractively valued on a dividend yield basis, but intrinsic value is uncertain due to insufficient evidence.",
+      "portfolio_manager_resolution": "The valuation assessment is fair to expensive with low confidence, supporting a cautious watch stance rather than a more aggressive decision.",
+      "skeptic_view": "The valuation is fair to expensive with low confidence, and the current price is above the base value, suggesting limited upside.",
+      "topic": "valuation"
+    }
+  ],
+  "decision_cap": "entry",
+  "decision_confidence": 0.4,
+  "decision_rationale": {
+    "limiting_points": [
+      "2025 revenue and net profit declined sharply by 54.55% and 71.89% respectively, indicating severe industry headwinds.",
+      "Q1 2026 operating cash flow was negative RMB 2.54 billion despite revenue growth, raising concerns about earnings quality and dividend sustainability.",
+      "Finished goods inventory increased 45.18% year-over-year, suggesting weak demand and potential price pressure.",
+      "Accounting restatement and acting chairman introduce governance and reporting reliability risks.",
+      "Valuation confidence is low (0.3) and forecast quality is low, limiting the reliability of intrinsic value estimates."
+    ],
+    "summary": "Despite a high dividend yield signal, the severe 2025 earnings decline, negative Q1 2026 operating cash flow, inventory buildup, and governance uncertainties warrant a cautious watch stance. The valuation is fair to expensive with low confidence, and the skeptic's cap is entry, aligning with a watch decision.",
+    "supporting_points": [
+      "Three-year average dividend yield of 7.29% exceeds the heavy yield threshold, indicating potential income value.",
+      "Strong brand equity, high gross margins, and substantial cash reserves provide downside support.",
+      "Large share repurchase program signals management's commitment to shareholder returns."
+    ]
+  },
+  "downgrade_conditions": [
+    {
+      "category": "earnings",
+      "condition": "Reported earnings continue to decline in the next two quarters, with revenue and net profit falling further.",
+      "impact": "May downgrade the research decision to avoid or reduce."
+    },
+    {
+      "category": "cash_flow",
+      "condition": "Operating cash flow remains negative for two consecutive quarters, indicating deteriorating cash generation.",
+      "impact": "May increase dividend sustainability risk and lead to a downgrade."
+    },
+    {
+      "category": "other",
+      "condition": "Inventory levels continue to rise for two consecutive quarters, signaling persistent demand weakness.",
+      "impact": "May increase risk of price cuts and margin compression, leading to a downgrade."
+    },
+    {
+      "category": "dividend",
+      "condition": "Dividend per share is reduced or suspended in the next annual dividend announcement.",
+      "impact": "May invalidate the high yield thesis and lead to a downgrade."
+    },
+    {
+      "category": "governance",
+      "condition": "Further accounting restatements or regulatory inquiries emerge, increasing governance and reporting risks.",
+      "impact": "May reduce confidence and lead to a downgrade."
+    }
+  ],
+  "exceptional_reason": null,
+  "generation": {
+    "generated_at": "2026-08-23T05:37:39+00:00",
+    "input_tokens": 8700,
+    "latency_ms": 14560,
+    "model": "deepseek-v4-flash",
+    "output_tokens": 2078,
+    "prompt_version": "portfolio-manager-v1",
+    "provider": "deepseek"
+  },
+  "inputs_summary": {
+    "add_yield": 6.0,
+    "entry_yield": 5.0,
+    "forecast_quality": "LOW",
+    "grade": "A",
+    "heavy_yield": 7.0,
+    "latest_price": 71.19,
+    "skeptic_cap": "ENTRY",
+    "skeptic_verdict": "CAUTION",
+    "three_year_average_yield": 0.07291607060916795,
+    "valuation_confidence": 0.3,
+    "yield_signal": "heavy"
+  },
+  "invalidation_conditions": [
+    {
+      "category": "earnings",
+      "condition": "A subsequent annual report reveals that the 2025 revenue and profit declines were due to fraud or material misstatement, undermining the reliability of all financial data.",
+      "impact": "May invalidate the research thesis entirely."
+    },
+    {
+      "category": "cash_flow",
+      "condition": "Operating cash flow remains negative for four consecutive quarters, indicating a structural cash flow problem that threatens dividend payments.",
+      "impact": "May invalidate the high dividend thesis."
+    },
+    {
+      "category": "other",
+      "condition": "Inventory levels continue to rise for four consecutive quarters, leading to significant write-downs and margin erosion.",
+      "impact": "May invalidate the earnings recovery thesis."
+    },
+    {
+      "category": "dividend",
+      "condition": "The company suspends or eliminates its dividend, contradicting the high dividend cash cow classification.",
+      "impact": "May invalidate the investment thesis."
+    },
+    {
+      "category": "governance",
+      "condition": "A major governance scandal or regulatory action occurs, such as fraud charges against executives, severely damaging the company's reputation and financial integrity.",
+      "impact": "May invalidate the research thesis."
+    }
+  ],
+  "key_uncertainties": [
+    "Duration and severity of the baijiu industry downturn and its impact on demand.",
+    "Sustainability of the dividend given the payout ratio exceeding 100% of 2025 earnings and negative Q1 2026 cash flow.",
+    "Whether the negative operating cash flow in Q1 2026 is temporary or indicative of channel stuffing.",
+    "Resolution of the accounting restatement and governance stability with the acting chairman.",
+    "Reliability of normalized earnings estimates due to low forecast quality and lack of management guidance."
+  ],
+  "research_decision": "watch",
+  "risk_assessment": {
+    "risk_level": "HIGH",
+    "skeptic_verdict": "CAUTION",
+    "summary": "High risk due to severe earnings decline, negative operating cash flow, inventory buildup, industry downturn, and governance uncertainties. Dividend sustainability is questionable with payout ratio exceeding 100% of 2025 earnings."
+  },
+  "schema_version": 1,
+  "symbol": "000858.SZ",
+  "upgrade_conditions": [
+    {
+      "category": "earnings",
+      "condition": "Reported quarterly earnings show sustained recovery with revenue and net profit growth for at least two consecutive quarters, supported by positive operating cash flow.",
+      "impact": "May upgrade the research decision from watch to add or higher."
+    },
+    {
+      "category": "cash_flow",
+      "condition": "Operating cash flow turns positive and remains positive for two consecutive quarters, with receivables declining from current levels.",
+      "impact": "May reduce cash flow risk and support a more favorable research decision."
+    },
+    {
+      "category": "other",
+      "condition": "Inventory levels decline for two consecutive quarters, indicating improving demand and reduced risk of price erosion.",
+      "impact": "May improve earnings quality outlook and support an upgrade."
+    },
+    {
+      "category": "industry",
+      "condition": "Industry data shows stabilization or recovery in baijiu production and sales for two consecutive quarters.",
+      "impact": "May reduce industry risk and support a more constructive research view."
+    },
+    {
+      "category": "governance",
+      "condition": "A permanent chairman is appointed and the accounting restatement is fully resolved with no further adjustments, improving governance confidence.",
+      "impact": "May reduce governance risk and support an upgrade."
+    }
+  ],
+  "valuation_assessment": {
+    "base_value": 55.64,
+    "bear_value": 24.73,
+    "bull_value": 98.93,
+    "current_price": 71.19,
+    "interpretation": "The current price of 71.19 is above the base value of 55.64 but below the bull value of 98.93, indicating the market is pricing in a partial recovery. However, low confidence and poor forecast quality suggest limited reliability.",
+    "status": "FAIR_TO_EXPENSIVE"
+  },
+  "yield_assessment": {
+    "assessment": "The dividend yield signal is heavy at 7.29%, but this is based on historical DPS that may not be sustainable given the 2025 earnings decline and negative cash flow. The sustainable dividend yield based on 2023 DPS is 6.56%, still attractive but with higher risk.",
+    "signal": "heavy"
+  }
+}

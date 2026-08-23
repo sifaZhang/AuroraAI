@@ -1,5 +1,12 @@
 # AuroraAI 项目状态
 
+## 2026-08-23: PR-IR5 Portfolio Manager (implemented, uncommitted)
+
+- Added constrained version-local `decision.json` generation, strict decision schema, atomic writes, version selection, `--dry-run`, and `--force`.
+- The code computes valuation status and the lower of skeptic/forecast-quality decision caps; the yield signal reuses `position_status()`.
+- No database migration, UI, trading feature, yield-threshold, or preceding-agent changes were made.
+- Both POC dry-runs produced cap `entry` and `FAIR_TO_EXPENSIVE`; real DeepSeek calls were refused by the configured endpoint, so no decision files were written.
+
 ## 2026-08-14: 单股预期差刷新日期（已实现，待提交）
 
 - 预期差表“数据日期”现在包含最新股价时间；A 股单股价格刷新与港股单股价格/评级刷新完成后都会同步更新该列。
