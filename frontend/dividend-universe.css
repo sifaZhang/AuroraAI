@@ -15,24 +15,27 @@
 .dividend-top-scroll { position: sticky; top: 4px; z-index: 3; overflow-x: auto; overflow-y: hidden; height: 15px; margin: 0 0 5px; background: var(--surface); }
 .dividend-top-scroll > div { height: 1px; }
 .dividend-table-wrap { overflow-x: auto; }
-.dividend-table { min-width: 1500px; width: 1500px; table-layout: fixed; font-size: 13px; }
+.dividend-table { min-width: 1900px; width: 1900px; table-layout: fixed; font-size: 13px; }
 .dividend-table th, .dividend-table td { padding: 5px 5px; white-space: nowrap; }
 .dividend-table th { padding-top: 6px; padding-bottom: 6px; }
 .dividend-table th, .dividend-table td { text-align: left; }
-.dividend-table th:nth-child(1), .dividend-table td:nth-child(1) { width: 76px; }
-.dividend-table th:nth-child(2), .dividend-table td:nth-child(2) { width: 58px; text-align: center; white-space: nowrap; }
-.dividend-table th:nth-child(3), .dividend-table td:nth-child(3) { width: 84px; }
-.dividend-table th:nth-child(4), .dividend-table td:nth-child(4) { width: 76px; text-align: center; }
-.dividend-table th:nth-child(5), .dividend-table td:nth-child(5) { width: 64px; }
-.dividend-table th:nth-child(6), .dividend-table td:nth-child(6) { width: 82px; }
-.dividend-table th:nth-child(n+5):nth-child(-n+12), .dividend-table td:nth-child(n+5):nth-child(-n+12), .dividend-table td.dps, .dividend-table td.number-cell { text-align: right; font-variant-numeric: tabular-nums; }
-.dividend-table th:nth-child(7), .dividend-table td:nth-child(7), .dividend-table th:nth-child(8), .dividend-table td:nth-child(8), .dividend-table th:nth-child(9), .dividend-table td:nth-child(9) { width: 68px; }
-.dividend-table th:nth-child(10), .dividend-table td:nth-child(10) { width: 82px; }
-.dividend-table th:nth-child(11), .dividend-table td:nth-child(11) { width: 84px; }
-.dividend-table th:nth-child(12), .dividend-table td:nth-child(12) { width: 100px; }
-.dividend-table th:nth-child(13), .dividend-table td:nth-child(13) { width: 64px; text-align: center; white-space: nowrap; }
-.dividend-table th:nth-child(n+14):nth-child(-n+16), .dividend-table td:nth-child(n+14):nth-child(-n+16) { width: 70px; text-align: center; white-space: nowrap; }
-.dividend-table th:nth-child(17), .dividend-table td:nth-child(17) { width: 112px; text-align: center; white-space: nowrap; }
+.dividend-table th:nth-child(1), .dividend-table td:nth-child(1) { width: 96px; }
+.dividend-table th:nth-child(2), .dividend-table td:nth-child(2) { width: 86px; text-align: center; }
+.dividend-table th:nth-child(3), .dividend-table td:nth-child(3) { width: 86px; }
+.dividend-table th:nth-child(4), .dividend-table td:nth-child(4) { width: 88px; text-align: center; }
+.dividend-table th:nth-child(5), .dividend-table td:nth-child(5) { width: 104px; text-align: center; }
+.dividend-table th:nth-child(6), .dividend-table td:nth-child(6) { width: 118px; }
+.dividend-table th:nth-child(7), .dividend-table td:nth-child(7) { width: 104px; }
+.dividend-table th:nth-child(8), .dividend-table td:nth-child(8) { width: 76px; }
+.dividend-table th:nth-child(9), .dividend-table td:nth-child(9) { width: 104px; text-align: center; }
+.dividend-table th:nth-child(n+8):nth-child(-n+15), .dividend-table td:nth-child(n+8):nth-child(-n+15), .dividend-table td.dps, .dividend-table td.number-cell { text-align: right; font-variant-numeric: tabular-nums; }
+.dividend-table th:nth-child(n+10):nth-child(-n+12), .dividend-table td:nth-child(n+10):nth-child(-n+12) { width: 86px; }
+.dividend-table th:nth-child(13), .dividend-table td:nth-child(13) { width: 100px; }
+.dividend-table th:nth-child(14), .dividend-table td:nth-child(14) { width: 96px; }
+.dividend-table th:nth-child(15), .dividend-table td:nth-child(15) { width: 118px; }
+.dividend-table th:nth-child(16), .dividend-table td:nth-child(16) { width: 72px; text-align: center; }
+.dividend-table th:nth-child(n+17):nth-child(-n+19), .dividend-table td:nth-child(n+17):nth-child(-n+19) { width: 82px; text-align: center; }
+.dividend-table th:nth-child(20), .dividend-table td:nth-child(20) { width: 128px; text-align: center; }
 .dividend-table td.price-date { white-space: nowrap; }
 .dividend-table .yield-sort { cursor: pointer; user-select: none; }
 .dividend-table .yield-sort:hover { color: var(--accent-strong); background: #f0fdfa; }
