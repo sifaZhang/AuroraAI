@@ -19,7 +19,7 @@ def database():
     connection.executescript("""
       CREATE TABLE dividend_stable_universe(
         market TEXT, symbol TEXT, company_name TEXT, is_enabled INTEGER,
-        entry_yield REAL, add_yield REAL, heavy_yield REAL
+        grade TEXT, entry_yield REAL, add_yield REAL, heavy_yield REAL
       );
       CREATE TABLE dividend_yield_snapshots(
         market TEXT, symbol TEXT, calculation_date TEXT, latest_price REAL,
@@ -30,8 +30,8 @@ def database():
 
 
 def add_company(connection, symbol="000858.SZ", name="五粮液", enabled=1):
-    connection.execute("INSERT INTO dividend_stable_universe VALUES('CN',?,?,?,?,?,?)",
-                       (symbol, name, enabled, 5.0, 6.0, 7.0))
+    connection.execute("INSERT INTO dividend_stable_universe VALUES('CN',?,?,?,?,?,?,?)",
+                       (symbol, name, enabled, "A", 5.0, 6.0, 7.0))
     connection.execute("INSERT INTO dividend_yield_snapshots VALUES('CN',?,?,?,?)",
                        (symbol, "2026-08-23", 71.19, .0729))
 
@@ -105,9 +105,10 @@ def test_overview_route_and_dividend_ai_contract():
     script = (ROOT / "frontend" / "dividend-universe.js").read_text(encoding="utf-8")
     assert "AI建议" in script and "AI置信度" in script and "AI更新时间" in script
     assert "未分析" in script
-    assert "/dividend/ai-research?symbol=${encodeURIComponent(item.symbol)}" in script
+    assert "/dividend/ai-research/${encodeURIComponent(item.symbol)}" in script
     assert "research?.decision_confidence" in script
     overview = (ROOT / "frontend" / "ai-research.js").read_text(encoding="utf-8")
+    assert "detailUrl(item.symbol)" in overview
     assert "new URLSearchParams(location.search).get('symbol')" in overview
     assert "该股票尚无已完成AI研究。" in overview and "暂无AI研究结果" in overview
     assert all(label in overview for label in ("已研究公司", "Watch", "Entry+", "Signal Disagreements"))

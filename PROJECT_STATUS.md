@@ -330,3 +330,10 @@
 - Replaced the automatic bidirectional price trigger with a persisted downside-only ladder. Successful price-trigger refreshes advance the anchor, successful full refreshes reset it, and failed runs leave it unchanged.
 - Added atomic file-based `trigger_state.json` metadata, auditable anchor fields in `run.json`, lazy compatibility with old research, and focused re-entry/first-research behavior without a database migration.
 - Agent prompts, IR9 compression, valuation, Portfolio Manager, Yield Signal thresholds, UI, workflow schedule and LLM call estimates are unchanged; validation uses dry-run/fakes only and does not call DeepSeek.
+
+## 2026-08-23: PR-IR11 company AI research detail (implemented, uncommitted)
+
+- Added read-only `/api/research/{symbol}` and `/dividend/ai-research/{symbol}` routes using the existing current-first/latest-completed resolution, formal Dividend Yield Signal and strict core Agent artifact validation.
+- Added a responsive research dashboard for final decision logic, conflicts, existing valuation scenarios/range, dividend cross-check, Skeptic risks, Analyst thesis/claims, Portfolio conditions and collapsed technical metadata.
+- Updated AI Research Overview and Dividend Universe decisions to link directly to company detail while retaining Overview query filtering and safe empty states.
+- No Agent run, LLM call, research artifact write, prompt/valuation/decision change, database migration, external source, trading action or research-history comparison is included.

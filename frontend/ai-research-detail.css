@@ -1,0 +1,60 @@
+.research-detail-shell { max-width:1320px; }
+.detail-backlinks { display:flex; gap:1rem; margin:.4rem 0 1rem; }
+.detail-backlinks a { color:var(--accent,#176347); font-weight:700; }
+.detail-header { display:grid; grid-template-columns:minmax(260px,1.4fr) minmax(360px,2fr); gap:1rem; align-items:stretch; }
+.detail-title h1 { margin:.15rem 0; font-size:2rem; }
+.detail-title .symbol { color:var(--muted,#667085); font-weight:700; }
+.signal-flow { display:flex; align-items:center; flex-wrap:wrap; gap:.65rem; margin:1rem 0; }
+.signal-node { min-width:125px; padding:.75rem; border:1px solid #d8e0e7; border-radius:12px; background:#fff; }
+.signal-node span,.detail-stat span,.scenario-cell span { display:block; color:var(--muted,#667085); font-size:.78rem; text-transform:uppercase; letter-spacing:.035em; }
+.signal-node strong { font-size:1.25rem; }
+.signal-arrow { color:#7a5a16; font-size:1.4rem; }
+.detail-stats { display:grid; grid-template-columns:repeat(3,minmax(120px,1fr)); gap:.7rem; }
+.detail-stat { padding:.75rem; border-radius:10px; background:#f6f8fa; }
+.detail-stat strong { display:block; margin-top:.25rem; overflow-wrap:anywhere; }
+.detail-section { margin-top:1rem; }
+.detail-section h2 { margin-top:0; }
+.detail-section h3 { margin:.2rem 0 .7rem; }
+.two-column,.three-column,.quality-grid,.scenario-grid { display:grid; gap:1rem; }
+.two-column { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.three-column { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.quality-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.scenario-grid { grid-template-columns:repeat(3,minmax(90px,1fr)); }
+.subcard,.conflict-card,.risk-card,.condition-card { padding:1rem; border:1px solid #dfe5ea; border-radius:12px; background:#fff; }
+.support-card { border-top:4px solid #67b993; }
+.limit-card,.risk-card { border-top:4px solid #d5a94f; }
+.invalidation-card { border-top:4px solid #a93232; }
+.detail-list { margin:.4rem 0 0; padding-left:1.25rem; }
+.detail-list li { margin:.45rem 0; line-height:1.5; }
+.conflict-card + .conflict-card,.risk-card + .risk-card { margin-top:.75rem; }
+.conflict-grid { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+.resolution { margin-top:.75rem; padding:.75rem; background:#f4f7f9; border-radius:8px; }
+.valuation-range { position:relative; height:86px; margin:1rem .5rem 0; }
+.range-line { position:absolute; left:2%; right:2%; top:38px; height:4px; background:#c7d1d9; border-radius:4px; }
+.range-point { position:absolute; top:25px; transform:translateX(-50%); text-align:center; min-width:70px; }
+.range-point::before { content:""; display:block; width:14px; height:14px; margin:auto; border-radius:50%; background:#536577; border:3px solid #fff; box-shadow:0 0 0 1px #536577; }
+.range-point.current::before { background:#b7791f; box-shadow:0 0 0 1px #b7791f; }
+.range-point small { display:block; margin-top:.3rem; white-space:nowrap; }
+.scenario-cell { padding:.75rem; background:#f6f8fa; border-radius:10px; }
+.scenario-cell strong { font-size:1.12rem; }
+.severity { font-weight:800; }
+.severity-critical { color:#9b1c1c; }.severity-high { color:#a45d12; }.severity-medium { color:#7a6816; }.severity-low { color:#35705a; }
+.claim-type { margin-top:.8rem; }
+.claim-item { padding:.7rem 0; border-bottom:1px solid #e5e9ed; }
+.claim-item:last-child { border-bottom:0; }
+.evidence-ids { color:var(--muted,#667085); font-size:.82rem; overflow-wrap:anywhere; }
+.quality-score { font-size:1.6rem; font-weight:800; }
+.technical-table { width:100%; border-collapse:collapse; }
+.technical-table th,.technical-table td { text-align:left; padding:.55rem; border-bottom:1px solid #e5e9ed; }
+.detail-empty { text-align:center; padding:3rem 1rem; }
+details > summary { cursor:pointer; font-weight:700; }
+@media (max-width:900px) {
+  .detail-header,.two-column,.three-column,.quality-grid { grid-template-columns:1fr 1fr; }
+  .detail-stats { grid-template-columns:1fr 1fr; }
+}
+@media (max-width:620px) {
+  .detail-header,.two-column,.three-column,.quality-grid,.conflict-grid { grid-template-columns:1fr; }
+  .detail-stats { grid-template-columns:1fr 1fr; }
+  .valuation-range { display:none; }
+  .detail-backlinks { flex-direction:column; gap:.4rem; }
+}

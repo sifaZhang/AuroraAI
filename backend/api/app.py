@@ -212,5 +212,9 @@ def dividend_yield_page(view: str):
 def ai_research_page():
     return FileResponse(FRONTEND / 'ai-research.html', headers={'Cache-Control': 'no-store'})
 
+@app.get('/dividend/ai-research/{symbol}')
+def ai_research_detail_page(symbol: str):
+    return FileResponse(FRONTEND / 'ai-research-detail.html', headers={'Cache-Control': 'no-store'})
+
 
 app.mount("/", FrontendStaticFiles(directory=FRONTEND, html=True), name="frontend")

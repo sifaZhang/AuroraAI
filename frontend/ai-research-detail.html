@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AuroraAI - Company AI Research</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/expectation-gap.css">
+  <link rel="stylesheet" href="/first-limit.css">
+  <link rel="stylesheet" href="/ai-research.css?v=ir8-1">
+  <link rel="stylesheet" href="/ai-research-detail.css?v=ir11-1">
+</head>
+<body>
+  <main class="app-shell first-limit-shell research-detail-shell">
+    <nav class="site-nav" aria-label="主导航"><a href="/market-pulse.html">Market Pulse</a><details class="nav-dropdown active"><summary>分红</summary><div class="nav-menu"><a href="/dividend/universe">A股历史分红</a><a class="active" href="/dividend/ai-research">AI Research</a><a href="/">最近分红</a></div></details><a href="/expectation-gap?nav=20260809">预期差</a><details class="nav-dropdown"><summary>战法</summary><div class="nav-menu"><a href="/first-limit">首板回调战法</a></div></details><a href="/data-source-health">数据源状态</a></nav>
+    <div class="detail-backlinks"><a href="/dividend/ai-research">← AI Research Overview</a><a href="/dividend/universe">← Dividend Universe</a></div>
+    <section id="detail-loading" class="dashboard-card loading-card">正在加载公司研究详情...</section>
+    <section id="detail-error" class="dashboard-card detail-empty" hidden>
+      <h1>未找到该股票的已完成AI研究</h1>
+      <p id="detail-error-message">该股票尚无已完成AI研究。</p>
+      <a class="secondary-button" href="/dividend/ai-research">返回 AI Research Overview</a>
+    </section>
+    <div id="research-detail" hidden></div>
+  </main>
+  <script src="/ai-research-detail.js?v=ir11-1"></script>
+</body>
+</html>

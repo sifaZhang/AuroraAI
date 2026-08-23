@@ -6,6 +6,7 @@
   const order = {heavy: 0, add: 1, entry: 2, watch: 3, avoid: 4};
   const label = value => ({avoid:'Avoid',watch:'Watch',entry:'Entry',add:'Add',heavy:'Heavy'}[value] || value || '—');
   const confidence = value => value == null ? '—' : `${Math.round(Number(value) * 100)}%`;
+  const detailUrl = symbol => `/dividend/ai-research/${encodeURIComponent(symbol)}`;
   const signalGap = item => item.yield_signal === item.research_decision ? 'Matched' : `${label(item.yield_signal)} → ${label(item.research_decision)}`;
   const filterItems = (items, filters) => items.filter(item => {
     const query = (filters.symbol || '').trim().toLowerCase();
@@ -30,7 +31,7 @@
       const entryPlus = items.filter(item => ['entry','add','heavy'].includes(item.research_decision)).length;
       const watch = items.filter(item => item.research_decision === 'watch').length;
       $('research-kpis').innerHTML = [['已研究公司',items.length],['Watch',watch],['Entry+',entryPlus],['Signal Disagreements',disagreements]].map(([name,value]) => `<div class="overview-stat"><span>${name}</span><strong>${value}</strong></div>`).join('');
-      $('research-rows').innerHTML = shown.map(item => `<tr data-research-symbol="${item.symbol}"><td class="stock-cell"><strong>${item.company_name || item.symbol}</strong><small>${item.symbol}</small></td><td>${chip(item.yield_signal)}</td><td>${chip(item.research_decision)}</td><td class="${item.yield_signal === item.research_decision ? 'signal-match' : 'signal-gap'}">${signalGap(item)}</td><td>${chip(item.decision_cap)}</td><td class="number-cell">${confidence(item.decision_confidence)}</td><td>${item.skeptic_verdict}</td><td>${item.valuation_status}</td><td>${item.forecast_quality}</td><td class="number-cell">${item.latest_price == null ? '—' : Number(item.latest_price).toFixed(2)}</td><td>${item.research_date}</td></tr>`).join('');
+      $('research-rows').innerHTML = shown.map(item => `<tr data-research-symbol="${item.symbol}"><td class="stock-cell"><a href="${detailUrl(item.symbol)}"><strong>${item.company_name || item.symbol}</strong><small>${item.symbol}</small></a></td><td>${chip(item.yield_signal)}</td><td><a href="${detailUrl(item.symbol)}">${chip(item.research_decision)}</a></td><td class="${item.yield_signal === item.research_decision ? 'signal-match' : 'signal-gap'}">${signalGap(item)}</td><td>${chip(item.decision_cap)}</td><td class="number-cell">${confidence(item.decision_confidence)}</td><td>${item.skeptic_verdict}</td><td>${item.valuation_status}</td><td>${item.forecast_quality}</td><td class="number-cell">${item.latest_price == null ? '—' : Number(item.latest_price).toFixed(2)}</td><td>${item.research_date}</td></tr>`).join('');
       if (!shown.length) {
         const targeted = Boolean(filters().symbol);
         $('research-rows').innerHTML = `<tr><td colspan="11" class="empty-state">${targeted ? '该股票尚无已完成AI研究。' : '暂无AI研究结果'}</td></tr>`;
@@ -52,5 +53,5 @@
     $('research-retry').onclick = load;
     load();
   }
-  return {confidence, filterItems, label, signalGap, init};
+  return {confidence, detailUrl, filterItems, label, signalGap, init};
 });

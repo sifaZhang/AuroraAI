@@ -8,6 +8,7 @@ PAGES = {
     "/market-pulse.html": ("market-pulse.html", "market"),
     "/dividend/universe": ("dividend-universe.html", "dividend"),
     "/dividend/ai-research": ("ai-research.html", "dividend"),
+    "/dividend/ai-research/000858.SZ": ("ai-research-detail.html", "dividend"),
     "/expectation-gap": ("expectation-gap.html", "expectation"),
     "/first-limit": ("first-limit.html", "strategy"),
     "/data-source-health": ("data-source-health.html", "health"),
@@ -24,7 +25,7 @@ def test_primary_pages_share_the_reorganized_navigation():
         assert 'href="/market-pulse.html">Market Pulse' in text
         assert '<summary>分红</summary>' in text
         assert 'href="/dividend/universe">A股历史分红' in text
-        if route in {"/dividend/universe", "/dividend/ai-research"}:
+        if route in {"/dividend/universe", "/dividend/ai-research", "/dividend/ai-research/000858.SZ"}:
             assert 'href="/dividend/ai-research"' in text
         assert 'href="/">最近分红' in text
         expectation_href = '/expectation-gap?nav=20260809'
