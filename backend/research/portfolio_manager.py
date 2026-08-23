@@ -43,7 +43,7 @@ class PortfolioManager:
             return {"symbol": symbol.upper(), "version": actual, "decision_cap": cap, "valuation_status": status, "dry_run": True}
         prompt = PROMPT_PATH.read_text(encoding="utf-8")
         request = self._request(company, snapshot, analyst, skeptic, valuation, actual, inputs, cap, status)
-        provider = self.provider or create_provider()
+        provider = self.provider or create_provider(role="portfolio")
         raw = self._generate(provider, prompt, request)
         try:
             initial_payload = json.loads(raw.content)
@@ -130,4 +130,3 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__": raise SystemExit(main())
-

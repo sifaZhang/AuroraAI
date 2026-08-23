@@ -11,6 +11,22 @@ from .base import GenerationResult, LlmProviderError
 
 DEEPSEEK_CHAT_URL = "https://api.deepseek.com/chat/completions"
 DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-flash"
+ROLE_MODEL_ENV = {
+    "analyst": "DEEPSEEK_ANALYST_MODEL",
+    "skeptic": "DEEPSEEK_SKEPTIC_MODEL",
+    "valuation": "DEEPSEEK_VALUATION_MODEL",
+    "portfolio": "DEEPSEEK_PORTFOLIO_MODEL",
+    "review": "DEEPSEEK_REVIEW_MODEL",
+}
+
+
+def get_deepseek_model(role: str) -> str:
+    """Resolve a role-specific requested model without changing response metadata."""
+    try:
+        role_variable = ROLE_MODEL_ENV[role]
+    except KeyError as exc:
+        raise ValueError(f"Unsupported DeepSeek role: {role}") from exc
+    return os.environ.get(role_variable) or os.environ.get("DEEPSEEK_MODEL") or DEFAULT_DEEPSEEK_MODEL
 
 
 @dataclass
@@ -23,13 +39,13 @@ class DeepSeekProvider:
     client: httpx.Client | None = None
 
     @classmethod
-    def from_environment(cls) -> "DeepSeekProvider":
+    def from_environment(cls, *, role: str | None = None) -> "DeepSeekProvider":
         api_key = os.environ.get("DEEPSEEK_API_KEY")
         if not api_key:
             raise LlmProviderError("DeepSeek API key is not configured")
         return cls(
             api_key=api_key,
-            model=os.environ.get("DEEPSEEK_MODEL", DEFAULT_DEEPSEEK_MODEL),
+            model=get_deepseek_model(role) if role is not None else os.environ.get("DEEPSEEK_MODEL", DEFAULT_DEEPSEEK_MODEL),
             temperature=float(os.environ.get("RESEARCH_LLM_TEMPERATURE", "0.1")),
             timeout=float(os.environ.get("RESEARCH_LLM_TIMEOUT", "90")),
             max_output_tokens=int(os.environ.get("RESEARCH_LLM_MAX_OUTPUT_TOKENS", "6000")),

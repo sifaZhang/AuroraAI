@@ -121,7 +121,7 @@ class FundamentalAnalyst:
         request = self._user_prompt(snapshot, company, actual_version, context)
         if dry_run:
             return {"symbol": symbol.upper(), "version": actual_version, "context_characters": len(context), "evidence_ids": sorted(evidence_ids), "dry_run": True}
-        provider = self.provider or create_provider()
+        provider = self.provider or create_provider(role="analyst")
         raw = self._generate_with_one_retry(provider, system_prompt, request)
         try:
             payload = json.loads(raw.content)

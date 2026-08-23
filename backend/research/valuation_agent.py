@@ -19,7 +19,7 @@ class ValuationAgent:
   context,ids=build_context(folder,snapshot,evidence);claims={x.get('claim_id') for x in analyst.get('claims',[])}
   prompt=PROMPT_PATH.read_text(encoding='utf-8');request=self._request(company,vi,analyst,skeptic,v,context)
   if dry_run:return {'symbol':symbol.upper(),'version':v,'context_characters':len(context),'evidence_ids':sorted(ids),'dry_run':True}
-  p=self.provider or create_provider(); raw=self._generate(p,prompt,request)
+  p=self.provider or create_provider(role='valuation'); raw=self._generate(p,prompt,request)
   try:d=self._validate(json.loads(raw.content),raw,symbol.upper(),v,ids)
   except Exception as first:
    repair=p.generate_structured(system_prompt=prompt,user_prompt=request+f'\nCorrect validation errors and return complete JSON only:\n{str(first)[:1200]}')

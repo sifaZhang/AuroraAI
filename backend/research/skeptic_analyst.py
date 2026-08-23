@@ -58,7 +58,7 @@ class SkepticAnalyst:
         request = self._request(company, snapshot, analyst, actual_version, context)
         if dry_run:
             return {"symbol": symbol.upper(), "version": actual_version, "context_characters": len(context), "evidence_ids": sorted(evidence_ids), "analyst_claim_ids": sorted(claim_ids), "dry_run": True}
-        provider = self.provider or create_provider()
+        provider = self.provider or create_provider(role="skeptic")
         raw = self._generate(provider, prompt, request)
         try:
             document = self._validate(json.loads(raw.content), raw, symbol.upper(), actual_version, evidence_ids, claim_ids)
