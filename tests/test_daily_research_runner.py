@@ -130,6 +130,13 @@ def test_combined_workflow_contract():
     assert 'cron: "0 12 * * *"' in text and "contents: write" in text
     assert "group: dividend-research-daily" in text and "timeout-minutes: 60" in text
     assert text.index("Generate daily dividend position report") < text.index("Run daily research")
+    assert text.index("Check A-share trading day") < text.index("Generate daily dividend position report")
+    assert "id: trading_day" in text
+    gate = "steps.trading_day.outputs.is_trading_day == 'true'"
+    assert text.count(gate) == 3
+    assert "python -m backend.market.check_trading_day" in text
+    assert '--github-output "$GITHUB_OUTPUT"' in text
+    assert "Dividend: skipped" in text and "Research: skipped" in text and "Research commit: skipped" in text
     for name in ("send_email", "trade_date", "research_enabled", "research_dry_run", "research_symbol", "research_mode", "research_max_llm_calls"):
         assert f"{name}:" in text
     assert "daily_research_runner \"${ARGS[@]}\" --execute" in text

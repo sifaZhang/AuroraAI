@@ -66,7 +66,34 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
 
+      - name: Check A-share trading day
+        id: trading_day
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+          REQUESTED_TRADE_DATE: ${{ inputs.trade_date }}
+        run: |
+          ARGS=()
+          if [ -n "$REQUESTED_TRADE_DATE" ]; then ARGS+=(--date "$REQUESTED_TRADE_DATE"); fi
+          python -m backend.market.check_trading_day "${ARGS[@]}" --github-output "$GITHUB_OUTPUT"
+          TRADE_DATE="$(grep '^trade_date=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
+          IS_TRADING_DAY="$(grep '^is_trading_day=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
+          {
+            echo "# Daily Dividend + Research"
+            echo
+            echo "Trade date: $TRADE_DATE"
+            echo "Trading day: $([ "$IS_TRADING_DAY" = "true" ] && echo yes || echo no)"
+            if [ "$IS_TRADING_DAY" = "false" ]; then
+              echo "Status: skipped"
+              echo "Reason: non_trading_day"
+              echo
+              echo "Dividend: skipped"
+              echo "Research: skipped"
+              echo "Research commit: skipped"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Generate daily dividend position report
+        if: steps.trading_day.outputs.is_trading_day == 'true'
         env:
           TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
           DIVIDEND_SMTP_HOST: ${{ secrets.DIVIDEND_SMTP_HOST }}
@@ -75,22 +102,18 @@ jobs:
           DIVIDEND_SMTP_PASSWORD: ${{ secrets.DIVIDEND_SMTP_PASSWORD }}
           DIVIDEND_EMAIL_FROM: ${{ secrets.DIVIDEND_EMAIL_FROM }}
           DIVIDEND_EMAIL_TO: ${{ secrets.DIVIDEND_EMAIL_TO }}
-          TRADE_DATE: ${{ inputs.trade_date }}
+          TRADE_DATE: ${{ steps.trading_day.outputs.trade_date }}
         run: |
           echo "trigger=$GITHUB_EVENT_NAME"
           if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
             echo "mode=send-email"
-            echo "trade_date=auto"
-            python -m backend.dividend.daily_position_report --send-email
+            echo "trade_date=$TRADE_DATE"
+            python -m backend.dividend.daily_position_report --date "$TRADE_DATE" --send-email
             {
-              echo "# Daily Dividend + Research"
-              echo
-              echo "Schedule: Beijing 20:00"
-              echo
               echo "## Dividend"
               echo "Status: completed"
               echo "Mode: send-email"
-              echo "Trade date: auto"
+              echo "Trade date: $TRADE_DATE"
             } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
@@ -106,10 +129,6 @@ jobs:
             python -m backend.dividend.daily_position_report "${ARGS[@]}" --dry-run
           fi
           {
-            echo "# Daily Dividend + Research"
-            echo
-            echo "Schedule: Beijing 20:00"
-            echo
             echo "## Dividend"
             echo "Status: completed"
             echo "Mode: ${{ inputs.send_email == true && 'send-email' || 'dry-run' }}"
@@ -117,7 +136,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run daily research
-        if: github.event_name == 'schedule' || inputs.research_enabled
+        if: steps.trading_day.outputs.is_trading_day == 'true' && (github.event_name == 'schedule' || inputs.research_enabled)
         env:
           TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
@@ -140,7 +159,7 @@ jobs:
           fi
 
       - name: Commit daily research outputs
-        if: github.event_name == 'schedule' || (inputs.research_enabled && !inputs.research_dry_run)
+        if: steps.trading_day.outputs.is_trading_day == 'true' && (github.event_name == 'schedule' || (inputs.research_enabled && !inputs.research_dry_run))
         run: |
           git add -- data/research/
           python -m backend.research.research_git --validate-staged

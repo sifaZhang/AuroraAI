@@ -55,14 +55,15 @@ def test_workflow_has_manual_email_input_without_schedule():
     assert "send_email:" in workflow and "default: false" in workflow
     assert "--send-email" in workflow
     assert "trade_date:" in workflow
-    assert "TRADE_DATE: ${{ inputs.trade_date }}" in workflow
+    assert "REQUESTED_TRADE_DATE: ${{ inputs.trade_date }}" in workflow
+    assert "TRADE_DATE: ${{ steps.trading_day.outputs.trade_date }}" in workflow
     assert 'if [ -n "$TRADE_DATE" ]; then' in workflow
     assert 'ARGS=(--date "$TRADE_DATE")' in workflow
     assert '"${ARGS[@]}" --send-email' in workflow
     assert '"${ARGS[@]}" --dry-run' in workflow
     assert 'if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then' in workflow
-    assert 'python -m backend.dividend.daily_position_report --send-email' in workflow
-    assert 'echo "trade_date=auto"' in workflow
+    assert 'python -m backend.dividend.daily_position_report --date "$TRADE_DATE" --send-email' in workflow
+    assert 'echo "trade_date=$TRADE_DATE"' in workflow
 
 
 def test_no_signals_never_configures_or_sends(monkeypatch):

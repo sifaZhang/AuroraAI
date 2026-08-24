@@ -20,6 +20,7 @@ from backend.data_sources.settings import DataSourceSettings
 from backend.data_sources.tushare import TushareClient
 from backend.dividend.position_levels import position_status
 from backend.dividend.position_email import SmtpSettings, render_email, send_email
+from backend.market.trading_calendar import is_a_share_trading_day
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -94,18 +95,6 @@ def _records(frame: Any) -> list[dict[str, Any]]:
     raise ValueError("Tushare response is not a tabular frame")
 
 
-def is_trading_day(client: TushareClient, trade_date: date) -> bool:
-    requested = trade_date.strftime("%Y%m%d")
-    frame = client.call(
-        "trade_cal", exchange="SSE", start_date=requested, end_date=requested,
-        fields="cal_date,is_open",
-    )
-    for item in _records(frame):
-        if str(item.get("cal_date", "")).replace("-", "") == requested:
-            return str(item.get("is_open", "")).strip() in {"1", "1.0", "True", "true"}
-    raise ValueError(f"Tushare trade calendar has no record for {trade_date.isoformat()}")
-
-
 def fetch_daily_prices(client: TushareClient, trade_date: date) -> dict[str, float]:
     """Make exactly one whole-market daily request for the requested date."""
     frame = client.call(
@@ -151,7 +140,7 @@ def scan_watchlist(rows: Iterable[dict[str, Any]], client: TushareClient, trade_
         "heavy": [],
         "position_hints": POSITION_HINTS,
     }
-    if not is_trading_day(client, trade_date):
+    if not is_a_share_trading_day(client, trade_date):
         report.update(report_status="skipped", skip_reason="non_trading_day")
         return report
 

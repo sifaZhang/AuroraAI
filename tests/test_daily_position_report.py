@@ -107,6 +107,17 @@ def test_non_trading_day_skips_without_daily_request(tmp_path):
     assert [call[0] for call in client.calls] == ["trade_cal"]
 
 
+def test_non_trading_day_does_not_send_email(tmp_path, monkeypatch):
+    path = _write_csv(tmp_path, [("000001.SZ", "One", "A", "1", "2", "3", "1", "true", "now")])
+    sent = []
+    monkeypatch.setattr(report_module, "send_email", lambda *_a, **_k: sent.append(True))
+    result = report_module.scan_watchlist(report_module.load_watchlist(path), FakeTushare(_calendar(False), []),
+                                          report_module.date(2026, 8, 21))
+    assert result["report_status"] == "skipped" and result["skip_reason"] == "non_trading_day"
+    assert report_module.send_report_summary(result) is False
+    assert sent == []
+
+
 def test_duplicate_and_wrong_header_fail(tmp_path):
     path = _write_csv(tmp_path, [
         ("000001.SZ", "One", "", "", "", "", "1", "true", "now"),
