@@ -1,8 +1,10 @@
+import json
+from datetime import date
 from pathlib import Path
 
 import pytest
 
-from backend.research.daily_research_runner import build_universe, resolve_budget, run_daily
+from backend.research.daily_research_runner import _markdown, build_universe, resolve_budget, run_daily
 from backend.research.research_git import validate_staged_paths
 from backend.research.research_plan import ExecutionPlan, PLAN_AGENTS, ResearchPlan, Trigger
 from backend.research.json_store import write_json_atomic
@@ -117,6 +119,28 @@ def test_all_no_action_does_not_write_summary(tmp_path):
     run_daily(repository=Repo(["A"], ["A"]), orchestrator=Orchestrator(plans), discovery=Discovery(),
               research_root=tmp_path, execute=True)
     assert not (tmp_path / "runs").exists()
+
+
+def test_daily_cost_aggregation_and_markdown_for_called_and_no_action(tmp_path):
+    class CostOrchestrator(Orchestrator):
+        def execute(self, plan, **_kwargs):
+            outcome = super().execute(plan)
+            cost = 0.012345 if plan.symbol == "A" else 0.0
+            return {**outcome, "usage": {"prompt_tokens": 1000 if cost else 0, "cache_hit_tokens": 400 if cost else 0,
+                    "cache_miss_tokens": 600 if cost else 0, "completion_tokens": 200 if cost else 0,
+                    "total_tokens": 1200 if cost else 0, "total_cost_cny": cost},
+                    "agent_usage": {}, "agent_costs": {"analyst": cost} if cost else {}}
+    plans = {"A": make_plan("A", ExecutionPlan.DECISION_ONLY), "B": make_plan("B", ExecutionPlan.NO_ACTION)}
+    payload = run_daily(repository=Repo(["A", "B"], ["A", "B"]), orchestrator=CostOrchestrator(plans),
+                        discovery=Discovery(), research_root=tmp_path, execute=True)
+    assert payload["usage"]["total_cost_cny"] == pytest.approx(.012345)
+    assert payload["researched_company_count"] == 1
+    assert payload["average_cost_per_researched_company_cny"] == pytest.approx(.012345)
+    persisted = json.loads((tmp_path / "runs" / f"{date.today().isoformat()}.json").read_text(encoding="utf-8"))
+    assert persisted["usage"]["total_cost_cny"] == pytest.approx(.012345)
+    markdown = _markdown(payload)
+    assert "Research Cost" in markdown and "Cost CNY" in markdown and "Total cost: ¥0.0123" in markdown
+    assert "Average/company: ¥0.0123" in markdown and "¥0.0000" in markdown
 
 
 def test_research_git_scope_validation():

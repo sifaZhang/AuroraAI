@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import httpx
 
 from .base import GenerationResult, LlmProviderError
+from ..cost_meter import record_response_usage
 
 
 DEEPSEEK_CHAT_URL = "https://api.deepseek.com/chat/completions"
@@ -37,6 +38,7 @@ class DeepSeekProvider:
     timeout: float = 90.0
     max_output_tokens: int = 6000
     client: httpx.Client | None = None
+    role: str | None = None
 
     @classmethod
     def from_environment(cls, *, role: str | None = None) -> "DeepSeekProvider":
@@ -49,6 +51,7 @@ class DeepSeekProvider:
             temperature=float(os.environ.get("RESEARCH_LLM_TEMPERATURE", "0.1")),
             timeout=float(os.environ.get("RESEARCH_LLM_TIMEOUT", "90")),
             max_output_tokens=int(os.environ.get("RESEARCH_LLM_MAX_OUTPUT_TOKENS", "6000")),
+            role=role,
         )
 
     def generate_structured(self, *, system_prompt: str, user_prompt: str) -> GenerationResult:
@@ -79,10 +82,16 @@ class DeepSeekProvider:
             raise LlmProviderError("DeepSeek API response has no message content") from exc
         if not isinstance(content, str) or not content.strip():
             raise LlmProviderError("DeepSeek API returned empty JSON content")
-        usage = data.get("usage") or {}
-        return GenerationResult(content=content, provider="deepseek", model=str(data.get("model") or self.model),
+        usage = data.get("usage") if isinstance(data.get("usage"), dict) else {}
+        model = str(data.get("model") or self.model)
+        try:
+            record_response_usage(agent=self.role, model=model, usage=usage)
+        except Exception:
+            # Telemetry is strictly side-channel: a meter defect must not alter a valid response.
+            pass
+        return GenerationResult(content=content, provider="deepseek", model=model,
                                 input_tokens=usage.get("prompt_tokens"), output_tokens=usage.get("completion_tokens"),
-                                latency_ms=round((time.perf_counter() - started) * 1000))
+                                latency_ms=round((time.perf_counter() - started) * 1000), usage=usage)
 
     def _headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}

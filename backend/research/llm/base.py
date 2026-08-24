@@ -16,6 +16,7 @@ class GenerationResult:
     input_tokens: int | None = None
     output_tokens: int | None = None
     latency_ms: int | None = None
+    usage: dict[str, int] | None = None
 
 
 class StructuredProvider(Protocol):

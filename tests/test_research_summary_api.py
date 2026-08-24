@@ -88,13 +88,13 @@ def test_real_poc_summaries_and_api_filters():
     payload = client.get("/api/research").json()
     by_symbol = {item["symbol"]: item for item in payload["items"]}
     assert (by_symbol["000858.SZ"]["yield_signal"], by_symbol["000858.SZ"]["research_decision"],
-            by_symbol["000858.SZ"]["decision_confidence"]) == ("heavy", "watch", .55)
+            by_symbol["000858.SZ"]["decision_confidence"]) == ("heavy", "watch", .64)
     assert (by_symbol["000858.SZ"]["confidence_level"], by_symbol["000858.SZ"]["confidence_source"]) == ("MEDIUM", "calibrated")
     assert (by_symbol["000858.SZ"]["decision_cap"], by_symbol["000858.SZ"]["skeptic_verdict"],
             by_symbol["000858.SZ"]["valuation_status"], by_symbol["000858.SZ"]["forecast_quality"]) == (
                 "entry", "CAUTION", "FAIR_TO_EXPENSIVE", "LOW")
     assert (by_symbol["000423.SZ"]["yield_signal"], by_symbol["000423.SZ"]["research_decision"],
-            by_symbol["000423.SZ"]["decision_confidence"]) == ("heavy", "watch", .60)
+            by_symbol["000423.SZ"]["decision_confidence"]) == ("heavy", "watch", .62)
     assert by_symbol["000423.SZ"]["confidence_source"] == "calibrated"
     assert client.get("/api/research", params={"decision": "watch", "q": "000858"}).json()["total"] == 1
     assert client.get("/api/research", params={"decision": "unknown"}).status_code == 422

@@ -80,6 +80,22 @@ def test_wide_scenario_spread_reduces_earnings_visibility():
     assert ConfidenceCalibrator._earnings(analyst, valuation).score == 25
 
 
+def test_forward_consensus_adjusts_only_earnings_and_valuation_components():
+    analyst, skeptic, valuation, decision = documents()
+    year = valuation.normalized_earnings.period[2:6]
+    median = valuation.normalized_earnings.base * 100_000_000
+    consensus = {"status": "AVAILABLE", "forecast_years": {
+        year: {"quality": "HIGH", "net_profit": {"median": median},
+               "revision": {"supported": True}},
+        str(int(year)+1): {"quality": "MEDIUM", "net_profit": {"median": median},
+                           "revision": {"supported": False}},
+    }}
+    assert ConfidenceCalibrator._earnings(analyst, valuation, consensus).score > ConfidenceCalibrator._earnings(analyst, valuation).score
+    assert ConfidenceCalibrator._valuation(valuation, decision, consensus).score == ConfidenceCalibrator._valuation(valuation, decision).score + 5
+    assert ConfidenceCalibrator._risk(skeptic) == ConfidenceCalibrator._risk(skeptic)
+    assert ConfidenceCalibrator._consistency(analyst, skeptic, decision) == ConfidenceCalibrator._consistency(analyst, skeptic, decision)
+
+
 @pytest.mark.parametrize(("verdict", "minimum"), [("PASS", 40), ("CAUTION", 0), ("BLOCK", 0)])
 def test_skeptic_verdicts_and_risk_penalties(verdict, minimum):
     _, skeptic, _, _ = documents()
@@ -121,8 +137,8 @@ def test_model_confidence_is_audit_only_for_both_real_pocs():
     calculator = ConfidenceCalibrator(research_root=ROOT, now=lambda: FIXED_NOW)
     first = calculator.calculate("000858.SZ", "2026-08-23_v3")
     second = calculator.calculate("000423.SZ", "2026-08-23_v1")
-    assert (first.model_reported_confidence, first.score, first.level) == (.4, 55, "MEDIUM")
-    assert (second.model_reported_confidence, second.score, second.level) == (0, 60, "MEDIUM")
+    assert (first.model_reported_confidence, first.score, first.level) == (.4, 64, "MEDIUM")
+    assert (second.model_reported_confidence, second.score, second.level) == (0, 62, "MEDIUM")
     assert first.score != 100 and second.score != 0
 
 

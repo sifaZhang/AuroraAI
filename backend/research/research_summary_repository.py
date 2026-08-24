@@ -12,6 +12,8 @@ from .analyst_schema import AnalystDocument
 from .confidence_calibration_schema import ConfidenceCalibration
 from .decision_schema import DecisionDocument
 from .evidence_summary_schema import validate_evidence_summary
+from .forward_consensus_collector import compare_ai_to_consensus
+from .forward_consensus_schema import ForwardConsensus
 from .json_store import read_json
 from .profile_builder import DEFAULT_RESEARCH_ROOT
 from .research_run_schema import RunDocument
@@ -143,6 +145,7 @@ class ResearchSummaryRepository:
             "portfolio": decision.generation,
         }
         confidence = self._confidence(folder, decision)
+        forward_consensus = self._forward_consensus(folder, valuation)
         return {
             "symbol": decision.symbol,
             "company_name": dividend.get("company_name") or company.get("name"),
@@ -162,6 +165,7 @@ class ResearchSummaryRepository:
             "decision": decision.model_dump(mode="json"),
             "confidence": confidence,
             "valuation": valuation.model_dump(mode="json"),
+            "forward_consensus": forward_consensus,
             "skeptic": skeptic.model_dump(mode="json"),
             "analyst": analyst.model_dump(mode="json"),
             "research_conditions": {
@@ -178,6 +182,25 @@ class ResearchSummaryRepository:
             "technical": {name: dict(metadata) for name, metadata in generations.items()},
             "history": {"completed_versions": len(self._analysis_folders(decision.symbol))},
         }
+
+    @staticmethod
+    def _forward_consensus(folder: Path, valuation: ValuationDocument) -> dict[str, Any]:
+        try:
+            document = ForwardConsensus.model_validate(read_json(folder / "forward_consensus.json"))
+            if document.symbol != valuation.symbol or document.analysis_version != folder.name:
+                raise ValueError("forward consensus identity mismatch")
+            payload = document.model_dump(mode="json")
+            return {
+                "status": payload["status"], "source": payload["source"],
+                "as_of_date": payload["as_of_date"], "method": payload["method"],
+                "forecast_years": payload["forecast_years"],
+                "source_records": payload["source_records"],
+                "comparison": compare_ai_to_consensus(valuation.model_dump(mode="json"), payload),
+            }
+        except (OSError, ValueError, ValidationError):
+            return {"status": "UNAVAILABLE", "source": "tushare_report_rc", "as_of_date": None,
+                    "method": None, "forecast_years": {}, "source_records": {},
+                    "comparison": compare_ai_to_consensus(valuation.model_dump(mode="json"), None)}
 
     @staticmethod
     def _confidence(folder: Path, decision: DecisionDocument) -> dict[str, Any]:

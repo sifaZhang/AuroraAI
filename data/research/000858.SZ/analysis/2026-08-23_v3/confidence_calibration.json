@@ -19,9 +19,12 @@
       "reasons": [
         "Forecast quality LOW maps to 40.",
         "Normalized-earnings scenario spread is between 50% and 100% (-10).",
-        "Analyst normalized earnings are insufficient (-5)."
+        "Analyst normalized earnings are insufficient (-5).",
+        "FY2026 consensus quality MEDIUM adjusts earnings visibility by +15.",
+        "FY2 consensus has at least medium quality (+10).",
+        "AI-to-consensus comparison is ALIGNED (+5)."
       ],
-      "score": 25,
+      "score": 55,
       "weight": 0.25
     },
     "evidence_completeness": {
@@ -58,18 +61,19 @@
         "Normalized-earnings scenarios are complete (+10).",
         "Valuation multiple scenarios are complete (+5).",
         "Reverse-valuation scenarios are available (+5).",
-        "Forecast quality LOW caps valuation reliability at 55."
+        "Forecast quality LOW caps valuation reliability at 55.",
+        "Reliable FY1 consensus overlaps the AI earnings range (+5)."
       ],
-      "score": 55,
+      "score": 60,
       "weight": 0.25
     }
   },
-  "generated_at": "2026-08-23T09:11:10+00:00",
+  "generated_at": "2026-08-23T09:55:09+00:00",
   "level": "MEDIUM",
   "method": "deterministic-v1",
   "model_reported_confidence": 0.4,
   "schema_version": 1,
-  "score": 55,
+  "score": 64,
   "strengths": [
     "Evidence Completeness: Latest financial report evidence is available.",
     "Agent Consistency: Structured agent consistency starts at 50."

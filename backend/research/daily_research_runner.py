@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -27,6 +27,9 @@ class SymbolResult:
     execution_plan: str | None = None
     estimated_llm_calls: int = 0
     actual_llm_calls: int = 0
+    usage: dict[str, Any] = field(default_factory=lambda: {"prompt_tokens": 0, "cache_hit_tokens": 0, "cache_miss_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "total_cost_cny": 0.0})
+    agent_usage: dict[str, Any] = field(default_factory=dict)
+    agent_costs: dict[str, float] = field(default_factory=dict)
     error: str | None = None
 
 
@@ -109,6 +112,16 @@ def run_daily(*, repository: ProfileRepository, orchestrator: ResearchOrchestrat
                 outcome = orchestrator.execute(plan, max_llm_calls=max_llm_calls)
                 item.status = outcome["status"]
                 item.actual_llm_calls = int(outcome.get("actual_llm_calls", 0))
+                item.usage = dict(outcome.get("usage", item.usage))
+                item.agent_usage = dict(outcome.get("agent_usage", {}))
+                item.agent_costs = dict(outcome.get("agent_costs", {}))
+                print("research_cost " + " ".join([
+                    f"symbol={item.symbol}", f"calls={item.actual_llm_calls}",
+                    f"prompt_tokens={item.usage['prompt_tokens']}", f"cache_hit_tokens={item.usage['cache_hit_tokens']}",
+                    f"cache_miss_tokens={item.usage['cache_miss_tokens']}",
+                    f"completion_tokens={item.usage['completion_tokens']}",
+                    f"cost_cny={item.usage['total_cost_cny']:.6f}",
+                ]))
             except Exception as exc:
                 item.status = "EXECUTION_FAILED"
                 item.error = f"{type(exc).__name__}: {exc}"
@@ -116,6 +129,10 @@ def run_daily(*, repository: ProfileRepository, orchestrator: ResearchOrchestrat
         completed = [item for item in results if item.status == "COMPLETED"]
         status = "PARTIAL" if failed and (completed or any(x.status == "NO_ACTION" for x in results)) else ("FAILED" if failed else "COMPLETED")
 
+    usage_fields = ("prompt_tokens", "cache_hit_tokens", "cache_miss_tokens", "completion_tokens", "total_tokens")
+    usage = {name: sum(int(item.usage.get(name, 0)) for item in results) for name in usage_fields}
+    usage["total_cost_cny"] = sum(float(item.usage.get("total_cost_cny", 0)) for item in results)
+    researched_company_count = sum(item.actual_llm_calls > 0 for item in results)
     payload = {
         "schema_version": 1,
         "run_date": run_date.isoformat(),
@@ -127,6 +144,9 @@ def run_daily(*, repository: ProfileRepository, orchestrator: ResearchOrchestrat
         "budget": max_llm_calls,
         "estimated_llm_calls": estimated,
         "actual_llm_calls": sum(item.actual_llm_calls for item in results),
+        "usage": usage,
+        "researched_company_count": researched_company_count,
+        "average_cost_per_researched_company_cny": usage["total_cost_cny"] / researched_company_count if researched_company_count else 0.0,
         "agent_plan": {agent: sum(agent in plan.estimated_agents for plan in plans)
                        for agent in ("analyst", "skeptic", "valuation", "portfolio")},
         "plan_counts": {execution.value: sum(plan.execution_plan == execution for plan in plans)
@@ -137,6 +157,7 @@ def run_daily(*, repository: ProfileRepository, orchestrator: ResearchOrchestrat
     meaningful = status != "COMPLETED" or any(item.status == "COMPLETED" for item in results)
     if execute and meaningful:
         write_json_atomic(research_root / "runs" / f"{run_date.isoformat()}.json", payload)
+    print(f"research_cost_total companies={researched_company_count} calls={payload['actual_llm_calls']} cost_cny={usage['total_cost_cny']:.6f}")
     return payload
 
 
@@ -147,6 +168,17 @@ def _markdown(payload: dict[str, Any]) -> str:
              "| Symbol | Status | Plan | Calls |", "|---|---|---|---:|"]
     for item in payload["results"]:
         lines.append(f"| {item['symbol']} | {item['status']} | {item['execution_plan'] or '-'} | {item['estimated_llm_calls']} |")
+    lines.extend(["", "## Research Cost", "", "| Symbol | Status | Calls | Prompt | Cache Hit | Cache Miss | Output | Cost CNY |",
+                  "|---|---|---:|---:|---:|---:|---:|---:|"])
+    for item in payload["results"]:
+        usage = item.get("usage", {})
+        lines.append(f"| {item['symbol']} | {item['status']} | {item.get('actual_llm_calls', 0)} | "
+                     f"{int(usage.get('prompt_tokens', 0)):,} | {int(usage.get('cache_hit_tokens', 0)):,} | "
+                     f"{int(usage.get('cache_miss_tokens', 0)):,} | {int(usage.get('completion_tokens', 0)):,} | "
+                     f"¥{float(usage.get('total_cost_cny', 0)):.4f} |")
+    lines.extend(["", f"Total LLM calls: {payload['actual_llm_calls']}", f"Total cost: ¥{float(payload['usage']['total_cost_cny']):.4f}",
+                  f"Researched companies: {payload['researched_company_count']}",
+                  f"Average/company: ¥{float(payload['average_cost_per_researched_company_cny']):.4f}"])
     return "\n".join(lines) + "\n"
 
 

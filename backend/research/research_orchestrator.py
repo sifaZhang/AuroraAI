@@ -8,6 +8,8 @@ from typing import Any, Callable
 
 from .fundamental_analyst import FundamentalAnalyst
 from .confidence_calibrator import ConfidenceCalibrator
+from .cost_meter import CostMeter, activate_cost_meter, deactivate_cost_meter
+from .forward_consensus_collector import ForwardConsensusCollector
 from .evidence_compressor import EvidenceCompressor
 from .input_pack_builder import InputPackBuilder
 from .json_store import read_json, write_json_atomic
@@ -27,10 +29,10 @@ from .valuation_input_builder import ValuationInputBuilder
 
 
 STEP_PLANS = {
-    ExecutionPlan.FULL_REFRESH: {"source_collection": "RUN", "input_pack": "REFRESHED", "evidence_compression": "RUN", "analyst": "RUN", "skeptic": "RUN", "valuation_input": "REFRESHED", "valuation": "RUN", "portfolio_manager": "RUN", "confidence_calibration": "RUN"},
-    ExecutionPlan.VALUATION_REFRESH: {"source_collection": "SKIPPED", "input_pack": "REFRESHED", "evidence_compression": "REUSED", "analyst": "REUSED", "skeptic": "REUSED", "valuation_input": "REFRESHED", "valuation": "RUN", "portfolio_manager": "RUN", "confidence_calibration": "RUN"},
-    ExecutionPlan.DECISION_ONLY: {"source_collection": "SKIPPED", "input_pack": "REFRESHED", "evidence_compression": "REUSED", "analyst": "REUSED", "skeptic": "REUSED", "valuation_input": "REUSED", "valuation": "REUSED", "portfolio_manager": "RUN", "confidence_calibration": "RUN"},
-    ExecutionPlan.NO_ACTION: {"source_collection": "SKIPPED", "input_pack": "SKIPPED", "evidence_compression": "SKIPPED", "analyst": "SKIPPED", "skeptic": "SKIPPED", "valuation_input": "SKIPPED", "valuation": "SKIPPED", "portfolio_manager": "SKIPPED", "confidence_calibration": "SKIPPED"},
+    ExecutionPlan.FULL_REFRESH: {"source_collection": "RUN", "input_pack": "REFRESHED", "evidence_compression": "RUN", "analyst": "RUN", "skeptic": "RUN", "forward_consensus": "REFRESHED", "valuation_input": "REFRESHED", "valuation": "RUN", "portfolio_manager": "RUN", "confidence_calibration": "RUN"},
+    ExecutionPlan.VALUATION_REFRESH: {"source_collection": "SKIPPED", "input_pack": "REFRESHED", "evidence_compression": "REUSED", "analyst": "REUSED", "skeptic": "REUSED", "forward_consensus": "REFRESHED", "valuation_input": "REFRESHED", "valuation": "RUN", "portfolio_manager": "RUN", "confidence_calibration": "RUN"},
+    ExecutionPlan.DECISION_ONLY: {"source_collection": "SKIPPED", "input_pack": "REFRESHED", "evidence_compression": "REUSED", "analyst": "REUSED", "skeptic": "REUSED", "forward_consensus": "REUSED", "valuation_input": "REUSED", "valuation": "REUSED", "portfolio_manager": "RUN", "confidence_calibration": "RUN"},
+    ExecutionPlan.NO_ACTION: {"source_collection": "SKIPPED", "input_pack": "SKIPPED", "evidence_compression": "SKIPPED", "analyst": "SKIPPED", "skeptic": "SKIPPED", "forward_consensus": "SKIPPED", "valuation_input": "SKIPPED", "valuation": "SKIPPED", "portfolio_manager": "SKIPPED", "confidence_calibration": "SKIPPED"},
 }
 
 
@@ -70,10 +72,13 @@ class ResearchOrchestrator:
     def execute(self, plan: ResearchPlan, *, max_llm_calls: int | None = None) -> dict[str, Any]:
         enforce_llm_budget([plan], max_llm_calls)
         if plan.execution_plan == ExecutionPlan.NO_ACTION:
-            return {"symbol": plan.symbol, "execution_plan": plan.execution_plan.value, "estimated_llm_calls": 0, "status": "NO_ACTION"}
+            telemetry = CostMeter().summary()
+            return {"symbol": plan.symbol, "execution_plan": plan.execution_plan.value, "estimated_llm_calls": 0,
+                    "actual_llm_calls": 0, "status": "NO_ACTION", **telemetry}
         previous = self.research_root / plan.symbol / "analysis" / str(plan.previous_analysis_version)
         current_step = "source_collection" if plan.execution_plan == ExecutionPlan.FULL_REFRESH else "input_pack"
         folder: Path | None = None; actual_calls = 0
+        meter = CostMeter(); meter_token = activate_cost_meter(meter)
         try:
             if plan.execution_plan == ExecutionPlan.FULL_REFRESH:
                 self._collect_sources(plan.symbol)
@@ -96,9 +101,16 @@ class ResearchOrchestrator:
                 if plan.execution_plan == ExecutionPlan.DECISION_ONLY:
                     for name in ("valuation_input.json", "valuation.json"):
                         shutil.copyfile(previous / name, folder / name)
+                    if (previous / "forward_consensus.json").exists():
+                        consensus = read_json(previous / "forward_consensus.json")
+                        consensus["analysis_version"] = version
+                        write_json_atomic(folder / "forward_consensus.json", consensus)
             if plan.execution_plan == ExecutionPlan.FULL_REFRESH:
                 current_step = "analyst"; actual_calls += 1; FundamentalAnalyst(research_root=self.research_root).run(plan.symbol, version=version)
                 current_step = "skeptic"; actual_calls += 1; SkepticAnalyst(research_root=self.research_root).run(plan.symbol, version=version)
+            if plan.execution_plan != ExecutionPlan.DECISION_ONLY:
+                current_step = "forward_consensus"
+                ForwardConsensusCollector(research_root=self.research_root).run(plan.symbol, version, as_of_date=self.today())
             if plan.execution_plan != ExecutionPlan.DECISION_ONLY:
                 current_step = "valuation_input"; ValuationInputBuilder(research_root=self.research_root).build(plan.symbol, version=version)
                 current_step = "valuation"; actual_calls += 1; ValuationAgent(research_root=self.research_root).run(plan.symbol, version=version)
@@ -117,12 +129,18 @@ class ResearchOrchestrator:
             run = self._run_document(plan, version, "COMPLETED", actual_calls)
             write_json_atomic(folder / "run.json", run.model_dump(mode="json"))
             write_json_atomic(folder.parents[1] / "current.json", {"schema_version": 1, "status": "analyzed", "analysis_version": version, "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds")})
-            return {"symbol": plan.symbol, "version": version, "execution_plan": plan.execution_plan.value, "estimated_llm_calls": plan.estimated_llm_calls, "actual_llm_calls": actual_calls, "status": "COMPLETED"}
+            telemetry = meter.summary()
+            observed_calls = telemetry["actual_llm_calls"] or actual_calls
+            return {"symbol": plan.symbol, "version": version, "execution_plan": plan.execution_plan.value,
+                    "estimated_llm_calls": plan.estimated_llm_calls, "status": "COMPLETED", **telemetry,
+                    "actual_llm_calls": observed_calls}
         except Exception:
             if folder is not None:
                 failed = self._run_document(plan, folder.name, "FAILED", actual_calls, failed_step=current_step)
                 write_json_atomic(folder / "run.json", failed.model_dump(mode="json"))
             raise
+        finally:
+            deactivate_cost_meter(meter_token)
 
     def _previous_state(self, symbol: str) -> ResearchState | None:
         analysis = self.research_root / symbol / "analysis"

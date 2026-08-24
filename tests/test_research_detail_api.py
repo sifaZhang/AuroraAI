@@ -63,9 +63,11 @@ def test_real_detail_api_for_both_pocs_preserves_zero_confidence():
     assert first["valuation"]["fair_value_per_share"] == {"bear": 24.73, "base": 55.64, "bull": 98.93}
     assert first["valuation"]["dividend_cross_check"]["sustainable_yield"] == .0656
     assert second["decision"]["decision_confidence"] == 0
-    assert (first["confidence"]["score"], first["confidence"]["level"], first["confidence"]["model_reported"]) == (55, "MEDIUM", .4)
-    assert (second["confidence"]["score"], second["confidence"]["level"], second["confidence"]["model_reported"]) == (60, "MEDIUM", 0)
+    assert (first["confidence"]["score"], first["confidence"]["level"], first["confidence"]["model_reported"]) == (64, "MEDIUM", .4)
+    assert (second["confidence"]["score"], second["confidence"]["level"], second["confidence"]["model_reported"]) == (62, "MEDIUM", 0)
     assert first["confidence"]["source"] == second["confidence"]["source"] == "calibrated"
+    assert first["forward_consensus"]["status"] == second["forward_consensus"]["status"] == "AVAILABLE"
+    assert first["forward_consensus"]["comparison"]["agreement"] == "ALIGNED"
     assert second["valuation"]["fair_value_per_share"] == {"bear": 30.75, "base": 41.46, "bull": 53.68}
 
 

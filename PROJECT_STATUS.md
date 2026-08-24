@@ -1,5 +1,25 @@
 # AuroraAI 项目状态
 
+## 2026-08-24: PR-IR14A Research Cost Telemetry (implemented, uncommitted)
+
+- Added provider-response-based token telemetry with cache-aware DeepSeek Flash pricing, per-agent/company aggregation, daily JSON persistence, searchable logs, and GitHub Actions cost summaries.
+- Telemetry is side-channel only: it makes no extra LLM calls and does not alter research planning, prompts, valuation, decisions, triggers, trading-day gate, or database schema.
+
+## 2026-08-24: PR-D4E Unified A-share Trading-day Gate (implemented, uncommitted)
+
+- Added one reusable SSE/Tushare `trade_cal` check and a lightweight CLI with stable GitHub outputs; missing or failed calendar data fails the workflow instead of being treated as a market closure.
+- The combined daily workflow now gates Dividend, Research, and the research-only commit on the same Beijing-date result. Non-trading days finish successfully with all business steps skipped.
+- The Dividend CLI retains its defensive market-day check by reusing the common function. Research Runner, cron, email behavior on trading days, research logic, database schema, and migrations are unchanged.
+
+## 2026-08-23: PR-IR13 Forward Earnings & Consensus Enrichment (implemented, uncommitted)
+
+- Added point-in-time Tushare `report_rc` aggregation with exact institution deduplication, 90/180-day freshness windows, explicit units, coverage quality, revisions, and atomic artifacts.
+- Forward consensus is an external expectation cross-check, not an actual result or valuation authority; target prices are not collected or exposed.
+- FULL_REFRESH and VALUATION_REFRESH refresh the aggregate before valuation; DECISION_ONLY reuses it; source failures degrade to an explicit unavailable artifact without changing LLM budgets.
+- Deterministic confidence calibration uses consensus only for Earnings Visibility and a limited Valuation Reliability cross-check. Evidence, Risk, Consistency, decisions, caps, and IR10 triggers are unchanged.
+- Detail API/UI expose only aggregate forecast statistics and provenance. No database schema, migration, Review Agent, or DeepSeek call was added.
+- Tushare-only POC recalibration: `000858.SZ` = 64 MEDIUM and `000423.SZ` = 62 MEDIUM; both existing decisions remain `watch` with cap `entry`.
+
 ## 2026-08-23: PR-IR12 Research Confidence Calibration (implemented, uncommitted)
 
 - Added deterministic five-component Research Confidence calibration with strict schema, atomic artifact output, documented scoring rules, explicit insufficiency handling, and zero LLM calls.

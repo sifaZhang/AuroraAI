@@ -1,0 +1,168 @@
+{
+  "analysis_version": "2026-08-23_v3",
+  "as_of_date": "2026-08-23",
+  "forecast_years": {
+    "2026": {
+      "eps": {
+        "institution_count": 4,
+        "max": 4.95,
+        "mean": 4.38,
+        "median": 4.395,
+        "min": 3.78,
+        "outlier_count": 0,
+        "std": 0.4300581356049436,
+        "unit": "CNY_PER_SHARE"
+      },
+      "fiscal_year": 2026,
+      "fresh_estimate_ratio": 1.0,
+      "freshness_window_days": 90,
+      "latest_report_date": "2026-08-19",
+      "median_age_days": 33.0,
+      "net_profit": {
+        "institution_count": 5,
+        "max": 19213959620.0,
+        "mean": 16563218424.0,
+        "median": 16418000000.0,
+        "min": 14684000000.0,
+        "outlier_count": 0,
+        "std": 1730924145.7026114,
+        "unit": "CNY"
+      },
+      "oldest_included_report_date": "2026-06-16",
+      "period": "FY2026",
+      "quality": "MEDIUM",
+      "revenue": {
+        "institution_count": 3,
+        "max": 49919300000.0,
+        "mean": 46875100000.0,
+        "median": 45856000000.0,
+        "min": 44850000000.0,
+        "outlier_count": 0,
+        "std": 2191403542.633503,
+        "unit": "CNY"
+      },
+      "revision": {
+        "matched_institution_count": 1,
+        "median_revision_pct": -0.16233592132209906,
+        "revisions_down": 1,
+        "revisions_unchanged": 0,
+        "revisions_up": 0,
+        "supported": false
+      }
+    },
+    "2027": {
+      "eps": {
+        "institution_count": 4,
+        "max": 5.27,
+        "mean": 4.8,
+        "median": 4.79,
+        "min": 4.35,
+        "outlier_count": 0,
+        "std": 0.3345893004864322,
+        "unit": "CNY_PER_SHARE"
+      },
+      "fiscal_year": 2027,
+      "fresh_estimate_ratio": 1.0,
+      "freshness_window_days": 90,
+      "latest_report_date": "2026-08-19",
+      "median_age_days": 33.0,
+      "net_profit": {
+        "institution_count": 5,
+        "max": 20456074190.0,
+        "mean": 18208390682.0,
+        "median": 18185000000.0,
+        "min": 16500000000.0,
+        "outlier_count": 0,
+        "std": 1441645356.4209082,
+        "unit": "CNY"
+      },
+      "oldest_included_report_date": "2026-06-16",
+      "period": "FY2027",
+      "quality": "MEDIUM",
+      "revenue": {
+        "institution_count": 3,
+        "max": 54916100000.0,
+        "mean": 51416700000.0,
+        "median": 50774000000.0,
+        "min": 48560000000.0,
+        "outlier_count": 0,
+        "std": 2634362575.6527896,
+        "unit": "CNY"
+      },
+      "revision": {
+        "matched_institution_count": 1,
+        "median_revision_pct": -0.1427004352264244,
+        "revisions_down": 1,
+        "revisions_unchanged": 0,
+        "revisions_up": 0,
+        "supported": false
+      }
+    },
+    "2028": {
+      "eps": {
+        "institution_count": 2,
+        "max": 5.0,
+        "mean": 4.984999999999999,
+        "median": 4.984999999999999,
+        "min": 4.97,
+        "outlier_count": 0,
+        "std": 0.015000000000000124,
+        "unit": "CNY_PER_SHARE"
+      },
+      "fiscal_year": 2028,
+      "fresh_estimate_ratio": 1.0,
+      "freshness_window_days": 90,
+      "latest_report_date": "2026-08-03",
+      "median_age_days": 29.0,
+      "net_profit": {
+        "institution_count": 2,
+        "max": 19410000000.0,
+        "mean": 19355000000.0,
+        "median": 19355000000.0,
+        "min": 19300000000.0,
+        "outlier_count": 0,
+        "std": 55000000.0,
+        "unit": "CNY"
+      },
+      "oldest_included_report_date": "2026-07-16",
+      "period": "FY2028",
+      "quality": "LOW",
+      "revenue": {
+        "institution_count": 2,
+        "max": 61523700000.0,
+        "mean": 57705350000.0,
+        "median": 57705350000.0,
+        "min": 53887000000.0,
+        "outlier_count": 0,
+        "std": 3818350000.0,
+        "unit": "CNY"
+      },
+      "revision": {
+        "matched_institution_count": 1,
+        "median_revision_pct": -0.13899632846620896,
+        "revisions_down": 1,
+        "revisions_unchanged": 0,
+        "revisions_up": 0,
+        "supported": false
+      }
+    }
+  },
+  "generated_at": "2026-08-23T09:53:43+00:00",
+  "method": "point-in-time-institution-median-v1",
+  "schema_version": 1,
+  "source": "tushare_report_rc",
+  "source_error_message": null,
+  "source_error_type": null,
+  "source_records": {
+    "eligible_annual_record_count": 403,
+    "future_record_count_excluded": 0,
+    "latest_report_date": "2026-08-19",
+    "malformed_record_count_excluded": 1,
+    "oldest_report_date": "2025-08-25",
+    "record_count": 404,
+    "unique_institution_count": 46,
+    "unique_report_count": 139
+  },
+  "status": "AVAILABLE",
+  "symbol": "000858.SZ"
+}

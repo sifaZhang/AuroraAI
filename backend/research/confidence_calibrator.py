@@ -12,6 +12,7 @@ from .confidence_calibration_schema import (
     ConfidenceCalibration, ConfidenceComponent, ConfidenceComponents, confidence_level,
 )
 from .decision_schema import DecisionDocument, ORDER
+from .forward_consensus_collector import compare_ai_to_consensus
 from .json_store import read_json, write_json_atomic
 from .profile_builder import DEFAULT_RESEARCH_ROOT
 from .skeptic_schema import SkepticDocument
@@ -50,14 +51,15 @@ class ConfidenceCalibrator:
         skeptic = SkepticDocument.model_validate(read_json(folder / "skeptic.json"))
         valuation = ValuationDocument.model_validate(read_json(folder / "valuation.json"))
         decision = DecisionDocument.model_validate(read_json(folder / "decision.json"))
+        consensus = read_json(folder / "forward_consensus.json") if (folder / "forward_consensus.json").is_file() else None
         documents = (analyst, skeptic, valuation, decision)
         if any(item.symbol != symbol or item.analysis_version != version for item in documents):
             raise ValueError("confidence inputs do not match symbol and analysis version")
         authority = {str(item.get("id")) for item in evidence.get("evidence", []) if item.get("id")}
         components = ConfidenceComponents(
             evidence_completeness=self._evidence(evidence, summary, analyst, skeptic, valuation, authority),
-            earnings_visibility=self._earnings(analyst, valuation),
-            valuation_reliability=self._valuation(valuation, decision),
+            earnings_visibility=self._earnings(analyst, valuation, consensus),
+            valuation_reliability=self._valuation(valuation, decision, consensus),
             risk_resolution=self._risk(skeptic),
             agent_consistency=self._consistency(analyst, skeptic, decision),
         )
@@ -134,7 +136,8 @@ class ConfidenceCalibrator:
         return ConfidenceComponent(score=_clamp(score), weight=WEIGHTS["evidence_completeness"], reasons=reasons)
 
     @staticmethod
-    def _earnings(analyst: AnalystDocument, valuation: ValuationDocument) -> ConfidenceComponent:
+    def _earnings(analyst: AnalystDocument, valuation: ValuationDocument,
+                  consensus: dict[str, Any] | None = None) -> ConfidenceComponent:
         normalized = valuation.normalized_earnings
         score = FORECAST_BASE[normalized.forecast_quality]
         reasons = [f"Forecast quality {normalized.forecast_quality} maps to {score}."]
@@ -153,10 +156,32 @@ class ConfidenceCalibrator:
             reasons.append("A complete normalized-earnings scenario spread is unavailable (no adjustment).")
         if analyst.normalized_earnings.method == "insufficient_evidence":
             score -= 5; reasons.append("Analyst normalized earnings are insufficient (-5).")
+        if consensus and consensus.get("status") == "AVAILABLE":
+            years = consensus.get("forecast_years", {})
+            match = __import__("re").fullmatch(r"FY(\d{4})E", str(normalized.period or ""))
+            key = match.group(1) if match and match.group(1) in years else min(years, default=None)
+            if key:
+                fy1 = years[key]; quality = fy1.get("quality", "INSUFFICIENT")
+                adjustment = {"HIGH": 20, "MEDIUM": 15, "LOW": 5, "INSUFFICIENT": 0}[quality]
+                score += adjustment; reasons.append(f"FY{key} consensus quality {quality} adjusts earnings visibility by +{adjustment}.")
+                next_year = years.get(str(int(key) + 1), {})
+                if next_year.get("quality") in {"HIGH", "MEDIUM"}:
+                    score += 10; reasons.append("FY2 consensus has at least medium quality (+10).")
+                if fy1.get("revision", {}).get("supported"):
+                    score += 5; reasons.append("FY1 exact-institution revision evidence is supported (+5).")
+            agreement = compare_ai_to_consensus(valuation.model_dump(mode="json"), consensus)["agreement"]
+            delta = {"ALIGNED": 5, "MODERATE_GAP": -5, "LARGE_GAP": -15, "NOT_COMPARABLE": 0}[agreement]
+            score += delta; reasons.append(f"AI-to-consensus comparison is {agreement} ({delta:+d}).")
+        else:
+            reasons.append("Usable forward consensus is unavailable (no adjustment).")
+        cap = {"LOW": 75, "INSUFFICIENT": 50}.get(normalized.forecast_quality, 100)
+        if score > cap:
+            score = cap; reasons.append(f"Forecast quality {normalized.forecast_quality} caps earnings visibility at {cap}.")
         return ConfidenceComponent(score=_clamp(score), weight=WEIGHTS["earnings_visibility"], reasons=reasons)
 
     @staticmethod
-    def _valuation(valuation: ValuationDocument, decision: DecisionDocument) -> ConfidenceComponent:
+    def _valuation(valuation: ValuationDocument, decision: DecisionDocument,
+                   consensus: dict[str, Any] | None = None) -> ConfidenceComponent:
         score = valuation.confidence * 100
         reasons = [f"Valuation-agent confidence supplies the {round(score)}-point base."]
         fair = valuation.fair_value_per_share
@@ -175,6 +200,13 @@ class ConfidenceCalibrator:
         cap = {"LOW": 55, "MEDIUM": 80, "HIGH": 100, "INSUFFICIENT": 30}[normalized.forecast_quality]
         if score > cap:
             score = cap; reasons.append(f"Forecast quality {normalized.forecast_quality} caps valuation reliability at {cap}.")
+        comparison = compare_ai_to_consensus(valuation.model_dump(mode="json"), consensus)
+        year = str(comparison.get("fiscal_year") or "")
+        quality = (consensus or {}).get("forecast_years", {}).get(year, {}).get("quality")
+        if quality in {"HIGH", "MEDIUM"} and comparison["agreement"] in {"ALIGNED", "MODERATE_GAP"}:
+            score += 5; reasons.append("Reliable FY1 consensus overlaps the AI earnings range (+5).")
+        else:
+            reasons.append("Consensus does not provide a reliable overlapping FY1 cross-check (no adjustment).")
         return ConfidenceComponent(score=_clamp(score), weight=WEIGHTS["valuation_reliability"], reasons=reasons)
 
     @staticmethod

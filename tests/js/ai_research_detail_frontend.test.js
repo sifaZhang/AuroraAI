@@ -40,6 +40,7 @@ assert.ok(rangeModel(30.75,41.46,53.68,60));
 assert.strictEqual(rangeModel(null,41.46,53.68,48.35), null);
 
 const markup = renderMarkup(data);
+assert.match(markup, /市场一致预期/);
 for (const text of ["东阿阿胶","HEAVY","WATCH","ENTRY","60%","MEDIUM","Model-reported Confidence: <strong>0%","FAIR TO EXPENSIVE","Current vs Base Fair Value",
   "Market-Implied Earnings","Dividend Cross-check","OCF risk","Dividend Trap Assessment","Evidence-backed Claims",
   "Revenue improved.","升级条件","降级条件","投资逻辑失效条件","Compressed evidence summary unavailable",

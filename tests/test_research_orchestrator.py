@@ -16,6 +16,12 @@ TODAY = date(2026, 8, 23)
 CONFIG = OrchestratorConfig(.10, 30, 90)
 
 
+@pytest.fixture(autouse=True)
+def no_live_consensus(monkeypatch):
+    monkeypatch.setattr("backend.research.research_orchestrator.ForwardConsensusCollector.run",
+                        lambda *_a, **_k: {})
+
+
 def state(*, price=100., signal="heavy", analysis_days=1, valuation_days=1, reports=(), announcements=(),
           anchor=None, exit_confirmed=None, full_days=None):
     return ResearchState("000858.SZ", "2026-08-22_v1", TODAY - timedelta(days=analysis_days),
@@ -109,6 +115,10 @@ def test_compression_step_routing_does_not_add_llm_calls():
     assert STEP_PLANS[ExecutionPlan.VALUATION_REFRESH]["confidence_calibration"] == "RUN"
     assert STEP_PLANS[ExecutionPlan.DECISION_ONLY]["confidence_calibration"] == "RUN"
     assert STEP_PLANS[ExecutionPlan.NO_ACTION]["confidence_calibration"] == "SKIPPED"
+    assert STEP_PLANS[ExecutionPlan.FULL_REFRESH]["forward_consensus"] == "REFRESHED"
+    assert STEP_PLANS[ExecutionPlan.VALUATION_REFRESH]["forward_consensus"] == "REFRESHED"
+    assert STEP_PLANS[ExecutionPlan.DECISION_ONLY]["forward_consensus"] == "REUSED"
+    assert STEP_PLANS[ExecutionPlan.NO_ACTION]["forward_consensus"] == "SKIPPED"
     assert plan(state(), state(reports=("new",))).estimated_llm_calls == 4
 
 

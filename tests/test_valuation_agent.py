@@ -71,8 +71,19 @@ def test_input_builder_derives_values_and_records_missing_data(tmp_path: Path):
  assert y2023['free_cash_flow']['value'] is None
  assert value['balance_sheet']['net_cash']['value'] == 33
  assert value['valuation_history']['pe'] == {'percentile': 1.0, 'sample_count': 1, 'method': 'positive_only'}
+ assert value['forward_consensus']['status'] == 'UNAVAILABLE'
  assert any('2023 capex unavailable' == item for item in value['missing_data'])
  assert value['balance_sheet']['net_cash']['formula'] == 'cash_minus_interest_bearing_debt'
+
+
+def test_input_builder_includes_existing_forward_consensus(tmp_path: Path):
+ root = tmp_path / 'research'; folder = root / '000858.SZ' / 'analysis' / 'v1'; folder.mkdir(parents=True)
+ write_json_atomic(root / '000858.SZ' / 'company.json', {'research_type': {}})
+ write_json_atomic(folder / 'evidence.json', {'evidence': []})
+ write_json_atomic(folder / 'input_snapshot.json', {'symbol': '000858.SZ', 'as_of': '2026-08-23', 'dividend_history': []})
+ write_json_atomic(folder / 'forward_consensus.json', {'status': 'AVAILABLE', 'forecast_years': {'2026': {'quality': 'LOW'}}})
+ ValuationInputBuilder(provider=FakeProvider(), research_root=root).build('000858.SZ', version='v1')
+ assert read_json(folder / 'valuation_input.json')['forward_consensus']['forecast_years']['2026']['quality'] == 'LOW'
 
 
 def test_input_builder_dry_run_does_not_write(tmp_path: Path):
