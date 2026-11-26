@@ -1,4 +1,4 @@
-name: Daily Dividend + Research
+name: Daily Dividend
 
 on:
   schedule:
@@ -15,38 +15,12 @@ on:
         required: false
         default: ""
         type: string
-      research_enabled:
-        description: Run the research planner after the dividend report
-        required: false
-        default: true
-        type: boolean
-      research_dry_run:
-        description: Plan research without executing agents or writing research data
-        required: false
-        default: true
-        type: boolean
-      research_symbol:
-        description: Optional single research symbol
-        required: false
-        default: ""
-        type: string
-      research_mode:
-        description: Research refresh mode
-        required: false
-        default: auto
-        type: choice
-        options: [auto, full, valuation, decision]
-      research_max_llm_calls:
-        description: Optional daily LLM call budget; blank uses 20
-        required: false
-        default: ""
-        type: string
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: dividend-research-daily
+  group: dividend-daily
   cancel-in-progress: false
 
 jobs:
@@ -78,7 +52,7 @@ jobs:
           TRADE_DATE="$(grep '^trade_date=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
           IS_TRADING_DAY="$(grep '^is_trading_day=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
           {
-            echo "# Daily Dividend + Research"
+            echo "# Daily Dividend"
             echo
             echo "Trade date: $TRADE_DATE"
             echo "Trading day: $([ "$IS_TRADING_DAY" = "true" ] && echo yes || echo no)"
@@ -87,8 +61,6 @@ jobs:
               echo "Reason: non_trading_day"
               echo
               echo "Dividend: skipped"
-              echo "Research: skipped"
-              echo "Research commit: skipped"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -133,56 +105,4 @@ jobs:
             echo "Status: completed"
             echo "Mode: ${{ inputs.send_email == true && 'send-email' || 'dry-run' }}"
             echo "Trade date: ${TRADE_DATE:-auto}"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Run daily research
-        if: steps.trading_day.outputs.is_trading_day == 'true' && (github.event_name == 'schedule' || inputs.research_enabled)
-        env:
-          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          DEEPSEEK_ANALYST_MODEL: ${{ vars.DEEPSEEK_ANALYST_MODEL || 'deepseek-v4-flash' }}
-          DEEPSEEK_SKEPTIC_MODEL: ${{ vars.DEEPSEEK_SKEPTIC_MODEL || 'deepseek-v4-flash' }}
-          DEEPSEEK_VALUATION_MODEL: ${{ vars.DEEPSEEK_VALUATION_MODEL || 'deepseek-v4-flash' }}
-          DEEPSEEK_PORTFOLIO_MODEL: ${{ vars.DEEPSEEK_PORTFOLIO_MODEL || 'deepseek-v4-flash' }}
-          RESEARCH_SYMBOL: ${{ inputs.research_symbol }}
-          RESEARCH_MODE: ${{ inputs.research_mode }}
-          RESEARCH_MAX_LLM_CALLS: ${{ inputs.research_max_llm_calls }}
-        run: |
-          ARGS=()
-          if [ -n "$RESEARCH_SYMBOL" ]; then ARGS+=(--symbol "$RESEARCH_SYMBOL"); fi
-          if [ -n "$RESEARCH_MODE" ] && [ "$RESEARCH_MODE" != "auto" ]; then ARGS+=(--mode "$RESEARCH_MODE"); fi
-          if [ -n "$RESEARCH_MAX_LLM_CALLS" ]; then ARGS+=(--max-llm-calls "$RESEARCH_MAX_LLM_CALLS"); fi
-          if [ "$GITHUB_EVENT_NAME" = "schedule" ] || [ "${{ inputs.research_dry_run }}" = "false" ]; then
-            python -m backend.research.daily_research_runner "${ARGS[@]}" --execute
-          else
-            python -m backend.research.daily_research_runner "${ARGS[@]}" --dry-run
-          fi
-
-      - name: Commit daily research outputs
-        if: steps.trading_day.outputs.is_trading_day == 'true' && (github.event_name == 'schedule' || (inputs.research_enabled && !inputs.research_dry_run))
-        run: |
-          git add -- data/research/
-          python -m backend.research.research_git --validate-staged
-          if git diff --cached --quiet; then
-            echo "No research changes to commit."
-            {
-              echo "## Git"
-              echo "Research files changed: none"
-              echo "Commit: none"
-              echo "Push: skipped"
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "research: daily refresh $(TZ=Asia/Shanghai date +%F)"
-          git fetch origin "$GITHUB_REF_NAME"
-          git rebase --autostash "origin/$GITHUB_REF_NAME"
-          git push origin "HEAD:$GITHUB_REF_NAME"
-          {
-            echo "## Research commit"
-            echo
-            echo "Committed and pushed data/research changes only."
-            echo "Commit: $(git rev-parse HEAD)"
-            echo "Push: completed"
           } >> "$GITHUB_STEP_SUMMARY"
