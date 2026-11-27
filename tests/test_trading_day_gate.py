@@ -60,3 +60,15 @@ def test_cli_provider_failure_is_nonzero_and_writes_no_output(monkeypatch, tmp_p
     output = tmp_path / "github-output"
     assert check_trading_day.main(["--date", "2026-08-24", "--github-output", str(output)]) != 0
     assert not output.exists()
+
+
+def test_default_report_date_uses_previous_day_before_close():
+    from datetime import date, datetime
+    from zoneinfo import ZoneInfo
+
+    tz = ZoneInfo("Asia/Shanghai")
+    assert check_trading_day.default_report_date(datetime(2026, 11, 27, 4, 52, tzinfo=tz)) == date(2026, 11, 26)
+    assert check_trading_day.default_report_date(datetime(2026, 11, 27, 11, 51, tzinfo=tz)) == date(2026, 11, 26)
+    assert check_trading_day.default_report_date(datetime(2026, 11, 27, 20, 0, tzinfo=tz)) == date(2026, 11, 27)
+    utc = ZoneInfo("UTC")
+    assert check_trading_day.default_report_date(datetime(2026, 11, 26, 20, 52, tzinfo=utc)) == date(2026, 11, 26)

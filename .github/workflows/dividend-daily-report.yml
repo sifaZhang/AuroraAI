@@ -11,7 +11,7 @@ on:
         default: false
         type: boolean
       trade_date:
-        description: Optional trade date for manual testing (YYYY-MM-DD); blank uses today's Beijing date
+        description: Optional trade date for manual testing (YYYY-MM-DD); blank uses the latest closed Beijing date (before 16:00 Beijing = previous day)
         required: false
         default: ""
         type: string

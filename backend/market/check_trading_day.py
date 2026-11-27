@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -13,8 +13,22 @@ from backend.data_sources.tushare import TushareClient
 from .trading_calendar import is_a_share_trading_day
 
 
+# A-share daily bars are only complete after the close; before this Beijing hour
+# the default report date is the previous calendar day. GitHub's scheduled runs
+# are often delayed past Beijing midnight, so "today" would have no data yet.
+DATA_READY_HOUR_BEIJING = 16
+
+
 def beijing_today() -> date:
     return datetime.now(ZoneInfo("Asia/Shanghai")).date()
+
+
+def default_report_date(now: datetime | None = None) -> date:
+    current = now or datetime.now(ZoneInfo("Asia/Shanghai"))
+    current = current.astimezone(ZoneInfo("Asia/Shanghai"))
+    if current.hour < DATA_READY_HOUR_BEIJING:
+        return current.date() - timedelta(days=1)
+    return current.date()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -22,7 +36,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--date", type=date.fromisoformat)
     parser.add_argument("--github-output", type=Path)
     args = parser.parse_args(argv)
-    trade_date = args.date or beijing_today()
+    trade_date = args.date or default_report_date()
     try:
         settings = DataSourceSettings.from_env()
         if not settings.tushare_token:
